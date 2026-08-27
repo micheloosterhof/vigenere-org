@@ -8,12 +8,9 @@ interface Props {
   cipher: "vigenere" | "beaufort" | "caesar";
 }
 
-const { cipher } = Astro.props;
+import { buttonClass, fieldClass } from "../styles/form";
 
-const buttonClass =
-  "rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300";
-const fieldClass =
-  "w-full rounded-md border border-slate-300 bg-white p-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-900";
+const { cipher } = Astro.props;
 ---
 
 <div data-breaker={cipher} class="flex flex-col gap-4">

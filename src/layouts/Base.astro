@@ -16,6 +16,8 @@ const tools = [
   { href: "/vigenere", label: "Vigenère" },
   { href: "/beaufort", label: "Beaufort" },
   { href: "/caesar", label: "Caesar" },
+  { href: "/quagmire", label: "Quagmire" },
+  { href: "/substitution", label: "Substitution" },
 ];
 ---
 
@@ -31,14 +33,16 @@ const tools = [
   <body
     class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100"
   >
-    <header class="border-b border-slate-200 dark:border-slate-800">
-      <nav class="mx-auto flex max-w-3xl items-center gap-6 px-4 py-3">
-        <a href="/" class="font-semibold tracking-tight">vigenere.org</a>
+    <header class="bg-orange-600 dark:bg-orange-700">
+      <nav
+        class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3"
+      >
+        <a href="/" class="font-bold tracking-tight text-white">vigenere.org</a>
         {
           tools.map((tool) => (
             <a
               href={tool.href}
-              class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              class="text-sm font-medium text-orange-100 hover:text-white"
             >
               {tool.label}
             </a>
@@ -50,7 +54,7 @@ const tools = [
       <slot />
     </main>
     <footer
-      class="border-t border-slate-200 py-4 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400"
+      class="border-t border-orange-200 py-4 text-center text-sm text-slate-500 dark:border-orange-900 dark:text-slate-400"
     >
       All ciphers run in your browser; nothing is sent to a server.
     </footer>
