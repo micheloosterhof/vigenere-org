@@ -2,7 +2,13 @@
 // ABOUTME: One formula covers all variants; they differ only in which alphabets are keyed.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { normalizeKey, substituteLetters, type Mode } from "./cipher";
+import {
+  inverseAlphabet,
+  mixedAlphabet,
+  normalizeKey,
+  substituteLetters,
+  type Mode,
+} from "./cipher";
 
 const ALPHABET_SIZE = 26;
 
@@ -21,23 +27,6 @@ export interface QuagmireConfig {
 }
 
 const STRAIGHT = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
-
-/** Keyword letters first (duplicates dropped), then the rest of the alphabet in order. */
-function mixedAlphabet(keyword: string): number[] {
-  const seen = new Set<number>();
-  for (const value of normalizeKey(keyword)) {
-    seen.add(value);
-  }
-  return [...seen, ...STRAIGHT.filter((value) => !seen.has(value))];
-}
-
-function inverse(alphabet: number[]): number[] {
-  const result = new Array<number>(ALPHABET_SIZE);
-  alphabet.forEach((value, position) => {
-    result[value] = position;
-  });
-  return result;
-}
 
 function alphabets(config: QuagmireConfig): {
   plain: number[];
@@ -79,8 +68,8 @@ export function quagmire(
     throw new Error("indicator must be a single letter");
   }
   const { plain, cipher } = alphabets(config);
-  const plainInverse = inverse(plain);
-  const cipherInverse = inverse(cipher);
+  const plainInverse = inverseAlphabet(plain);
+  const cipherInverse = inverseAlphabet(cipher);
   const indicatorIndex = plainInverse[indicator[0]];
 
   const substitute =

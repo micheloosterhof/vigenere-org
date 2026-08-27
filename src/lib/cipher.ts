@@ -46,6 +46,31 @@ export function substituteLetters(
     .join("");
 }
 
+/** Keyword letters first (duplicates dropped), then the rest of the alphabet in order. */
+export function mixedAlphabet(keyword: string): number[] {
+  const seen = new Set<number>(normalizeKey(keyword));
+  const rest = Array.from({ length: ALPHABET_SIZE }, (_, i) => i).filter(
+    (value) => !seen.has(value),
+  );
+  return [...seen, ...rest];
+}
+
+/** Maps each letter value to its position in the alphabet. */
+export function inverseAlphabet(alphabet: number[]): number[] {
+  const result = new Array<number>(ALPHABET_SIZE);
+  alphabet.forEach((value, position) => {
+    result[value] = position;
+  });
+  return result;
+}
+
+/** Simple substitution: one keyword-mixed alphabet replaces the standard one. */
+export function substitution(text: string, key: string, mode: Mode): string {
+  const mixed = mixedAlphabet(key);
+  const table = mode === "encrypt" ? mixed : inverseAlphabet(mixed);
+  return substituteLetters(text, [0], (letter) => table[letter]);
+}
+
 /** Vigenere cipher: shifts each letter by the corresponding key letter. */
 export function vigenere(text: string, key: string, mode: Mode): string {
   const sign = mode === "encrypt" ? 1 : -1;
