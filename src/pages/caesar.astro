@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
 ---
 
 <Base
@@ -17,4 +18,13 @@ import CipherTool from "../components/CipherTool.astro";
     one-letter key. Choose a shift from 0 to 25 to encrypt or decrypt.
   </p>
   <CipherTool cipher="caesar" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the shift
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Caesar ciphertext with an unknown shift and the solver tries all 26,
+    ranking each by how much the result looks like English.
+  </p>
+  <Breaker cipher="caesar" />
 </Base>

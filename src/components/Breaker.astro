@@ -1,0 +1,159 @@
+---
+// ABOUTME: Key-recovery form: finds the key for ciphertext without knowing it.
+// ABOUTME: Vigenere and Beaufort recover a keyword; Caesar ranks all 26 shifts.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+
+interface Props {
+  cipher: "vigenere" | "beaufort" | "caesar";
+}
+
+const { cipher } = Astro.props;
+
+const buttonClass =
+  "rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300";
+const fieldClass =
+  "w-full rounded-md border border-slate-300 bg-white p-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-900";
+---
+
+<div data-breaker={cipher} class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Ciphertext</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Paste ciphertext with an unknown key"></textarea>
+  </label>
+
+  <div>
+    <button data-solve type="button" class={buttonClass}>
+      {cipher === "caesar" ? "Try all 26 shifts" : "Recover key"}
+    </button>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <div data-result hidden class="flex flex-col gap-4">
+    <p data-summary class="text-sm font-medium"></p>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Decrypted text</span>
+      <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+    </label>
+    <div>
+      <span class="text-sm font-medium">Other candidates</span>
+      <table class="mt-1 w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-slate-300 dark:border-slate-700">
+            <th class="py-1 pr-4 font-medium"
+              >{cipher === "caesar" ? "Shift" : "Key"}</th
+            >
+            <th class="py-1 pr-4 font-medium">Fitness</th>
+            <th class="py-1 font-medium">Preview</th>
+          </tr>
+        </thead>
+        <tbody data-candidates class="font-mono"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { beaufort, caesar, vigenere } from "../lib/cipher";
+  import {
+    beaufortDecrypt,
+    breakPeriodic,
+    caesarCandidates,
+    vigenereDecrypt,
+  } from "../lib/solve";
+
+  const CANDIDATE_ROWS = 5;
+  const PREVIEW_LENGTH = 40;
+
+  interface Ranked {
+    label: string;
+    fitness: number;
+    plaintext: string;
+    summary: string;
+  }
+
+  function rank(cipher: string, text: string): Ranked[] {
+    if (cipher === "caesar") {
+      return caesarCandidates(text).map((candidate) => ({
+        label: String(candidate.shift),
+        fitness: candidate.fitness,
+        plaintext: caesar(text, -candidate.shift),
+        summary: `Best shift: ${candidate.shift}`,
+      }));
+    }
+    if (cipher === "beaufort") {
+      return breakPeriodic(text, beaufortDecrypt).map((candidate) => ({
+        label: candidate.key,
+        fitness: candidate.fitness,
+        plaintext: beaufort(text, candidate.key),
+        summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength})`,
+      }));
+    }
+    return breakPeriodic(text, vigenereDecrypt).map((candidate) => ({
+      label: candidate.key,
+      fitness: candidate.fitness,
+      plaintext: vigenere(text, candidate.key, "decrypt"),
+      summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength})`,
+    }));
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-breaker]")) {
+    const cipher = root.dataset.breaker;
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    const result = root.querySelector<HTMLElement>("[data-result]");
+    const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const candidates =
+      root.querySelector<HTMLTableSectionElement>("[data-candidates]");
+    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
+    if (
+      !cipher ||
+      !input ||
+      !output ||
+      !error ||
+      !result ||
+      !summary ||
+      !candidates ||
+      !solve
+    ) {
+      continue;
+    }
+
+    solve.addEventListener("click", () => {
+      error.hidden = true;
+      result.hidden = true;
+      candidates.replaceChildren();
+      try {
+        const ranked = rank(cipher, input.value);
+        const best = ranked[0];
+        summary.textContent = best.summary;
+        output.value = best.plaintext;
+        for (const candidate of ranked.slice(1, 1 + CANDIDATE_ROWS)) {
+          const row = document.createElement("tr");
+          for (const text of [
+            candidate.label,
+            candidate.fitness.toFixed(3),
+            candidate.plaintext.slice(0, PREVIEW_LENGTH),
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = text;
+            cell.className = "py-1 pr-4 align-top";
+            row.append(cell);
+          }
+          candidates.append(row);
+        }
+        result.hidden = false;
+      } catch (cause) {
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      }
+    });
+  }
+</script>

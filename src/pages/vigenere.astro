@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
 ---
 
 <Base
@@ -18,4 +19,15 @@ import CipherTool from "../components/CipherTool.astro";
     unchanged.
   </p>
   <CipherTool cipher="vigenere" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Vigenère ciphertext with an unknown key and the solver recovers it by
+    trying every key length and scoring candidate decryptions against English
+    bigram statistics. It needs roughly four times as much text as the key is
+    long.
+  </p>
+  <Breaker cipher="vigenere" />
 </Base>
