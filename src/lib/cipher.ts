@@ -90,6 +90,43 @@ export function beaufort(text: string, key: string): string {
   );
 }
 
+export type AutokeyVariant = "plaintext" | "ciphertext";
+
+/**
+ * Autokey cipher: the key starts with a primer and continues with the message
+ * itself, either its plaintext or its ciphertext. Because the key never
+ * repeats, there is no period.
+ */
+export function autokey(
+  text: string,
+  primer: string,
+  variant: AutokeyVariant,
+  mode: Mode,
+): string {
+  const key = normalizeKey(primer);
+  let keyIndex = 0;
+  return [...text]
+    .map((char) => {
+      const upper = char.toUpperCase();
+      if (upper < "A" || upper > "Z") {
+        return char;
+      }
+      const keyValue = key[keyIndex];
+      keyIndex += 1;
+      const letter = upper.charCodeAt(0) - CODE_A;
+      const result =
+        mode === "encrypt"
+          ? (letter + keyValue) % ALPHABET_SIZE
+          : (letter - keyValue + ALPHABET_SIZE) % ALPHABET_SIZE;
+      const plain = mode === "encrypt" ? letter : result;
+      const cipher = mode === "encrypt" ? result : letter;
+      key.push(variant === "plaintext" ? plain : cipher);
+      const output = String.fromCharCode(CODE_A + result);
+      return char === upper ? output : output.toLowerCase();
+    })
+    .join("");
+}
+
 /** Caesar cipher: shifts every letter by a fixed amount; negative shifts decrypt. */
 export function caesar(text: string, shift: number): string {
   return substituteLetters(

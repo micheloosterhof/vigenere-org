@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
-import { beaufort, caesar, substitution, vigenere } from "./cipher";
+import { autokey, beaufort, caesar, substitution, vigenere } from "./cipher";
 
 describe("vigenere", () => {
   it("encrypts the Wikipedia test vector", () => {
@@ -111,5 +111,49 @@ describe("substitution", () => {
 
   it("throws on a key with no letters", () => {
     expect(() => substitution("ABC", "", "encrypt")).toThrow();
+  });
+});
+
+describe("autokey", () => {
+  it("encrypts the plaintext-autokey vectors from aldegonde", () => {
+    expect(autokey("NOTIFYQUARTERMASTER", "X", "plaintext", "encrypt")).toBe(
+      "KBHBNDOKURKXVDMSLXV",
+    );
+    expect(
+      autokey("NOTIFYQUARTERMASTER", "TYPEWRITER", "plaintext", "encrypt"),
+    ).toBe("GMIMBPYNEIGSKUFQJYR");
+  });
+
+  it("decrypts the plaintext-autokey vectors", () => {
+    expect(autokey("KBHBNDOKURKXVDMSLXV", "X", "plaintext", "decrypt")).toBe(
+      "NOTIFYQUARTERMASTER",
+    );
+    expect(
+      autokey("GMIMBPYNEIGSKUFQJYR", "TYPEWRITER", "plaintext", "decrypt"),
+    ).toBe("NOTIFYQUARTERMASTER");
+  });
+
+  it("encrypts and decrypts the ciphertext-autokey vectors", () => {
+    expect(autokey("NOTIFYQUARTERMASTER", "X", "ciphertext", "encrypt")).toBe(
+      "KYRZECSMMDWARDDVOSJ",
+    );
+    expect(autokey("KYRZECSMMDWARDDVOSJ", "X", "ciphertext", "decrypt")).toBe(
+      "NOTIFYQUARTERMASTER",
+    );
+    expect(
+      autokey("NOTIFYQUARTERMASTER", "TYPEWRITER", "ciphertext", "encrypt"),
+    ).toBe("GMIMBPYNEIZQZYBHRRV");
+  });
+
+  it("preserves case and punctuation through a round trip", () => {
+    const text = "Notify quartermaster, at once!";
+    const encrypted = autokey(text, "typewriter", "plaintext", "encrypt");
+    expect(autokey(encrypted, "typewriter", "plaintext", "decrypt")).toBe(text);
+    const encrypted2 = autokey(text, "x", "ciphertext", "encrypt");
+    expect(autokey(encrypted2, "x", "ciphertext", "decrypt")).toBe(text);
+  });
+
+  it("throws on a primer with no letters", () => {
+    expect(() => autokey("ABC", "", "plaintext", "encrypt")).toThrow();
   });
 });

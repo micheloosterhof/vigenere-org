@@ -1,0 +1,44 @@
+---
+// ABOUTME: Autokey cipher tool page covering plaintext and ciphertext variants.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import AutokeyTool from "../components/AutokeyTool.astro";
+---
+
+<Base
+  title="Autokey cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt the autokey cipher online, in both the plaintext and ciphertext variants. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Autokey cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The autokey cipher starts from a short primer keyword and then extends the
+    key with the message itself, so the key never repeats. In the plaintext
+    variant the key continues with the plaintext; in the ciphertext variant it
+    continues with the ciphertext just produced.
+  </p>
+  <AutokeyTool />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the autokey cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      This is the cipher Blaise de Vigenère actually invented in 1586. The
+      repeating-key cipher that carries his name is Bellaso's; history swapped
+      the credit. By feeding the message back into the key, autokey removes the
+      periodic repetition that Kasiski's attack and the index of coincidence
+      exploit, which made it considerably stronger than the repeating-key cipher
+      for three centuries.
+    </p>
+    <p>
+      It is not strong by modern standards. The plaintext variant chains errors
+      but also chains information: guessing a probable word anywhere in the
+      message extends the key around it, and statistical attacks that score
+      candidate primers work well with computing power. The ciphertext variant
+      is weaker still, since the key beyond the primer is public.
+    </p>
+  </div>
+</Base>

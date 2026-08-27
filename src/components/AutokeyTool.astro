@@ -1,0 +1,91 @@
+---
+// ABOUTME: Encrypt/decrypt form for the autokey cipher with variant selection.
+// ABOUTME: The variant chooses whether plaintext or ciphertext extends the key.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass } from "../styles/form";
+---
+
+<div data-autokey class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Variant</span>
+    <select data-variant class={`${fieldClass} max-w-88`}>
+      <option value="plaintext" selected
+        >Plaintext autokey — the message extends the key</option
+      >
+      <option value="ciphertext"
+        >Ciphertext autokey — the ciphertext extends the key</option
+      >
+    </select>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Text</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Enter plaintext or ciphertext"></textarea>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Primer</span>
+    <input
+      data-key
+      type="text"
+      class={fieldClass}
+      placeholder="e.g. TYPEWRITER"
+    />
+  </label>
+
+  <div class="flex gap-3">
+    <button data-encrypt type="button" class={buttonClass}>Encrypt</button>
+    <button data-decrypt type="button" class={buttonClass}>Decrypt</button>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Result</span>
+    <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+  </label>
+</div>
+
+<script>
+  import { autokey, type AutokeyVariant, type Mode } from "../lib/cipher";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-autokey]")) {
+    const variant = root.querySelector<HTMLSelectElement>("[data-variant]");
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const key = root.querySelector<HTMLInputElement>("[data-key]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    if (!variant || !input || !key || !output || !error) {
+      continue;
+    }
+
+    const run = (mode: Mode): void => {
+      error.hidden = true;
+      try {
+        output.value = autokey(
+          input.value,
+          key.value,
+          variant.value as AutokeyVariant,
+          mode,
+        );
+      } catch (cause) {
+        output.value = "";
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      }
+    };
+
+    root
+      .querySelector("[data-encrypt]")
+      ?.addEventListener("click", () => run("encrypt"));
+    root
+      .querySelector("[data-decrypt]")
+      ?.addEventListener("click", () => run("decrypt"));
+  }
+</script>
