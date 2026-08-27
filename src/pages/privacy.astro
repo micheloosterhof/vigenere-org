@@ -1,0 +1,50 @@
+---
+// ABOUTME: Privacy policy page describing what the site does and does not collect.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title="Privacy policy — vigenere.org"
+  description="What vigenere.org collects and what it does not: your messages never leave your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Privacy policy</h1>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      <strong class="text-slate-900 dark:text-slate-100"
+        >Your messages stay with you.</strong
+      >
+      Every cipher tool on this site runs entirely in your browser. The text you type
+      or paste is never sent to this site's servers, stored, or logged. The site is
+      static: it has no accounts, no forms, and no database.
+    </p>
+    <p>
+      <strong class="text-slate-900 dark:text-slate-100">Analytics.</strong> The site
+      uses Cloudflare Web Analytics to count page views. It does not use cookies,
+      does not fingerprint your device, and does not track you across sites.
+    </p>
+    <p>
+      <strong class="text-slate-900 dark:text-slate-100">Advertising.</strong> The
+      site shows ads served by Google AdSense. Google may use cookies or similar technology
+      to personalize ads and measure their performance; where required, you will be
+      asked for consent first. You can read how Google uses this data at
+      <a
+        href="https://policies.google.com/technologies/partner-sites"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >policies.google.com/technologies/partner-sites</a
+      > and control ad personalization at
+      <a
+        href="https://adssettings.google.com"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >adssettings.google.com</a
+      >.
+    </p>
+    <p>
+      <strong class="text-slate-900 dark:text-slate-100">Contact.</strong> Questions
+      about this policy: michel@oosterhof.net.
+    </p>
+  </div>
+</Base>

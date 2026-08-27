@@ -24,6 +24,7 @@ jobs:
         uses: withastro/action@v3
         env:
           PUBLIC_CF_BEACON_TOKEN: ${{ vars.PUBLIC_CF_BEACON_TOKEN }}
+          PUBLIC_ADSENSE_CLIENT: ${{ vars.PUBLIC_ADSENSE_CLIENT }}
         with:
           node-version: 22
 

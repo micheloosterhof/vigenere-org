@@ -15,6 +15,8 @@ const { title, description } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN as
   string | undefined;
+const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT as
+  string | undefined;
 const jsonLd = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -66,6 +68,16 @@ const tools = [
         />
       )
     }
+    {
+      adsenseClient && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
   </head>
   <body
     class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100"
@@ -94,6 +106,11 @@ const tools = [
       class="border-t border-orange-200 py-4 text-center text-sm text-slate-500 dark:border-orange-900 dark:text-slate-400"
     >
       All ciphers run in your browser; your messages never leave the page.
+      <a
+        href="/privacy"
+        class="underline-offset-2 hover:underline hover:text-orange-700 dark:hover:text-orange-400"
+        >Privacy</a
+      >
     </footer>
   </body>
 </html>

@@ -30,8 +30,10 @@ Use the Makefile: `make build`, `make test`, `make lint`, `make fmt`,
   in the test).
 - Commit style: Conventional Commits, direct to `main`.
 
-## Analytics
+## Analytics and ads
 
 Cloudflare Web Analytics is injected only when `PUBLIC_CF_BEACON_TOKEN` is
 set at build time (repo variable in GitHub Actions, `.envrc` locally).
-Without the token the built pages contain no analytics.
+Google AdSense (Auto ads plus /ads.txt) is injected only when
+`PUBLIC_ADSENSE_CLIENT` is set to the ca-pub-... client id. Without the
+variables the built pages contain no analytics or ad code.
