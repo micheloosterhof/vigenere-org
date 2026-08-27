@@ -22,7 +22,7 @@ export function normalizeKey(key: string): number[] {
  * receives the letter and the current key value (both 0-25) and returns the
  * output letter value. Non-letters pass through and do not advance the key.
  */
-function substituteLetters(
+export function substituteLetters(
   text: string,
   key: number[],
   substitute: (letter: number, keyValue: number) => number,
