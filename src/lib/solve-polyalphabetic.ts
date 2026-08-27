@@ -17,7 +17,7 @@ const FREQUENCY_ORDER = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
 // The climb scores at most this many letters; more adds cost without accuracy.
 const SAMPLE_LIMIT = 3000;
 
-const RESTARTS = 4;
+const RESTARTS = 10;
 const MAX_PERIOD = 12;
 
 // A column whose normalized index of coincidence exceeds this looks
@@ -151,8 +151,9 @@ function shuffled(rng: () => number): number[] {
 }
 
 /**
- * Sweeps the columns, applying the best letter-pair swap within one column at
- * a time under the joint score, until a full sweep improves nothing.
+ * Steepest-ascent hill climb over the whole key: each step evaluates every
+ * letter-pair swap in every column and applies the single best, so no column
+ * converges against the others prematurely.
  */
 function climb(
   sample: number[],
@@ -161,45 +162,37 @@ function climb(
   table: Uint8Array,
 ): number {
   let best = rawScore(sample, mappings, period, table);
-  let sweepImproved = true;
-  while (sweepImproved) {
-    sweepImproved = false;
+  let improved = true;
+  while (improved) {
+    improved = false;
+    let bestColumn = -1;
+    let bestFirst = -1;
+    let bestSecond = -1;
+    let bestScore = best;
     for (let column = 0; column < period; column += 1) {
       const mapping = mappings[column];
-      let columnImproved = true;
-      while (columnImproved) {
-        columnImproved = false;
-        let bestFirst = -1;
-        let bestSecond = -1;
-        let bestScore = best;
-        for (let first = 0; first < ALPHABET_SIZE - 1; first += 1) {
-          for (let second = first + 1; second < ALPHABET_SIZE; second += 1) {
-            [mapping[first], mapping[second]] = [
-              mapping[second],
-              mapping[first],
-            ];
-            const score = rawScore(sample, mappings, period, table);
-            [mapping[first], mapping[second]] = [
-              mapping[second],
-              mapping[first],
-            ];
-            if (score > bestScore) {
-              bestScore = score;
-              bestFirst = first;
-              bestSecond = second;
-            }
+      for (let first = 0; first < ALPHABET_SIZE - 1; first += 1) {
+        for (let second = first + 1; second < ALPHABET_SIZE; second += 1) {
+          [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
+          const score = rawScore(sample, mappings, period, table);
+          [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
+          if (score > bestScore) {
+            bestScore = score;
+            bestColumn = column;
+            bestFirst = first;
+            bestSecond = second;
           }
         }
-        if (bestFirst >= 0) {
-          [mapping[bestFirst], mapping[bestSecond]] = [
-            mapping[bestSecond],
-            mapping[bestFirst],
-          ];
-          best = bestScore;
-          columnImproved = true;
-          sweepImproved = true;
-        }
       }
+    }
+    if (bestColumn >= 0) {
+      const mapping = mappings[bestColumn];
+      [mapping[bestFirst], mapping[bestSecond]] = [
+        mapping[bestSecond],
+        mapping[bestFirst],
+      ];
+      best = bestScore;
+      improved = true;
     }
   }
   return best;

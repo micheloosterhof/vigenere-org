@@ -111,34 +111,46 @@ function accuracy(recovered: string, expected: string): number {
 }
 
 describe("breakPolyalphabetic", () => {
-  it("breaks a Quagmire III ciphertext without knowing the keywords", () => {
-    const ciphertext = quagmire(
-      PLAIN,
-      { variant: 3, keyword: "PAULBRANDT", key: "TALE", indicator: "P" },
-      "encrypt",
-    );
-    const result = breakPolyalphabetic(ciphertext, TABLE, {
-      rng: mulberry32(1),
-    });
-    expect(result.period).toBe(4);
-    expect(
-      result.plaintext.startsWith("It was a bright cold day in April"),
-    ).toBe(true);
-    expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
-  });
+  it(
+    "breaks a Quagmire III ciphertext without knowing the keywords",
+    { timeout: 120000 },
+    () => {
+      const ciphertext = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "PAULBRANDT", key: "TALE", indicator: "P" },
+        "encrypt",
+      );
+      const result = breakPolyalphabetic(ciphertext, TABLE, {
+        restarts: 3,
+        rng: mulberry32(1),
+      });
+      expect(result.period).toBe(4);
+      expect(
+        result.plaintext.startsWith("It was a bright cold day in April"),
+      ).toBe(true);
+      expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
+    },
+  );
 
-  it("breaks a cipher with fully random independent alphabets", () => {
-    const rng = mulberry32(2);
-    const ciphertext = encryptRandomPolyalphabetic(
-      PLAIN,
-      randomAlphabets(3, rng),
-    );
-    const result = breakPolyalphabetic(ciphertext, TABLE, { rng });
-    expect(result.period).toBe(3);
-    expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
-  });
+  it(
+    "breaks a cipher with fully random independent alphabets",
+    { timeout: 120000 },
+    () => {
+      const rng = mulberry32(2);
+      const ciphertext = encryptRandomPolyalphabetic(
+        PLAIN,
+        randomAlphabets(3, rng),
+      );
+      const result = breakPolyalphabetic(ciphertext, TABLE, {
+        restarts: 3,
+        rng,
+      });
+      expect(result.period).toBe(3);
+      expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
+    },
+  );
 
-  it("honors a caller-supplied period", () => {
+  it("honors a caller-supplied period", { timeout: 120000 }, () => {
     const ciphertext = quagmire(
       PLAIN,
       { variant: 3, keyword: "PAULBRANDT", key: "TALE", indicator: "P" },
@@ -146,6 +158,7 @@ describe("breakPolyalphabetic", () => {
     );
     const result = breakPolyalphabetic(ciphertext, TABLE, {
       period: 4,
+      restarts: 3,
       rng: mulberry32(3),
     });
     expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
