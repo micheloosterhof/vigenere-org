@@ -12,6 +12,20 @@ interface Props {
 
 const { title, description } = Astro.props;
 
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN as
+  string | undefined;
+const jsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: title,
+  url: canonical.href,
+  description,
+  applicationCategory: "UtilityApplication",
+  operatingSystem: "Any",
+  isAccessibleForFree: true,
+});
+
 const tools = [
   { href: "/vigenere", label: "Vigenère" },
   { href: "/beaufort", label: "Beaufort" },
@@ -26,9 +40,32 @@ const tools = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="theme-color" content="#ea580c" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="vigenere.org" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL("/og.png", Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL("/og.png", Astro.site)} />
     <title>{title}</title>
+    <script type="application/ld+json" set:html={jsonLd} />
+    {
+      beaconToken && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={`{"token": "${beaconToken}"}`}
+        />
+      )
+    }
   </head>
   <body
     class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100"
@@ -56,7 +93,7 @@ const tools = [
     <footer
       class="border-t border-orange-200 py-4 text-center text-sm text-slate-500 dark:border-orange-900 dark:text-slate-400"
     >
-      All ciphers run in your browser; nothing is sent to a server.
+      All ciphers run in your browser; your messages never leave the page.
     </footer>
   </body>
 </html>

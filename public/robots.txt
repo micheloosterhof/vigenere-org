@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://vigenere.org/sitemap-index.xml

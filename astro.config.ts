@@ -3,10 +3,12 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { defineConfig } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   site: "https://vigenere.org",
+  integrations: [sitemap()],
   vite: {
     plugins: [tailwindcss()],
   },
