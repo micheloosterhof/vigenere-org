@@ -5,17 +5,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 interface Props {
-  cipher: "vigenere" | "beaufort" | "caesar";
+  cipher: "vigenere" | "beaufort" | "caesar" | "substitution";
 }
+
+import { buttonClass, fieldClass } from "../styles/form";
 
 const { cipher } = Astro.props;
 const usesShift = cipher === "caesar";
 const reciprocal = cipher === "beaufort";
-
-const buttonClass =
-  "rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300";
-const fieldClass =
-  "w-full rounded-md border border-slate-300 bg-white p-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-900";
 ---
 
 <div data-cipher={cipher} class="flex flex-col gap-4">
@@ -79,7 +76,13 @@ const fieldClass =
 </div>
 
 <script>
-  import { beaufort, caesar, vigenere, type Mode } from "../lib/cipher";
+  import {
+    beaufort,
+    caesar,
+    substitution,
+    vigenere,
+    type Mode,
+  } from "../lib/cipher";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
@@ -95,6 +98,8 @@ const fieldClass =
       switch (cipher) {
         case "beaufort":
           return beaufort(text, key.value);
+        case "substitution":
+          return substitution(text, key.value, mode);
         case "caesar": {
           const shift = Number.parseInt(key.value, 10);
           if (Number.isNaN(shift)) {

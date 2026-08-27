@@ -1,0 +1,21 @@
+---
+// ABOUTME: Simple substitution cipher tool page with keyword-mixed alphabet.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="Substitution cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt a simple monoalphabetic substitution cipher online with a keyword or full replacement alphabet. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Substitution cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    A simple substitution cipher replaces each letter using one fixed scrambled
+    alphabet. Enter a keyword and the alphabet starts with its letters, followed
+    by the unused rest of A to Z; enter all 26 letters to define the replacement
+    alphabet exactly.
+  </p>
+  <CipherTool cipher="substitution" />
+</Base>
