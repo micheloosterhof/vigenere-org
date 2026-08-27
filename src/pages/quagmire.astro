@@ -1,0 +1,23 @@
+---
+// ABOUTME: Quagmire cipher tool page covering variants I through IV.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import QuagmireTool from "../components/QuagmireTool.astro";
+---
+
+<Base
+  title="Quagmire cipher I-IV — encrypt and decrypt online"
+  description="Encrypt and decrypt all four Quagmire ciphers online with keyword-mixed alphabets, period key, and indicator letter. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Quagmire ciphers</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The four Quagmire ciphers are Vigenère variants that use keyword-mixed
+    alphabets. Quagmire I keys the plaintext alphabet, II keys the ciphertext
+    alphabet, III keys both with the same keyword, and IV uses two different
+    keywords. The indicator letter fixes how the key letters align with the
+    plaintext alphabet. Kryptos K1 and K2 are Quagmire III with the keyword
+    KRYPTOS.
+  </p>
+  <QuagmireTool />
+</Base>

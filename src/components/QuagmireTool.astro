@@ -1,0 +1,148 @@
+---
+// ABOUTME: Encrypt/decrypt form for the four Quagmire ciphers.
+// ABOUTME: A variant selector switches which alphabet keywords the form shows.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass } from "../styles/form";
+---
+
+<div data-quagmire class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Variant</span>
+    <select data-variant class={`${fieldClass} max-w-88`}>
+      <option value="1">Quagmire I — keyed plaintext alphabet</option>
+      <option value="2">Quagmire II — keyed ciphertext alphabet</option>
+      <option value="3" selected>Quagmire III — both keyed, same keyword</option
+      >
+      <option value="4">Quagmire IV — both keyed, different keywords</option>
+    </select>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Text</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Enter plaintext or ciphertext"></textarea>
+  </label>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Alphabet keyword</span>
+      <input
+        data-keyword
+        type="text"
+        class={fieldClass}
+        placeholder="e.g. KRYPTOS"
+      />
+    </label>
+    <label data-keyword2-row hidden class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Ciphertext alphabet keyword</span>
+      <input
+        data-keyword2
+        type="text"
+        class={fieldClass}
+        placeholder="second keyword"
+      />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Key</span>
+      <input
+        data-key
+        type="text"
+        class={fieldClass}
+        placeholder="e.g. PALIMPSEST"
+      />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Indicator letter</span>
+      <input
+        data-indicator
+        type="text"
+        maxlength="1"
+        class={`${fieldClass} max-w-24`}
+        value="A"
+      />
+    </label>
+  </div>
+
+  <div class="flex gap-3">
+    <button data-encrypt type="button" class={buttonClass}>Encrypt</button>
+    <button data-decrypt type="button" class={buttonClass}>Decrypt</button>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Result</span>
+    <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+  </label>
+</div>
+
+<script>
+  import type { Mode } from "../lib/cipher";
+  import { quagmire, type QuagmireVariant } from "../lib/quagmire";
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-quagmire]",
+  )) {
+    const variant = root.querySelector<HTMLSelectElement>("[data-variant]");
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const keyword = root.querySelector<HTMLInputElement>("[data-keyword]");
+    const keyword2 = root.querySelector<HTMLInputElement>("[data-keyword2]");
+    const keyword2Row = root.querySelector<HTMLElement>("[data-keyword2-row]");
+    const key = root.querySelector<HTMLInputElement>("[data-key]");
+    const indicator = root.querySelector<HTMLInputElement>("[data-indicator]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    if (
+      !variant ||
+      !input ||
+      !keyword ||
+      !keyword2 ||
+      !keyword2Row ||
+      !key ||
+      !indicator ||
+      !output ||
+      !error
+    ) {
+      continue;
+    }
+
+    const syncVariant = (): void => {
+      keyword2Row.hidden = variant.value !== "4";
+    };
+    variant.addEventListener("change", syncVariant);
+    syncVariant();
+
+    const run = (mode: Mode): void => {
+      error.hidden = true;
+      try {
+        output.value = quagmire(
+          input.value,
+          {
+            variant: Number(variant.value) as QuagmireVariant,
+            keyword: keyword.value,
+            keyword2: keyword2.value || undefined,
+            key: key.value,
+            indicator: indicator.value,
+          },
+          mode,
+        );
+      } catch (cause) {
+        output.value = "";
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      }
+    };
+
+    root
+      .querySelector("[data-encrypt]")
+      ?.addEventListener("click", () => run("encrypt"));
+    root
+      .querySelector("[data-decrypt]")
+      ?.addEventListener("click", () => run("decrypt"));
+  }
+</script>
