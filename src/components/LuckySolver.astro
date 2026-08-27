@@ -1,6 +1,6 @@
 ---
 // ABOUTME: Homepage auto-solver: one big box that identifies and breaks the cipher.
-// ABOUTME: Runs the Caesar, Vigenere, and Beaufort breakers and presents the best decryption.
+// ABOUTME: Routes by letter statistics in a Web Worker, escalating to heavier attacks as needed.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
@@ -13,7 +13,7 @@ import { buttonClass, fieldClass } from "../styles/form";
     class={`${fieldClass} text-base shadow-sm`}
     placeholder="Paste your encrypted message here"></textarea>
 
-  <div class="flex justify-center">
+  <div class="flex items-center justify-center gap-4">
     <button
       data-solve
       type="button"
@@ -21,6 +21,10 @@ import { buttonClass, fieldClass } from "../styles/form";
     >
       I'm feeling lucky
     </button>
+    <span
+      data-progress
+      hidden
+      class="text-sm text-slate-500 dark:text-slate-400"></span>
   </div>
 
   <p
@@ -56,124 +60,119 @@ import { buttonClass, fieldClass } from "../styles/form";
 </div>
 
 <script>
-  import { beaufort, caesar, vigenere } from "../lib/cipher";
-  import {
-    beaufortDecrypt,
-    breakPeriodic,
-    scoreText,
-    vigenereDecrypt,
-  } from "../lib/solve";
+  import { loadQuadgramTable } from "../lib/quadgrams";
+  import type { AutosolveResult } from "../lib/autosolve";
+  import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
+
+  type WorkerMessage =
+    | ({ type: "progress" } & PolyalphabeticProgress)
+    | { type: "result"; result: AutosolveResult }
+    | { type: "error"; message: string };
 
   const PREVIEW_LENGTH = 40;
 
-  interface Attempt {
-    cipher: string;
-    keyLabel: string;
-    fitness: number;
-    plaintext: string;
-    href: string;
-  }
-
-  function attempts(text: string): Attempt[] {
-    const results: Attempt[] = [];
-    const vigenereBest = breakPeriodic(text, vigenereDecrypt)[0];
-    if (vigenereBest.keyLength === 1) {
-      results.push({
-        cipher: "Caesar",
-        keyLabel: `shift ${vigenereBest.key.charCodeAt(0) - 65}`,
-        fitness: vigenereBest.fitness,
-        plaintext: vigenere(text, vigenereBest.key, "decrypt"),
-        href: "/caesar",
-      });
-    } else {
-      results.push({
-        cipher: "Vigenère",
-        keyLabel: vigenereBest.key,
-        fitness: vigenereBest.fitness,
-        plaintext: vigenere(text, vigenereBest.key, "decrypt"),
-        href: "/vigenere",
-      });
-      const caesarBest = breakPeriodic(text, vigenereDecrypt, 1)[0];
-      results.push({
-        cipher: "Caesar",
-        keyLabel: `shift ${caesarBest.key.charCodeAt(0) - 65}`,
-        fitness: caesarBest.fitness,
-        plaintext: caesar(text, -(caesarBest.key.charCodeAt(0) - 65)),
-        href: "/caesar",
-      });
+  function summarize(result: AutosolveResult): string {
+    const route =
+      result.period === 1
+        ? "Letter statistics look monoalphabetic."
+        : `Letter statistics suggest a repeating key of length ${result.period}.`;
+    if (result.alreadyEnglish) {
+      return "This already looks like readable English, but here is the best decryption anyway.";
     }
-    const beaufortBest = breakPeriodic(text, beaufortDecrypt)[0];
-    results.push({
-      cipher: "Beaufort",
-      keyLabel: beaufortBest.key,
-      fitness: beaufortBest.fitness,
-      plaintext: beaufort(text, beaufortBest.key),
-      href: "/beaufort",
-    });
-    return results.sort((a, b) => b.fitness - a.fitness);
+    return `${route} This looks like the ${result.best.cipher} cipher (${result.best.keyLabel}).`;
   }
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-lucky]")) {
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
+    const progress = root.querySelector<HTMLElement>("[data-progress]");
     const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
     const result = root.querySelector<HTMLElement>("[data-result]");
     const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
     const table =
       root.querySelector<HTMLTableSectionElement>("[data-attempts]");
-    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
     if (
       !input ||
+      !solve ||
+      !progress ||
       !output ||
       !error ||
       !result ||
       !summary ||
-      !table ||
-      !solve
+      !table
     ) {
       continue;
     }
 
-    solve.addEventListener("click", () => {
+    const finish = (): void => {
+      solve.disabled = false;
+      progress.hidden = true;
+    };
+
+    solve.addEventListener("click", async () => {
       error.hidden = true;
       result.hidden = true;
       table.replaceChildren();
+      solve.disabled = true;
+      progress.textContent = "Loading language data…";
+      progress.hidden = false;
       try {
-        const ranked = attempts(input.value);
-        const best = ranked[0];
-        summary.textContent =
-          scoreText(input.value) >= best.fitness
-            ? "This already looks like readable English, but here is the best decryption anyway."
-            : `This looks like the ${best.cipher} cipher with key ${best.keyLabel}.`;
-        output.value = best.plaintext;
-        for (const attempt of ranked) {
-          const row = document.createElement("tr");
-          const cipherCell = document.createElement("td");
-          const link = document.createElement("a");
-          link.href = attempt.href;
-          link.textContent = attempt.cipher;
-          link.className =
-            "font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400";
-          cipherCell.append(link);
-          row.append(cipherCell);
-          for (const text of [
-            attempt.keyLabel,
-            attempt.fitness.toFixed(3),
-            attempt.plaintext.slice(0, PREVIEW_LENGTH),
-          ]) {
-            const cell = document.createElement("td");
-            cell.textContent = text;
-            cell.className = "py-1 pr-4 align-top font-mono";
-            row.append(cell);
+        const quadgrams = await loadQuadgramTable();
+        const worker = new Worker(
+          new URL("../lib/autosolve.worker.ts", import.meta.url),
+          {
+            type: "module",
+          },
+        );
+        worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+          const message = event.data;
+          if (message.type === "progress") {
+            progress.textContent = `Trying harder ciphers… attempt ${message.restart} of ${message.restarts}`;
+          } else if (message.type === "result") {
+            worker.terminate();
+            const solved = message.result;
+            summary.textContent = summarize(solved);
+            output.value = solved.best.plaintext;
+            for (const attempt of solved.attempts) {
+              const row = document.createElement("tr");
+              const cipherCell = document.createElement("td");
+              const link = document.createElement("a");
+              link.href = attempt.href;
+              link.textContent = attempt.cipher;
+              link.className =
+                "font-medium text-orange-700 underline-offset-2 hover:underline dark:text-orange-400";
+              cipherCell.append(link);
+              cipherCell.className = "py-1 pr-4 align-top";
+              row.append(cipherCell);
+              for (const text of [
+                attempt.keyLabel,
+                attempt.fitness.toFixed(3),
+                attempt.plaintext.slice(0, PREVIEW_LENGTH),
+              ]) {
+                const cell = document.createElement("td");
+                cell.textContent = text;
+                cell.className = "py-1 pr-4 align-top font-mono";
+                row.append(cell);
+              }
+              table.append(row);
+            }
+            result.hidden = false;
+            finish();
+          } else {
+            worker.terminate();
+            error.textContent = message.message;
+            error.hidden = false;
+            finish();
           }
-          cipherCell.className = "py-1 pr-4 align-top";
-          table.append(row);
-        }
-        result.hidden = false;
+        };
+        worker.postMessage({ text: input.value, table: quadgrams.buffer });
+        progress.textContent = "Solving…";
       } catch (cause) {
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;
+        finish();
       }
     });
   }
