@@ -1,44 +1,64 @@
 ---
-// ABOUTME: Landing page: introduces the site and links to the cipher tools.
+// ABOUTME: Landing page: a single big box that identifies and breaks pasted ciphertext.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
+import LuckySolver from "../components/LuckySolver.astro";
 
 const tools = [
   {
     href: "/vigenere",
     name: "Vigenère cipher",
-    blurb: "Encrypt and decrypt with a repeating keyword.",
+    blurb: "Encrypt, decrypt, or break a repeating-keyword cipher.",
   },
   {
     href: "/beaufort",
     name: "Beaufort cipher",
-    blurb: "A reciprocal variant: the same operation encrypts and decrypts.",
+    blurb: "The reciprocal variant: one operation encrypts and decrypts.",
   },
   {
     href: "/caesar",
     name: "Caesar cipher",
-    blurb: "Shift every letter by a fixed amount.",
+    blurb: "Shift every letter by a fixed amount, or try all 26.",
+  },
+  {
+    href: "/quagmire",
+    name: "Quagmire I-IV",
+    blurb: "Vigenère variants with keyword-mixed alphabets.",
+  },
+  {
+    href: "/substitution",
+    name: "Substitution cipher",
+    blurb: "One scrambled alphabet replaces the standard one.",
   },
 ];
 ---
 
 <Base
-  title="vigenere.org — classical cipher tools"
-  description="Free online tools to encrypt, decrypt, and break classical ciphers: Vigenère, Beaufort, and Caesar. Everything runs in your browser."
+  title="vigenere.org — paste a secret message, get the answer"
+  description="Paste an encrypted message and vigenere.org identifies the cipher and breaks it in your browser: Vigenère, Beaufort, Caesar, Quagmire, and substitution tools."
 >
-  <h1 class="mb-4 text-3xl font-bold tracking-tight">Classical cipher tools</h1>
-  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
-    Encrypt, decrypt, and analyze classical ciphers. All tools run entirely in
-    your browser.
-  </p>
+  <div class="py-8 text-center">
+    <h1 class="mb-3 text-4xl font-bold tracking-tight">
+      Got a <span class="text-orange-600 dark:text-orange-400"
+        >secret message</span
+      >?
+    </h1>
+    <p class="mb-8 text-slate-600 dark:text-slate-400">
+      Paste it below and we'll figure out the cipher and the key, right here in
+      your browser.
+    </p>
+    <LuckySolver />
+  </div>
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">All tools</h2>
   <ul class="grid gap-4 sm:grid-cols-2">
     {
       tools.map((tool) => (
-        <li class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+        <li class="rounded-lg border border-orange-200 p-4 hover:border-orange-400 dark:border-orange-900 dark:hover:border-orange-600">
           <a
             href={tool.href}
-            class="font-semibold underline-offset-2 hover:underline"
+            class="font-semibold text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
           >
             {tool.name}
           </a>
