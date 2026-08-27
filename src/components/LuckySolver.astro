@@ -38,17 +38,19 @@ import { buttonClass, fieldClass } from "../styles/form";
     </label>
     <div>
       <span class="text-sm font-medium">All attempts</span>
-      <table class="mt-1 w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-slate-300 dark:border-slate-700">
-            <th class="py-1 pr-4 font-medium">Cipher</th>
-            <th class="py-1 pr-4 font-medium">Key</th>
-            <th class="py-1 pr-4 font-medium">Fitness</th>
-            <th class="py-1 font-medium">Preview</th>
-          </tr>
-        </thead>
-        <tbody data-attempts></tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="mt-1 w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-slate-300 dark:border-slate-700">
+              <th class="py-1 pr-4 font-medium">Cipher</th>
+              <th class="py-1 pr-4 font-medium">Key</th>
+              <th class="py-1 pr-4 font-medium">Fitness</th>
+              <th class="py-1 font-medium">Preview</th>
+            </tr>
+          </thead>
+          <tbody data-attempts></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

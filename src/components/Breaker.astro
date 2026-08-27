@@ -39,18 +39,20 @@ const { cipher } = Astro.props;
     </label>
     <div>
       <span class="text-sm font-medium">Other candidates</span>
-      <table class="mt-1 w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-slate-300 dark:border-slate-700">
-            <th class="py-1 pr-4 font-medium"
-              >{cipher === "caesar" ? "Shift" : "Key"}</th
-            >
-            <th class="py-1 pr-4 font-medium">Fitness</th>
-            <th class="py-1 font-medium">Preview</th>
-          </tr>
-        </thead>
-        <tbody data-candidates class="font-mono"></tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="mt-1 w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-slate-300 dark:border-slate-700">
+              <th class="py-1 pr-4 font-medium"
+                >{cipher === "caesar" ? "Shift" : "Key"}</th
+              >
+              <th class="py-1 pr-4 font-medium">Fitness</th>
+              <th class="py-1 font-medium">Preview</th>
+            </tr>
+          </thead>
+          <tbody data-candidates class="font-mono"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
