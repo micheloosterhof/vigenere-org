@@ -34,7 +34,8 @@ export interface ShiftCandidate {
   fitness: number;
 }
 
-function toLetterValues(text: string): number[] {
+/** Uppercases the text and returns its letters as 0-25 values, dropping everything else. */
+export function toLetterValues(text: string): number[] {
   const values: number[] = [];
   for (const char of text.toUpperCase()) {
     const code = char.charCodeAt(0) - CODE_A;
