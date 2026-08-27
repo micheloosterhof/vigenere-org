@@ -72,22 +72,10 @@ const { cipher } = Astro.props;
     vigenereDecrypt,
   } from "../lib/solve";
   import { breakSubstitution } from "../lib/solve-substitution";
-  import { QUADGRAM_TABLE_URL } from "../lib/data/english-quadgrams-meta";
+  import { loadQuadgramTable } from "../lib/quadgrams";
 
   const CANDIDATE_ROWS = 5;
   const PREVIEW_LENGTH = 40;
-
-  let quadgramTable: Promise<Uint8Array> | null = null;
-
-  function loadQuadgramTable(): Promise<Uint8Array> {
-    quadgramTable ??= fetch(QUADGRAM_TABLE_URL).then(async (response) => {
-      if (!response.ok) {
-        throw new Error("could not load the English quadgram data");
-      }
-      return new Uint8Array(await response.arrayBuffer());
-    });
-    return quadgramTable;
-  }
 
   interface Ranked {
     label: string;

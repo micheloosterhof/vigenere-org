@@ -1,0 +1,48 @@
+---
+// ABOUTME: General polyalphabetic solver page: breaks periodic ciphers with arbitrary alphabets.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import PolyBreaker from "../components/PolyBreaker.astro";
+---
+
+<Base
+  title="Polyalphabetic cipher solver — break any periodic substitution online"
+  description="Break general periodic polyalphabetic ciphers online without the key: Vigenère, Beaufort, Quagmire, and ciphers with arbitrary mixed alphabets. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">
+    Polyalphabetic cipher solver
+  </h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    This solver attacks the general periodic polyalphabetic cipher: every key
+    position has its own scrambled alphabet, with nothing assumed about how the
+    alphabets were built. Vigenère, Beaufort, and all four Quagmires are special
+    cases, so it can break a Quagmire without knowing any of its keywords. It
+    needs a lot of text: roughly a hundred letters for every key position.
+  </p>
+  <PolyBreaker />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">How it works</h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The key length is found first, using the index of coincidence: when the
+      ciphertext is split into columns at the true period, each column was
+      encrypted with a single alphabet, so its letter distribution becomes as
+      uneven as ordinary English. The solver then seeds each column's alphabet
+      by matching letter frequencies and hill climbs: it repeatedly tries
+      swapping letter pairs within one column and keeps whichever swap makes the
+      whole decryption read most like English, measured by four-letter sequence
+      statistics. Several restarts from random alphabets guard against dead
+      ends.
+    </p>
+    <p>
+      Because the attack is purely statistical, letters that appear only once or
+      twice in a column can come out wrong: the solver may render "nuzzled" as
+      "numbled" because the wrong reading is genuinely the statistically
+      likelier one. The recovered alphabets are shown so you can correct
+      stragglers by hand.
+    </p>
+  </div>
+</Base>
