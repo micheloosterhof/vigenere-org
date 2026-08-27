@@ -20,4 +20,28 @@ import QuagmireTool from "../components/QuagmireTool.astro";
     KRYPTOS.
   </p>
   <QuagmireTool />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Quagmire ciphers
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The four Quagmires are the American Cryptogram Association's names for
+      periodic ciphers that combine a Vigenère-style repeating key with
+      keyword-mixed alphabets. A keyword like KRYPTOS produces the alphabet
+      KRYPTOSABCDEFGHIJLMNQUVWXZ; the variants differ in whether the plaintext
+      side, the ciphertext side, or both use such an alphabet. The indicator
+      letter records where the key letters line up, so the same keywords always
+      produce the same cipher.
+    </p>
+    <p>
+      The best-known Quagmire in the world sits in a courtyard at CIA
+      headquarters: the first two sections of the Kryptos sculpture are Quagmire
+      III with alphabets keyed by KRYPTOS and keys PALIMPSEST and ABSCISSA. Set
+      the tool above to variant III with keyword KRYPTOS and key PALIMPSEST to
+      decrypt K1 yourself.
+    </p>
+  </div>
 </Base>

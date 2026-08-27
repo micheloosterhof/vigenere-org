@@ -29,4 +29,27 @@ import Breaker from "../components/Breaker.astro";
     long.
   </p>
   <Breaker cipher="beaufort" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Beaufort cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The cipher is named after Sir Francis Beaufort, the Royal Navy officer
+      better known for the Beaufort wind scale. Where Vigenère adds the key
+      letter to the plaintext letter, Beaufort subtracts the plaintext letter
+      from the key letter. That small change makes it reciprocal: encrypting a
+      ciphertext with the same key gives back the plaintext, so one operation
+      serves both directions.
+    </p>
+    <p>
+      The reciprocal property made it popular in mechanical crypto equipment,
+      most famously the Hagelin M-209 cipher machine used by the US Army through
+      the Second World War and the Korean War. Cryptographically it is exactly
+      as strong, and as weak, as the Vigenère cipher: the same statistical
+      attacks recover the key once enough ciphertext is available.
+    </p>
+  </div>
 </Base>

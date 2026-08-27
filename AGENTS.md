@@ -29,3 +29,9 @@ Use the Makefile: `make build`, `make test`, `make lint`, `make fmt`,
 - Tests use externally validated vectors where available (cite the source
   in the test).
 - Commit style: Conventional Commits, direct to `main`.
+
+## Analytics
+
+Cloudflare Web Analytics is injected only when `PUBLIC_CF_BEACON_TOKEN` is
+set at build time (repo variable in GitHub Actions, `.envrc` locally).
+Without the token the built pages contain no analytics.

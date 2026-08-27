@@ -18,4 +18,26 @@ import CipherTool from "../components/CipherTool.astro";
     alphabet exactly.
   </p>
   <CipherTool cipher="substitution" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About substitution ciphers
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      A monoalphabetic substitution cipher replaces every A with the same chosen
+      letter, every B with another, and so on through the alphabet. With 26
+      letters there are about 4 × 10²⁶ possible alphabets, far too many to try
+      one by one, which made the cipher feel safe for over a thousand years.
+    </p>
+    <p>
+      The Arab scholar Al-Kindi showed the flaw in the 9th century: the disguise
+      never changes, so the letter frequencies of the language show straight
+      through. In English text E, T, and A dominate; whichever symbols dominate
+      the ciphertext almost certainly stand for them. With a few dozen words of
+      ciphertext, frequency analysis and pattern words break any simple
+      substitution, no matter how scrambled the alphabet.
+    </p>
+  </div>
 </Base>

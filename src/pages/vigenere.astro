@@ -30,4 +30,36 @@ import Breaker from "../components/Breaker.astro";
     long.
   </p>
   <Breaker cipher="vigenere" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Vigenère cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The cipher was first described by Giovan Battista Bellaso in 1553 but was
+      later misattributed to Blaise de Vigenère, whose name stuck. Each letter
+      of the plaintext is shifted by the corresponding letter of a keyword that
+      repeats for the whole message: with key LEMON, the plaintext ATTACKATDAWN
+      becomes LXFOPVEFRNHR. Because the same plaintext letter can encrypt to
+      many different ciphertext letters, simple frequency counting fails against
+      it.
+    </p>
+    <p>
+      For three centuries it was known as le chiffre indéchiffrable, the
+      unbreakable cipher. Friedrich Kasiski published the first general attack
+      in 1863: repeated words in the plaintext that happen to line up with the
+      same part of the key produce repeated fragments in the ciphertext, and the
+      distances between them reveal the key length. Once the key length is
+      known, the message splits into ordinary Caesar ciphers, one per key
+      letter.
+    </p>
+    <p>
+      The solver on this page uses a stronger, modern method: it tries every key
+      length, finds the most English-looking key for each by scoring letter-pair
+      statistics, and reports the best result. It typically recovers the key
+      from ciphertext only four times as long as the key itself.
+    </p>
+  </div>
 </Base>

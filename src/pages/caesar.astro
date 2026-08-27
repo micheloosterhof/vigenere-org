@@ -27,4 +27,28 @@ import Breaker from "../components/Breaker.astro";
     ranking each by how much the result looks like English.
   </p>
   <Breaker cipher="caesar" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Caesar cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The historian Suetonius records that Julius Caesar protected private
+      letters by replacing each letter with the one three places further down
+      the alphabet, so A became D and X wrapped around to A. Any fixed shift
+      from 1 to 25 works the same way; the shift value is the whole key. ROT13,
+      the shift of 13 used to hide spoilers online, is a Caesar cipher that
+      undoes itself when applied twice.
+    </p>
+    <p>
+      With only 25 possible keys, the cipher offers no real security: trying
+      every shift and picking the one that reads as language takes moments by
+      hand and microseconds in a browser, which is exactly what the solver above
+      does. It survives today as a teaching cipher and as the building block of
+      the Vigenère family, where a different Caesar shift is applied at each key
+      position.
+    </p>
+  </div>
 </Base>
