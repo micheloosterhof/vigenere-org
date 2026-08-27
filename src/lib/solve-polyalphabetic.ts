@@ -18,13 +18,21 @@ const FREQUENCY_ORDER = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
 const SAMPLE_LIMIT = 3000;
 
 const RESTARTS = 10;
+
+// Average quadgram log10 probability at which a decryption reads as English;
+// once a restart reaches it, further restarts cannot meaningfully improve.
+const EARLY_EXIT_FITNESS = -3.6;
 const MAX_PERIOD = 12;
 
 // A column whose normalized index of coincidence exceeds this looks
-// monoalphabetic; random text sits at 1.0 and English near 1.6-1.73.
-const IOC_ENGLISH = 1.5;
-// The period is accepted at the first clear jump over the previous candidate.
-const IOC_JUMP = 1.2;
+// monoalphabetic: English lands between roughly 1.45 and 1.75 depending on
+// the text, while polyalphabetic ciphertext sits near random's 1.0.
+const IOC_ENGLISH = 1.3;
+// A curve whose peak rises less than this over its baseline shows no period.
+const IOC_SIGNAL = 0.1;
+// How far above the baseline, as a fraction of the peak's rise, a period must
+// score to be accepted; the smallest such period wins so multiples lose.
+const IOC_PEAK_FRACTION = 0.6;
 
 export interface PolyalphabeticResult {
   period: number;
@@ -84,21 +92,19 @@ export function detectPeriod(text: string, maxPeriod = MAX_PERIOD): number {
     1,
     Math.min(maxPeriod, Math.floor(values.length / 20)),
   );
-  const iocs: number[] = [];
-  for (let period = 1; period <= longest; period += 1) {
-    const ioc = columnIoc(values, period);
-    if (
-      ioc > IOC_ENGLISH &&
-      (period === 1 || ioc > IOC_JUMP * iocs[period - 2])
-    ) {
-      return period;
-    }
-    iocs.push(ioc);
+  const iocs = Array.from({ length: longest }, (_, i) =>
+    columnIoc(values, i + 1),
+  );
+  if (iocs[0] >= IOC_ENGLISH) {
+    return 1;
   }
-  // No clear jump: prefer the shortest period close to the best score, so the
-  // true period beats its multiples.
-  const best = Math.max(...iocs);
-  return iocs.findIndex((ioc) => ioc >= 0.97 * best) + 1;
+  const baseline = [...iocs].sort((a, b) => a - b)[Math.floor(iocs.length / 2)];
+  const peak = Math.max(...iocs);
+  if (peak - baseline < IOC_SIGNAL) {
+    return iocs.indexOf(peak) + 1;
+  }
+  const threshold = baseline + IOC_PEAK_FRACTION * (peak - baseline);
+  return iocs.findIndex((ioc) => ioc >= threshold) + 1;
 }
 
 /** Sum of quantized quadgram scores for the sample decrypted through the per-column mappings. */
@@ -228,13 +234,13 @@ export function breakPolyalphabetic(
       bestScore = score;
       bestMappings = mappings;
     }
-    options.onProgress?.({
-      restart: restart + 1,
-      restarts,
-      fitness:
-        QUADGRAM_MIN_LOG10 +
-        (bestScore / (sample.length - 3)) * QUADGRAM_LOG10_SCALE,
-    });
+    const fitness =
+      QUADGRAM_MIN_LOG10 +
+      (bestScore / (sample.length - 3)) * QUADGRAM_LOG10_SCALE;
+    options.onProgress?.({ restart: restart + 1, restarts, fitness });
+    if (fitness >= EARLY_EXIT_FITNESS) {
+      break;
+    }
   }
 
   // Each mapping decrypts (cipher -> plain); the displayed alphabets encrypt.

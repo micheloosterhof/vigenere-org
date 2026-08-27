@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { vigenere } from "./cipher";
 import { quagmire } from "./quagmire";
 import { breakPolyalphabetic, detectPeriod } from "./solve-polyalphabetic";
 
@@ -84,6 +85,11 @@ describe("detectPeriod", () => {
       "encrypt",
     );
     expect(detectPeriod(ciphertext)).toBe(6);
+  });
+
+  it("finds the true period on short ciphertext, not a multiple", () => {
+    const short = PLAIN.slice(0, 360);
+    expect(detectPeriod(vigenere(short, "LEMON", "encrypt"))).toBe(5);
   });
 
   it("reports period 1 for a monoalphabetic ciphertext", () => {

@@ -18,7 +18,8 @@ import PolyBreaker from "../components/PolyBreaker.astro";
     position has its own scrambled alphabet, with nothing assumed about how the
     alphabets were built. Vigenère, Beaufort, and all four Quagmires are special
     cases, so it can break a Quagmire without knowing any of its keywords. It
-    needs a lot of text: roughly a hundred letters for every key position.
+    needs a lot of text: at least two hundred letters for every key position,
+    and three hundred for reliable results.
   </p>
   <PolyBreaker />
 
