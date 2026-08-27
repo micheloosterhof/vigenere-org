@@ -1,0 +1,20 @@
+---
+// ABOUTME: Caesar cipher tool page with shift-based encrypt/decrypt form.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="Caesar cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt Caesar cipher text online with any shift from 0 to 25. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Caesar cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Caesar cipher shifts every letter by the same fixed amount, classically
+    three positions. It is the simplest special case of the Vigenère cipher: a
+    one-letter key. Choose a shift from 0 to 25 to encrypt or decrypt.
+  </p>
+  <CipherTool cipher="caesar" />
+</Base>

@@ -1,0 +1,4 @@
+/* ABOUTME: Global stylesheet; loads Tailwind CSS for the whole site. */
+/* SPDX-FileCopyrightText: 2026 Michel Oosterhof */
+/* SPDX-License-Identifier: BSD-3-Clause */
+@import "tailwindcss";

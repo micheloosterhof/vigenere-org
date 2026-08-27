@@ -1,0 +1,129 @@
+---
+// ABOUTME: Interactive encrypt/decrypt form shared by all cipher tool pages.
+// ABOUTME: The cipher prop selects which cipher the client-side script applies.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+
+interface Props {
+  cipher: "vigenere" | "beaufort" | "caesar";
+}
+
+const { cipher } = Astro.props;
+const usesShift = cipher === "caesar";
+const reciprocal = cipher === "beaufort";
+
+const buttonClass =
+  "rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300";
+const fieldClass =
+  "w-full rounded-md border border-slate-300 bg-white p-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-900";
+---
+
+<div data-cipher={cipher} class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Text</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Enter plaintext or ciphertext"></textarea>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">{usesShift ? "Shift" : "Key"}</span>
+    {
+      usesShift ? (
+        <input
+          data-key
+          type="number"
+          min="0"
+          max="25"
+          value="3"
+          class={`${fieldClass} max-w-32`}
+        />
+      ) : (
+        <input
+          data-key
+          type="text"
+          class={fieldClass}
+          placeholder="Enter key"
+        />
+      )
+    }
+  </label>
+
+  <div class="flex gap-3">
+    {
+      reciprocal ? (
+        <button data-encrypt type="button" class={buttonClass}>
+          Encrypt / decrypt
+        </button>
+      ) : (
+        <>
+          <button data-encrypt type="button" class={buttonClass}>
+            Encrypt
+          </button>
+          <button data-decrypt type="button" class={buttonClass}>
+            Decrypt
+          </button>
+        </>
+      )
+    }
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Result</span>
+    <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+  </label>
+</div>
+
+<script>
+  import { beaufort, caesar, vigenere, type Mode } from "../lib/cipher";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
+    const cipher = root.dataset.cipher;
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const key = root.querySelector<HTMLInputElement>("[data-key]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    if (!cipher || !input || !key || !output || !error) {
+      continue;
+    }
+
+    const apply = (text: string, mode: Mode): string => {
+      switch (cipher) {
+        case "beaufort":
+          return beaufort(text, key.value);
+        case "caesar": {
+          const shift = Number.parseInt(key.value, 10);
+          if (Number.isNaN(shift)) {
+            throw new Error("shift must be a number between 0 and 25");
+          }
+          return caesar(text, mode === "encrypt" ? shift : -shift);
+        }
+        default:
+          return vigenere(text, key.value, mode);
+      }
+    };
+
+    const run = (mode: Mode): void => {
+      error.hidden = true;
+      try {
+        output.value = apply(input.value, mode);
+      } catch (cause) {
+        output.value = "";
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      }
+    };
+
+    root
+      .querySelector("[data-encrypt]")
+      ?.addEventListener("click", () => run("encrypt"));
+    root
+      .querySelector("[data-decrypt]")
+      ?.addEventListener("click", () => run("decrypt"));
+  }
+</script>

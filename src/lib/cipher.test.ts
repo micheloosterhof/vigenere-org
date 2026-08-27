@@ -15,11 +15,15 @@ describe("vigenere", () => {
   });
 
   it("preserves case and passes non-letters through without advancing the key", () => {
-    expect(vigenere("Attack at dawn!", "lemon", "encrypt")).toBe("Lxfopv ef rnhr!");
+    expect(vigenere("Attack at dawn!", "lemon", "encrypt")).toBe(
+      "Lxfopv ef rnhr!",
+    );
   });
 
   it("normalizes the key to letters only", () => {
-    expect(vigenere("ATTACKATDAWN", "le mo-n1", "encrypt")).toBe("LXFOPVEFRNHR");
+    expect(vigenere("ATTACKATDAWN", "le mo-n1", "encrypt")).toBe(
+      "LXFOPVEFRNHR",
+    );
   });
 
   it("throws on a key with no letters", () => {
@@ -29,7 +33,9 @@ describe("vigenere", () => {
 
   it("round-trips arbitrary text", () => {
     const text = "The quick brown fox jumps over the lazy dog, 42 times.";
-    expect(vigenere(vigenere(text, "Secret", "encrypt"), "Secret", "decrypt")).toBe(text);
+    expect(
+      vigenere(vigenere(text, "Secret", "encrypt"), "Secret", "decrypt"),
+    ).toBe(text);
   });
 });
 

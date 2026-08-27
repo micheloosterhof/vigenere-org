@@ -1,0 +1,52 @@
+---
+// ABOUTME: Landing page: introduces the site and links to the cipher tools.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+
+const tools = [
+  {
+    href: "/vigenere",
+    name: "Vigenère cipher",
+    blurb: "Encrypt and decrypt with a repeating keyword.",
+  },
+  {
+    href: "/beaufort",
+    name: "Beaufort cipher",
+    blurb: "A reciprocal variant: the same operation encrypts and decrypts.",
+  },
+  {
+    href: "/caesar",
+    name: "Caesar cipher",
+    blurb: "Shift every letter by a fixed amount.",
+  },
+];
+---
+
+<Base
+  title="vigenere.org — classical cipher tools"
+  description="Free online tools to encrypt, decrypt, and break classical ciphers: Vigenère, Beaufort, and Caesar. Everything runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Classical cipher tools</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    Encrypt, decrypt, and analyze classical ciphers. All tools run entirely in
+    your browser.
+  </p>
+  <ul class="grid gap-4 sm:grid-cols-2">
+    {
+      tools.map((tool) => (
+        <li class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <a
+            href={tool.href}
+            class="font-semibold underline-offset-2 hover:underline"
+          >
+            {tool.name}
+          </a>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            {tool.blurb}
+          </p>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

@@ -1,0 +1,57 @@
+---
+// ABOUTME: Base page layout: head metadata, site navigation, and footer.
+// ABOUTME: Every page on the site wraps its content in this layout.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+
+const tools = [
+  { href: "/vigenere", label: "Vigenère" },
+  { href: "/beaufort", label: "Beaufort" },
+  { href: "/caesar", label: "Caesar" },
+];
+---
+
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <title>{title}</title>
+  </head>
+  <body
+    class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+  >
+    <header class="border-b border-slate-200 dark:border-slate-800">
+      <nav class="mx-auto flex max-w-3xl items-center gap-6 px-4 py-3">
+        <a href="/" class="font-semibold tracking-tight">vigenere.org</a>
+        {
+          tools.map((tool) => (
+            <a
+              href={tool.href}
+              class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            >
+              {tool.label}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <main class="mx-auto w-full max-w-3xl grow px-4 py-8">
+      <slot />
+    </main>
+    <footer
+      class="border-t border-slate-200 py-4 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400"
+    >
+      All ciphers run in your browser; nothing is sent to a server.
+    </footer>
+  </body>
+</html>

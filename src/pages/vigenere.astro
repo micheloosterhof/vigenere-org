@@ -1,0 +1,21 @@
+---
+// ABOUTME: Vigenère cipher tool page with encrypt/decrypt form and background text.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="Vigenère cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt Vigenère cipher text online with any keyword. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Vigenère cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Vigenère cipher shifts each letter of the text by the corresponding
+    letter of a repeating keyword. Enter your text and a key, then choose
+    encrypt or decrypt. Letters keep their case; spaces and punctuation are left
+    unchanged.
+  </p>
+  <CipherTool cipher="vigenere" />
+</Base>
