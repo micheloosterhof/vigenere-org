@@ -9,8 +9,8 @@ client-side in the browser. Deployed to GitHub Pages by
 
 - `src/lib/` — pure TypeScript cipher core and analysis code, unit-tested
   with vitest (`*.test.ts` colocated). No DOM access here.
-- `src/pages/` — one Astro page per tool (`/vigenere`, `/beaufort`,
-  `/caesar`).
+- `src/pages/` — the auto-solver landing page and one page per tool
+  (`/vigenere`, `/beaufort`, `/caesar`, `/quagmire`, `/substitution`).
 - `src/components/` — shared UI, including the client-side form wiring.
 - `src/layouts/Base.astro` — head metadata, nav, footer.
 
