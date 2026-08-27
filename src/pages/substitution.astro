@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
 ---
 
 <Base
@@ -18,6 +19,17 @@ import CipherTool from "../components/CipherTool.astro";
     alphabet exactly.
   </p>
   <CipherTool cipher="substitution" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste substitution ciphertext with an unknown alphabet and the solver
+    recovers it by hill climbing: it swaps letter pairs and keeps every change
+    that makes the text score more like English quadgram statistics. It works
+    best with a hundred letters or more.
+  </p>
+  <Breaker cipher="substitution" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About substitution ciphers

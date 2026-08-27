@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 interface Props {
-  cipher: "vigenere" | "beaufort" | "caesar";
+  cipher: "vigenere" | "beaufort" | "caesar" | "substitution";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
@@ -25,7 +25,13 @@ const { cipher } = Astro.props;
 
   <div>
     <button data-solve type="button" class={buttonClass}>
-      {cipher === "caesar" ? "Try all 26 shifts" : "Recover key"}
+      {
+        cipher === "caesar"
+          ? "Try all 26 shifts"
+          : cipher === "substitution"
+            ? "Recover alphabet"
+            : "Recover key"
+      }
     </button>
   </div>
 
@@ -58,16 +64,30 @@ const { cipher } = Astro.props;
 </div>
 
 <script>
-  import { beaufort, caesar, vigenere } from "../lib/cipher";
+  import { beaufort, caesar, substitution, vigenere } from "../lib/cipher";
   import {
     beaufortDecrypt,
     breakPeriodic,
     caesarCandidates,
     vigenereDecrypt,
   } from "../lib/solve";
+  import { breakSubstitution } from "../lib/solve-substitution";
+  import { QUADGRAM_TABLE_URL } from "../lib/data/english-quadgrams-meta";
 
   const CANDIDATE_ROWS = 5;
   const PREVIEW_LENGTH = 40;
+
+  let quadgramTable: Promise<Uint8Array> | null = null;
+
+  function loadQuadgramTable(): Promise<Uint8Array> {
+    quadgramTable ??= fetch(QUADGRAM_TABLE_URL).then(async (response) => {
+      if (!response.ok) {
+        throw new Error("could not load the English quadgram data");
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    });
+    return quadgramTable;
+  }
 
   interface Ranked {
     label: string;
@@ -76,7 +96,18 @@ const { cipher } = Astro.props;
     summary: string;
   }
 
-  function rank(cipher: string, text: string): Ranked[] {
+  async function rank(cipher: string, text: string): Promise<Ranked[]> {
+    if (cipher === "substitution") {
+      const result = breakSubstitution(text, await loadQuadgramTable());
+      return [
+        {
+          label: result.key,
+          fitness: result.fitness,
+          plaintext: substitution(text, result.key, "decrypt"),
+          summary: `Recovered alphabet: ${result.key}`,
+        },
+      ];
+    }
     if (cipher === "caesar") {
       return caesarCandidates(text).map((candidate) => ({
         label: String(candidate.shift),
@@ -124,12 +155,13 @@ const { cipher } = Astro.props;
       continue;
     }
 
-    solve.addEventListener("click", () => {
+    solve.addEventListener("click", async () => {
       error.hidden = true;
       result.hidden = true;
       candidates.replaceChildren();
+      solve.disabled = true;
       try {
-        const ranked = rank(cipher, input.value);
+        const ranked = await rank(cipher, input.value);
         const best = ranked[0];
         summary.textContent = best.summary;
         output.value = best.plaintext;
@@ -152,6 +184,8 @@ const { cipher } = Astro.props;
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;
+      } finally {
+        solve.disabled = false;
       }
     });
   }
