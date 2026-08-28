@@ -1,0 +1,94 @@
+---
+// ABOUTME: Adds Copy and Paste buttons to every textarea on the page.
+// ABOUTME: Included once by the layout, so each tool's fields get them without wiring.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+---
+
+<script>
+  import { subtleButtonClass } from "../styles/form";
+
+  const FEEDBACK_MS = 1200;
+  // Firefox denies clipboard reads to page scripts, so the Paste button falls
+  // back to telling the reader which keys do it.
+  const PASTE_KEYS = /Mac|iPhone|iPad/.test(navigator.userAgent)
+    ? "Press ⌘V"
+    : "Press Ctrl+V";
+
+  function flash(button: HTMLButtonElement, message: string): void {
+    const original = button.dataset.label ?? button.textContent ?? "";
+    button.dataset.label = original;
+    button.textContent = message;
+    window.setTimeout(() => {
+      button.textContent = original;
+    }, FEEDBACK_MS);
+  }
+
+  function makeButton(
+    label: string,
+    field: HTMLTextAreaElement,
+    action: () => Promise<string>,
+  ): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = subtleButtonClass;
+    button.textContent = label;
+    button.setAttribute("aria-label", `${label} ${fieldName(field)}`);
+    button.addEventListener("click", async () => {
+      flash(button, await action());
+    });
+    return button;
+  }
+
+  /** The field's own label text, so the buttons read distinctly to a screen reader. */
+  function fieldName(field: HTMLTextAreaElement): string {
+    const span = field.closest("label")?.querySelector(":scope > span");
+    return span?.textContent?.trim().toLowerCase() ?? "text";
+  }
+
+  function copyButton(field: HTMLTextAreaElement): HTMLButtonElement {
+    return makeButton("Copy", field, async () => {
+      try {
+        await navigator.clipboard.writeText(field.value);
+        return "Copied";
+      } catch {
+        field.select();
+        return PASTE_KEYS.replace("V", "C");
+      }
+    });
+  }
+
+  function pasteButton(field: HTMLTextAreaElement): HTMLButtonElement {
+    return makeButton("Paste", field, async () => {
+      try {
+        field.value = await navigator.clipboard.readText();
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        return "Pasted";
+      } catch {
+        field.focus();
+        return PASTE_KEYS;
+      }
+    });
+  }
+
+  for (const field of document.querySelectorAll("textarea")) {
+    const buttons = document.createElement("div");
+    buttons.className = "flex items-center gap-2";
+    if (!field.readOnly) {
+      buttons.append(pasteButton(field));
+    }
+    buttons.append(copyButton(field));
+
+    // Labelled fields share the caption's line; a bare field gets its own row.
+    const caption = field.closest("label")?.querySelector(":scope > span");
+    if (caption) {
+      const header = document.createElement("div");
+      header.className = "flex items-center justify-between gap-2";
+      caption.replaceWith(header);
+      header.append(caption, buttons);
+    } else {
+      buttons.classList.add("justify-end");
+      field.before(buttons);
+    }
+  }
+</script>

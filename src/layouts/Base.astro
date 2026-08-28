@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import "../styles/global.css";
+import ClipboardButtons from "../components/ClipboardButtons.astro";
 
 interface Props {
   title: string;
@@ -128,5 +129,6 @@ const tools = [
         >Privacy</a
       >
     </footer>
+    <ClipboardButtons />
   </body>
 </html>
