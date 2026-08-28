@@ -1,0 +1,44 @@
+---
+// ABOUTME: Cipher analysis / identification page: statistical diagnostics for unknown ciphertext.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import Analyzer from "../components/Analyzer.astro";
+---
+
+<Base
+  title="Cipher identifier — analyze unknown ciphertext online"
+  description="Paste unknown ciphertext to identify the cipher: index of coincidence, key length, entropy, and autokey detection. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">What cipher is this?</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste ciphertext and this tool measures its statistics to suggest which
+    classical cipher produced it, and its likely key length. Nothing is sent to
+    a server.
+  </p>
+  <Analyzer />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    How identification works
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The index of coincidence measures how often two letters drawn from the
+      text match. English text scores about 1.73 (normalized), random text about
+      1.0. A monoalphabetic cipher — Caesar or substitution — keeps the English
+      score because it only relabels letters. A repeating-key cipher flattens
+      the score toward 1.0, but the score rebounds when the text is split into
+      columns at the key length, which is how the key length is found.
+    </p>
+    <p>
+      Autokey ciphers, where the message itself extends the key, defeat that
+      column trick because the key never repeats. A ciphertext autokey still
+      leaves a tell: subtracting each letter from the one a primer-length
+      earlier reconstructs the plaintext, so that difference reads as English.
+      Plaintext autokey hides even this, and is the hardest of the family to
+      spot.
+    </p>
+  </div>
+</Base>

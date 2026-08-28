@@ -1,0 +1,124 @@
+---
+// ABOUTME: Cipher analysis panel: shows statistical diagnostics and a likely cipher family.
+// ABOUTME: Runs the diagnostics synchronously in the browser; nothing is sent to a server.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass } from "../styles/form";
+---
+
+<div data-analyzer class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Ciphertext</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Paste text to analyze"></textarea>
+  </label>
+
+  <div>
+    <button data-analyze type="button" class={buttonClass}>Analyze</button>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <div data-result hidden class="flex flex-col gap-4">
+    <p data-summary class="text-base font-medium"></p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-slate-300 dark:border-slate-700">
+            <th class="py-1 pr-4 font-medium">Measure</th>
+            <th class="py-1 pr-4 font-medium">Value</th>
+            <th class="py-1 font-medium">What it tells you</th>
+          </tr>
+        </thead>
+        <tbody data-rows class="align-top"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { analyze, type CipherFamily } from "../lib/diagnostics";
+
+  const FAMILY_TEXT: Record<CipherFamily, string> = {
+    monoalphabetic:
+      "The letters keep an English-like frequency profile, so this looks monoalphabetic — a Caesar or substitution cipher.",
+    periodic:
+      "The letter frequencies are flattened but sharpen when split into columns, the signature of a repeating-key cipher: Vigenère, Beaufort, or Quagmire.",
+    "ciphertext-autokey":
+      "A difference of the ciphertext reads as English, the signature of a ciphertext autokey cipher.",
+    unknown:
+      "The statistics do not match a common pattern. It may be a plaintext autokey, a longer polyalphabetic key, or not a simple cipher at all.",
+  };
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-analyzer]",
+  )) {
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const analyzeButton =
+      root.querySelector<HTMLButtonElement>("[data-analyze]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    const result = root.querySelector<HTMLElement>("[data-result]");
+    const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const rows = root.querySelector<HTMLTableSectionElement>("[data-rows]");
+    if (!input || !analyzeButton || !error || !result || !summary || !rows) {
+      continue;
+    }
+
+    analyzeButton.addEventListener("click", () => {
+      error.hidden = true;
+      result.hidden = true;
+      rows.replaceChildren();
+      try {
+        const d = analyze(input.value);
+        summary.textContent = FAMILY_TEXT[d.likelyFamily];
+        const entries: [string, string, string][] = [
+          ["Letters", String(d.length), "Length of the analyzed text."],
+          [
+            "Index of coincidence",
+            d.ioc.toFixed(3),
+            "About 1.73 for English, 1.0 for random. High means monoalphabetic.",
+          ],
+          [
+            "Digraph IoC",
+            d.digraphIoc.toFixed(3),
+            "Coincidence of letter pairs.",
+          ],
+          [
+            "Entropy (bits)",
+            d.entropy.toFixed(3),
+            "Higher is closer to uniform random.",
+          ],
+          [
+            "Key length",
+            d.period === 1 ? "1 (none)" : String(d.period),
+            "Period suggested by per-column coincidence.",
+          ],
+          [
+            "Autokey delta IoC",
+            `${d.autokeyDeltaIoc.toFixed(3)} at lag ${d.autokeyLag}`,
+            "High means ciphertext autokey; the lag is the primer length.",
+          ],
+        ];
+        for (const [measure, value, meaning] of entries) {
+          const row = document.createElement("tr");
+          const cells = [measure, value, meaning];
+          cells.forEach((text, i) => {
+            const cell = document.createElement("td");
+            cell.textContent = text;
+            cell.className = i === 1 ? "py-1 pr-4 font-mono" : "py-1 pr-4";
+            row.append(cell);
+          });
+          rows.append(row);
+        }
+        result.hidden = false;
+      } catch (cause) {
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      }
+    });
+  }
+</script>
