@@ -27,12 +27,31 @@ import { buttonClass, fieldClass } from "../styles/form";
     />
   </label>
 
-  <div class="flex items-center gap-4">
-    <button data-solve type="button" class={buttonClass}>Break cipher</button>
-    <span
+  <div class="flex flex-col gap-3">
+    <div>
+      <button data-solve type="button" class={buttonClass}>Break cipher</button>
+    </div>
+    <div
       data-progress
       hidden
-      class="text-sm text-slate-500 dark:text-slate-400"></span>
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      class="flex max-w-sm flex-col gap-1"
+    >
+      <span
+        data-progress-text
+        class="text-sm text-slate-500 dark:text-slate-400"></span>
+      <div
+        class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950"
+      >
+        <div
+          data-progress-bar
+          class="h-full w-0 rounded-full bg-orange-600 transition-all duration-300 dark:bg-orange-400"
+        >
+        </div>
+      </div>
+    </div>
   </div>
 
   <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
@@ -69,6 +88,10 @@ import { buttonClass, fieldClass } from "../styles/form";
     const periodInput = root.querySelector<HTMLInputElement>("[data-period]");
     const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
     const progress = root.querySelector<HTMLElement>("[data-progress]");
+    const progressText = root.querySelector<HTMLElement>(
+      "[data-progress-text]",
+    );
+    const progressBar = root.querySelector<HTMLElement>("[data-progress-bar]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
     const result = root.querySelector<HTMLElement>("[data-result]");
     const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
@@ -79,6 +102,8 @@ import { buttonClass, fieldClass } from "../styles/form";
       !periodInput ||
       !solve ||
       !progress ||
+      !progressText ||
+      !progressBar ||
       !error ||
       !result ||
       !summary ||
@@ -87,6 +112,13 @@ import { buttonClass, fieldClass } from "../styles/form";
     ) {
       continue;
     }
+
+    const setProgress = (label: string, fraction?: number): void => {
+      progressText.textContent = label;
+      const percent = fraction === undefined ? 8 : Math.round(fraction * 100);
+      progressBar.style.width = `${percent}%`;
+      progress.setAttribute("aria-valuenow", String(percent));
+    };
 
     const finish = (): void => {
       solve.disabled = false;
@@ -97,7 +129,7 @@ import { buttonClass, fieldClass } from "../styles/form";
       error.hidden = true;
       result.hidden = true;
       solve.disabled = true;
-      progress.textContent = "Loading language data…";
+      setProgress("Loading language data…");
       progress.hidden = false;
       try {
         const table = await loadQuadgramTable();
@@ -109,7 +141,10 @@ import { buttonClass, fieldClass } from "../styles/form";
         worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
           const message = event.data;
           if (message.type === "progress") {
-            progress.textContent = `Solving… attempt ${message.restart} of ${message.restarts}, fitness ${message.fitness.toFixed(2)}`;
+            setProgress(
+              `Solving… attempt ${message.restart} of ${message.restarts}`,
+              message.restart / message.restarts,
+            );
           } else if (message.type === "result") {
             worker.terminate();
             const solved = message.result;
@@ -132,7 +167,7 @@ import { buttonClass, fieldClass } from "../styles/form";
           table: table.buffer,
           period: Number.isNaN(period) ? undefined : period,
         });
-        progress.textContent = "Solving…";
+        setProgress("Solving…");
       } catch (cause) {
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);

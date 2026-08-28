@@ -13,7 +13,7 @@ import { buttonClass, fieldClass } from "../styles/form";
     class={`${fieldClass} text-base shadow-sm`}
     placeholder="Paste your encrypted message here"></textarea>
 
-  <div class="flex items-center justify-center gap-4">
+  <div class="flex flex-col items-center gap-3">
     <button
       data-solve
       type="button"
@@ -21,10 +21,27 @@ import { buttonClass, fieldClass } from "../styles/form";
     >
       I'm feeling lucky
     </button>
-    <span
+    <div
       data-progress
       hidden
-      class="text-sm text-slate-500 dark:text-slate-400"></span>
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      class="flex w-full max-w-sm flex-col gap-1"
+    >
+      <span
+        data-progress-text
+        class="text-center text-sm text-slate-500 dark:text-slate-400"></span>
+      <div
+        class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950"
+      >
+        <div
+          data-progress-bar
+          class="h-full w-0 rounded-full bg-orange-600 transition-all duration-300 dark:bg-orange-400"
+        >
+        </div>
+      </div>
+    </div>
   </div>
 
   <p
@@ -98,6 +115,10 @@ import { buttonClass, fieldClass } from "../styles/form";
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
     const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
     const progress = root.querySelector<HTMLElement>("[data-progress]");
+    const progressText = root.querySelector<HTMLElement>(
+      "[data-progress-text]",
+    );
+    const progressBar = root.querySelector<HTMLElement>("[data-progress-bar]");
     const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
     const result = root.querySelector<HTMLElement>("[data-result]");
@@ -110,6 +131,8 @@ import { buttonClass, fieldClass } from "../styles/form";
       !input ||
       !solve ||
       !progress ||
+      !progressText ||
+      !progressBar ||
       !output ||
       !error ||
       !result ||
@@ -119,6 +142,15 @@ import { buttonClass, fieldClass } from "../styles/form";
     ) {
       continue;
     }
+
+    // Before the solver reports restart counts there is no fraction to show, so
+    // the bar sits at a small indeterminate width; a reported attempt fills it.
+    const setProgress = (label: string, fraction?: number): void => {
+      progressText.textContent = label;
+      const percent = fraction === undefined ? 8 : Math.round(fraction * 100);
+      progressBar.style.width = `${percent}%`;
+      progress.setAttribute("aria-valuenow", String(percent));
+    };
 
     const finish = (): void => {
       solve.disabled = false;
@@ -130,7 +162,7 @@ import { buttonClass, fieldClass } from "../styles/form";
       result.hidden = true;
       table.replaceChildren();
       solve.disabled = true;
-      progress.textContent = "Loading language data…";
+      setProgress("Loading language data…");
       progress.hidden = false;
       try {
         const quadgrams = await loadQuadgramTable();
@@ -143,7 +175,10 @@ import { buttonClass, fieldClass } from "../styles/form";
         worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
           const message = event.data;
           if (message.type === "progress") {
-            progress.textContent = `Trying harder ciphers… attempt ${message.restart} of ${message.restarts}`;
+            setProgress(
+              `Trying harder ciphers… attempt ${message.restart} of ${message.restarts}`,
+              message.restart / message.restarts,
+            );
           } else if (message.type === "result") {
             worker.terminate();
             const solved = message.result;
@@ -183,7 +218,7 @@ import { buttonClass, fieldClass } from "../styles/form";
           }
         };
         worker.postMessage({ text: input.value, table: quadgrams.buffer });
-        progress.textContent = "Solving…";
+        setProgress("Solving…");
       } catch (cause) {
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
