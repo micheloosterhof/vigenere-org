@@ -11,6 +11,9 @@ const ALPHABET_SIZE = 26;
 
 const AUTOKEY_DELTA_IOC = 1.35;
 const MAX_LAG = 20;
+// Four letters is one quadgram and the shortest text every attack accepts. The
+// statistics below are noisy on so little text, but a short Caesar still breaks.
+const MIN_LENGTH = 4;
 
 export type CipherFamily =
   "monoalphabetic" | "periodic" | "ciphertext-autokey" | "unknown";
@@ -32,7 +35,10 @@ export interface Diagnostics {
   periodIoc: number;
   /** Coincidence rate at the suggested period; elevated when the text is periodic. */
   kappaAtPeriod: number;
-  /** Best ciphertext-autokey delta-stream IoC found, and the lag (primer length) that gave it. */
+  /**
+   * Best ciphertext-autokey delta-stream IoC found, and the lag (primer length)
+   * that gave it. Lag 0 means the text was too short to test any lag.
+   */
   autokeyDeltaIoc: number;
   autokeyLag: number;
   /** Coarse cipher family the statistics point to. */
@@ -102,13 +108,18 @@ export function deltaStreamIoc(
   return normalizedIoc(stream, 1);
 }
 
-/** Best ciphertext-autokey delta-stream IoC over all lags, with the winning lag. */
+/**
+ * Best ciphertext-autokey delta-stream IoC over all lags, with the winning lag.
+ * A delta stream needs about twenty letters per lag before its IoC separates
+ * English from noise, so shorter text is reported as lag 0: no signal, rather
+ * than a signal measured on too little text.
+ */
 function bestAutokeyLag(
   values: number[],
   maxLag: number,
 ): { ioc: number; lag: number } {
-  let best = { ioc: 0, lag: 1 };
-  const longest = Math.max(1, Math.min(maxLag, Math.floor(values.length / 20)));
+  let best = { ioc: 0, lag: 0 };
+  const longest = Math.min(maxLag, Math.floor(values.length / 20));
   for (let lag = 1; lag <= longest; lag += 1) {
     const ioc = Math.max(
       deltaStreamIoc(values, lag, "sub"),
@@ -159,8 +170,10 @@ export function chiSquaredUniform(text: string | number[]): number {
 /** Computes the full diagnostics feature vector and a coarse family guess. */
 export function analyze(text: string): Diagnostics {
   const values = toLetterValues(text);
-  if (values.length < ALPHABET_SIZE) {
-    throw new Error("text must contain at least 26 letters to analyze");
+  if (values.length < MIN_LENGTH) {
+    throw new Error(
+      `text must contain at least ${MIN_LENGTH} letters to analyze`,
+    );
   }
   const ioc = normalizedIoc(values, 1);
   const { period, ioc: periodIoc } = iocPerPeriod(values, MAX_PERIOD);

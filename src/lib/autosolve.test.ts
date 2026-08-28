@@ -137,7 +137,26 @@ describe("autosolve", () => {
     },
   );
 
+  it("cracks a Caesar shorter than one alphabet", () => {
+    const result = autosolve("FRQILGHQWLDO UHSRUW", TABLE, {
+      rng: mulberry32(7),
+    });
+    expect(result.best.cipher).toBe("Caesar");
+    expect(result.best.keyLabel).toBe("shift 3");
+    expect(result.best.plaintext).toBe("CONFIDENTIAL REPORT");
+  });
+
+  it("reports its best guess for short text instead of crashing", () => {
+    const result = autosolve("PJLWRJYQIVDJACQSYWMSD", TABLE, {
+      rng: mulberry32(9),
+    });
+    expect(result.attempts.length).toBeGreaterThan(0);
+    expect(
+      result.attempts.some((a) => a.cipher.toLowerCase().includes("autokey")),
+    ).toBe(false);
+  });
+
   it("throws when the text has too few letters", () => {
-    expect(() => autosolve("abc", TABLE, { rng: mulberry32(7) })).toThrow();
+    expect(() => autosolve("abc", TABLE, { rng: mulberry32(8) })).toThrow();
   });
 });

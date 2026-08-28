@@ -15,7 +15,11 @@ import {
   breakPolyalphabetic,
   type PolyalphabeticProgress,
 } from "./solve-polyalphabetic";
-import { breakCiphertextAutokey, breakPlaintextAutokey } from "./solve-autokey";
+import {
+  AUTOKEY_MIN_LENGTH,
+  breakCiphertextAutokey,
+  breakPlaintextAutokey,
+} from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
 
 // A decryption whose average bigram log10 probability reaches this reads as
@@ -76,9 +80,15 @@ export function autosolve(
   const period = diagnostics.period;
   const attempts: Attempt[] = [];
   const readable = (): boolean => attempts.some((a) => a.fitness >= READABLE);
+  // Both autokey attacks need more text than the others; short text gets the
+  // attacks it can support rather than an error.
+  const longEnoughForAutokey = diagnostics.length >= AUTOKEY_MIN_LENGTH;
 
   // Ciphertext autokey has no period, so the statistics flag it directly.
-  if (diagnostics.likelyFamily === "ciphertext-autokey") {
+  if (
+    longEnoughForAutokey &&
+    diagnostics.likelyFamily === "ciphertext-autokey"
+  ) {
     const recovered = breakCiphertextAutokey(text, table);
     attempts.push({
       cipher: "Ciphertext autokey",
@@ -133,7 +143,7 @@ export function autosolve(
 
   // Plaintext autokey leaves no passive signature, so it is an active fallback.
   // It is cheap, so it runs before the slow general polyalphabetic attack.
-  if (!readable()) {
+  if (longEnoughForAutokey && !readable()) {
     const recovered = breakPlaintextAutokey(text, table, { rng: options.rng });
     attempts.push({
       cipher: "Plaintext autokey",

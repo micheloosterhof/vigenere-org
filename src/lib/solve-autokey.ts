@@ -13,6 +13,9 @@ const ALPHABET_SIZE = 26;
 const CODE_A = 65;
 const MAX_PRIMER = 20;
 const PLAINTEXT_RESTARTS = 6;
+// Both attacks score a candidate primer by quadgram fitness over the tail it
+// uncovers, which needs about an alphabet's worth of letters to mean anything.
+export const AUTOKEY_MIN_LENGTH = 26;
 
 export interface AutokeyResult {
   /** Recovered primer length (the lag that made the difference read as English). */
@@ -104,8 +107,8 @@ export function breakCiphertextAutokey(
   table: Uint8Array,
 ): AutokeyResult {
   const cipher = toLetterValues(text);
-  if (cipher.length < ALPHABET_SIZE) {
-    throw new Error("text must contain at least 26 letters");
+  if (cipher.length < AUTOKEY_MIN_LENGTH) {
+    throw new Error(`text must contain at least ${AUTOKEY_MIN_LENGTH} letters`);
   }
   const longest = Math.max(
     1,
@@ -187,8 +190,8 @@ export function breakPlaintextAutokey(
   options: Options = {},
 ): AutokeyResult {
   const cipher = toLetterValues(text);
-  if (cipher.length < ALPHABET_SIZE) {
-    throw new Error("text must contain at least 26 letters");
+  if (cipher.length < AUTOKEY_MIN_LENGTH) {
+    throw new Error(`text must contain at least ${AUTOKEY_MIN_LENGTH} letters`);
   }
   const rng = options.rng ?? Math.random;
   const longest = Math.max(

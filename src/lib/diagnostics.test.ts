@@ -109,6 +109,18 @@ describe("analyze", () => {
     expect(report.autokeyLag).toBe(10);
   });
 
+  it("analyzes text shorter than one alphabet", () => {
+    const report = analyze("FRQILGHQWLDO UHSRUW");
+    expect(report.length).toBe(18);
+    expect(report.period).toBe(1);
+  });
+
+  it("reports no autokey lag when the text is too short to test one", () => {
+    const report = analyze("FRQILGHQWLDO UHSRUW");
+    expect(report.autokeyLag).toBe(0);
+    expect(report.likelyFamily).not.toBe("ciphertext-autokey");
+  });
+
   it("throws on text with too few letters", () => {
     expect(() => analyze("ab")).toThrow();
   });
