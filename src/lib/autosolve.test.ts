@@ -87,6 +87,13 @@ describe("autosolve", () => {
     expect(matches / PLAIN.length).toBeGreaterThan(0.95);
   });
 
+  it("identifies and breaks plaintext autokey", { timeout: 60000 }, () => {
+    const ciphertext = autokey(PLAIN, "SECRET", "plaintext", "encrypt");
+    const result = autosolve(ciphertext, TABLE, { rng: mulberry32(9) });
+    expect(result.best.cipher).toBe("Plaintext autokey");
+    expect(result.best.plaintext).toBe(PLAIN);
+  });
+
   it("recognizes text that is already readable English", () => {
     const result = autosolve(PLAIN, TABLE, { rng: mulberry32(5) });
     expect(result.alreadyEnglish).toBe(true);

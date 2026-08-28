@@ -15,7 +15,7 @@ import {
   breakPolyalphabetic,
   type PolyalphabeticProgress,
 } from "./solve-polyalphabetic";
-import { breakCiphertextAutokey } from "./solve-autokey";
+import { breakCiphertextAutokey, breakPlaintextAutokey } from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
 
 // A decryption whose average bigram log10 probability reaches this reads as
@@ -31,6 +31,7 @@ const COMPLEXITY: Record<string, number> = {
   Beaufort: 1,
   Substitution: 2,
   "Ciphertext autokey": 2,
+  "Plaintext autokey": 3,
   Polyalphabetic: 3,
 };
 
@@ -128,21 +129,35 @@ export function autosolve(
       plaintext: beaufortPlain,
       href: "/beaufort",
     });
-    if (!readable()) {
-      const recovered = breakPolyalphabetic(text, table, {
-        period,
-        restarts: options.restarts,
-        rng: options.rng,
-        onProgress: options.onProgress,
-      });
-      attempts.push({
-        cipher: "Polyalphabetic",
-        keyLabel: `period ${recovered.period}`,
-        fitness: scoreText(recovered.plaintext),
-        plaintext: recovered.plaintext,
-        href: "/polyalphabetic",
-      });
-    }
+  }
+
+  // Plaintext autokey leaves no passive signature, so it is an active fallback.
+  // It is cheap, so it runs before the slow general polyalphabetic attack.
+  if (!readable()) {
+    const recovered = breakPlaintextAutokey(text, table, { rng: options.rng });
+    attempts.push({
+      cipher: "Plaintext autokey",
+      keyLabel: `primer length ${recovered.primerLength}`,
+      fitness: scoreText(recovered.plaintext),
+      plaintext: recovered.plaintext,
+      href: "/autokey",
+    });
+  }
+
+  if (period > 1 && !readable()) {
+    const recovered = breakPolyalphabetic(text, table, {
+      period,
+      restarts: options.restarts,
+      rng: options.rng,
+      onProgress: options.onProgress,
+    });
+    attempts.push({
+      cipher: "Polyalphabetic",
+      keyLabel: `period ${recovered.period}`,
+      fitness: scoreText(recovered.plaintext),
+      plaintext: recovered.plaintext,
+      href: "/polyalphabetic",
+    });
   }
 
   attempts.sort((a, b) => {
