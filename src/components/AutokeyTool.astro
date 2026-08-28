@@ -87,5 +87,21 @@ import { buttonClass, fieldClass } from "../styles/form";
     root
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
+
+    // Deep link: /autokey?text=...&key=X&variant=ciphertext&mode=encrypt
+    const params = new URLSearchParams(location.search);
+    const text = params.get("text");
+    if (text !== null) {
+      input.value = text;
+      const keyValue = params.get("key");
+      if (keyValue !== null) {
+        key.value = keyValue;
+      }
+      const variantValue = params.get("variant");
+      if (variantValue === "plaintext" || variantValue === "ciphertext") {
+        variant.value = variantValue;
+      }
+      run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
+    }
   }
 </script>

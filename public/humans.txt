@@ -1,0 +1,9 @@
+/* AUTHOR */
+Name: Michel Oosterhof
+Contact: michel@oosterhof.net
+Site: https://vigenere.org
+
+/* SITE */
+License: BSD-3-Clause
+Built with: Astro, Tailwind CSS, TypeScript
+Runs entirely in your browser; nothing is sent to a server.

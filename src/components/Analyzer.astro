@@ -125,5 +125,12 @@ import { buttonClass, fieldClass } from "../styles/form";
         error.hidden = false;
       }
     });
+
+    // Deep link: /analyze?text=...
+    const text = new URLSearchParams(location.search).get("text");
+    if (text !== null) {
+      input.value = text;
+      analyzeButton.click();
+    }
   }
 </script>

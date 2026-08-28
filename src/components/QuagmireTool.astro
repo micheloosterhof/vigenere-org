@@ -144,5 +144,27 @@ import { buttonClass, fieldClass } from "../styles/form";
     root
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
+
+    // Deep link: /quagmire?text=...&variant=3&keyword=KRYPTOS&key=PALIMPSEST&indicator=K&mode=decrypt
+    const params = new URLSearchParams(location.search);
+    const text = params.get("text");
+    if (text !== null) {
+      input.value = text;
+      const set = (name: string, field: HTMLInputElement): void => {
+        const value = params.get(name);
+        if (value !== null) {
+          field.value = value;
+        }
+      };
+      if (params.get("variant")) {
+        variant.value = params.get("variant") as string;
+      }
+      syncVariant();
+      set("keyword", keyword);
+      set("keyword2", keyword2);
+      set("key", key);
+      set("indicator", indicator);
+      run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
+    }
   }
 </script>

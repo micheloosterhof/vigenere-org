@@ -130,5 +130,18 @@ const reciprocal = cipher === "beaufort";
     root
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
+
+    // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt (key for other ciphers)
+    const params = new URLSearchParams(location.search);
+    const text = params.get("text");
+    if (text !== null) {
+      input.value = text;
+      const keyValue =
+        cipher === "caesar" ? params.get("shift") : params.get("key");
+      if (keyValue !== null) {
+        key.value = keyValue;
+      }
+      run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
+    }
   }
 </script>
