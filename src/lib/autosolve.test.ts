@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { beaufort, caesar, substitution, vigenere } from "./cipher";
+import { autokey, beaufort, caesar, substitution, vigenere } from "./cipher";
 import { autosolve } from "./autosolve";
 
 const TABLE = new Uint8Array(
@@ -71,6 +71,20 @@ describe("autosolve", () => {
     expect(result.best.cipher).toBe("Beaufort");
     expect(result.best.keyLabel).toBe("SECRET");
     expect(result.best.plaintext).toBe(PLAIN);
+  });
+
+  it("identifies and breaks ciphertext autokey", () => {
+    const ciphertext = autokey(PLAIN, "TYPEWRITER", "ciphertext", "encrypt");
+    const result = autosolve(ciphertext, TABLE, { rng: mulberry32(8) });
+    expect(result.best.cipher).toBe("Ciphertext autokey");
+    expect(result.diagnostics.likelyFamily).toBe("ciphertext-autokey");
+    let matches = 0;
+    for (let i = 0; i < PLAIN.length; i += 1) {
+      if (result.best.plaintext[i] === PLAIN[i]) {
+        matches += 1;
+      }
+    }
+    expect(matches / PLAIN.length).toBeGreaterThan(0.95);
   });
 
   it("recognizes text that is already readable English", () => {

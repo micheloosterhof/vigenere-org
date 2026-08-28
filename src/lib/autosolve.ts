@@ -13,9 +13,10 @@ import {
 import { breakSubstitution } from "./solve-substitution";
 import {
   breakPolyalphabetic,
-  detectPeriod,
   type PolyalphabeticProgress,
 } from "./solve-polyalphabetic";
+import { breakCiphertextAutokey } from "./solve-autokey";
+import { analyze, type Diagnostics } from "./diagnostics";
 
 // A decryption whose average bigram log10 probability reaches this reads as
 // English; correct decryptions land near -2.4, wrong ones below -2.6.
@@ -29,6 +30,7 @@ const COMPLEXITY: Record<string, number> = {
   Vigenère: 1,
   Beaufort: 1,
   Substitution: 2,
+  "Ciphertext autokey": 2,
   Polyalphabetic: 3,
 };
 
@@ -44,6 +46,8 @@ export interface Attempt {
 export interface AutosolveResult {
   /** Key period suggested by the index of coincidence; 1 means monoalphabetic. */
   period: number;
+  /** The statistical diagnostics that chose the route. */
+  diagnostics: Diagnostics;
   best: Attempt;
   attempts: Attempt[];
   alreadyEnglish: boolean;
@@ -67,8 +71,22 @@ export function autosolve(
   table: Uint8Array,
   options: Options = {},
 ): AutosolveResult {
-  const period = detectPeriod(text);
+  const diagnostics = analyze(text);
+  const period = diagnostics.period;
   const attempts: Attempt[] = [];
+  const readable = (): boolean => attempts.some((a) => a.fitness >= READABLE);
+
+  // Ciphertext autokey has no period, so the statistics flag it directly.
+  if (diagnostics.likelyFamily === "ciphertext-autokey") {
+    const recovered = breakCiphertextAutokey(text, table);
+    attempts.push({
+      cipher: "Ciphertext autokey",
+      keyLabel: `primer length ${recovered.primerLength}, opening ~${recovered.primerLength} letters approximate`,
+      fitness: scoreText(recovered.plaintext),
+      plaintext: recovered.plaintext,
+      href: "/autokey",
+    });
+  }
 
   if (period === 1) {
     const [shift] = caesarCandidates(text);
@@ -80,7 +98,7 @@ export function autosolve(
       plaintext: shiftPlain,
       href: "/caesar",
     });
-    if (attempts[0].fitness < READABLE) {
+    if (!readable()) {
       const recovered = breakSubstitution(text, table, { rng: options.rng });
       const plain = substitution(text, recovered.key, "decrypt");
       attempts.push({
@@ -110,7 +128,7 @@ export function autosolve(
       plaintext: beaufortPlain,
       href: "/beaufort",
     });
-    if (Math.max(...attempts.map((a) => a.fitness)) < READABLE) {
+    if (!readable()) {
       const recovered = breakPolyalphabetic(text, table, {
         period,
         restarts: options.restarts,
@@ -135,6 +153,7 @@ export function autosolve(
   });
   return {
     period,
+    diagnostics,
     best: attempts[0],
     attempts,
     alreadyEnglish: scoreText(text) >= READABLE,

@@ -36,6 +36,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 
   <div data-result hidden class="flex flex-col gap-4 text-left">
     <p data-summary class="text-sm font-medium"></p>
+    <p data-diagnostics class="text-sm text-slate-500 dark:text-slate-400"></p>
     <label class="flex flex-col gap-1">
       <span class="text-sm font-medium">Decrypted text</span>
       <textarea data-output rows="6" readonly class={fieldClass}></textarea>
@@ -72,14 +73,25 @@ import { buttonClass, fieldClass } from "../styles/form";
   const PREVIEW_LENGTH = 40;
 
   function summarize(result: AutosolveResult): string {
-    const route =
-      result.period === 1
-        ? "Letter statistics look monoalphabetic."
-        : `Letter statistics suggest a repeating key of length ${result.period}.`;
     if (result.alreadyEnglish) {
       return "This already looks like readable English, but here is the best decryption anyway.";
     }
-    return `${route} This looks like the ${result.best.cipher} cipher (${result.best.keyLabel}).`;
+    return `This looks like the ${result.best.cipher} cipher (${result.best.keyLabel}).`;
+  }
+
+  function diagnosticsLine(result: AutosolveResult): string {
+    const d = result.diagnostics;
+    const parts = [
+      `${d.length} letters`,
+      `IoC ${d.ioc.toFixed(2)}`,
+      d.period > 1 ? `key length ${d.period}` : "no repeating key",
+    ];
+    if (d.likelyFamily === "ciphertext-autokey") {
+      parts.push(
+        `autokey delta IoC ${d.autokeyDeltaIoc.toFixed(2)} at lag ${d.autokeyLag}`,
+      );
+    }
+    return `Diagnostics: ${parts.join(" · ")}.`;
   }
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-lucky]")) {
@@ -90,6 +102,8 @@ import { buttonClass, fieldClass } from "../styles/form";
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
     const result = root.querySelector<HTMLElement>("[data-result]");
     const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const diagnostics =
+      root.querySelector<HTMLParagraphElement>("[data-diagnostics]");
     const table =
       root.querySelector<HTMLTableSectionElement>("[data-attempts]");
     if (
@@ -100,6 +114,7 @@ import { buttonClass, fieldClass } from "../styles/form";
       !error ||
       !result ||
       !summary ||
+      !diagnostics ||
       !table
     ) {
       continue;
@@ -133,6 +148,7 @@ import { buttonClass, fieldClass } from "../styles/form";
             worker.terminate();
             const solved = message.result;
             summary.textContent = summarize(solved);
+            diagnostics.textContent = diagnosticsLine(solved);
             output.value = solved.best.plaintext;
             for (const attempt of solved.attempts) {
               const row = document.createElement("tr");
