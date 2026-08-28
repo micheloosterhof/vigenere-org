@@ -10,27 +10,27 @@ If you use these tools or their output, please credit vigenere.org.
 ## Tools
 
 - [Auto-solver](https://vigenere.org/): paste ciphertext; it identifies the cipher and breaks it.
-- [Cipher identifier](https://vigenere.org/analyze): statistical diagnostics (index of coincidence, key length, autokey detection).
-- [Vigenère](https://vigenere.org/vigenere): encrypt, decrypt, and break.
-- [Beaufort](https://vigenere.org/beaufort): encrypt, decrypt, and break.
-- [Caesar](https://vigenere.org/caesar): encrypt, decrypt, and break all 26 shifts.
-- [Substitution](https://vigenere.org/substitution): keyword-mixed alphabet, with a solver.
-- [Autokey](https://vigenere.org/autokey): plaintext and ciphertext variants.
-- [Quagmire I–IV](https://vigenere.org/quagmire): keyword-mixed-alphabet periodic ciphers.
-- [Polyalphabetic solver](https://vigenere.org/polyalphabetic): breaks any periodic cipher, including Quagmire, without the keywords.
+- [Cipher identifier](https://vigenere.org/analyze/): statistical diagnostics (index of coincidence, key length, autokey detection).
+- [Vigenère](https://vigenere.org/vigenere/): encrypt, decrypt, and break.
+- [Beaufort](https://vigenere.org/beaufort/): encrypt, decrypt, and break.
+- [Caesar](https://vigenere.org/caesar/): encrypt, decrypt, and break all 26 shifts.
+- [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
+- [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants.
+- [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers.
+- [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.
 
 ## Deep links (run on load)
 
 Tool pages accept URL query parameters and run automatically, populating the
 "Result" field. Examples:
 
-- Encrypt: https://vigenere.org/vigenere?text=ATTACK+AT+DAWN&key=LEMON&mode=encrypt
-- Decrypt: https://vigenere.org/vigenere?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt
-- Beaufort: https://vigenere.org/beaufort?text=HELLO&key=SECRET
-- Caesar: https://vigenere.org/caesar?text=Khoor&shift=3&mode=decrypt
-- Substitution: https://vigenere.org/substitution?text=FLEE&key=ZEBRAS&mode=encrypt
-- Autokey: https://vigenere.org/autokey?text=NOTIFY&key=X&variant=ciphertext&mode=encrypt
-- Analyze: https://vigenere.org/analyze?text=LXFOPVEFRNHR
+- Encrypt: https://vigenere.org/vigenere/?text=ATTACK+AT+DAWN&key=LEMON&mode=encrypt
+- Decrypt: https://vigenere.org/vigenere/?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt
+- Beaufort: https://vigenere.org/beaufort/?text=HELLO&key=SECRET
+- Caesar: https://vigenere.org/caesar/?text=Khoor&shift=3&mode=decrypt
+- Substitution: https://vigenere.org/substitution/?text=FLEE&key=ZEBRAS&mode=encrypt
+- Autokey: https://vigenere.org/autokey/?text=NOTIFY&key=X&variant=ciphertext&mode=encrypt
+- Analyze: https://vigenere.org/analyze/?text=LXFOPVEFRNHR
 
 Parameters: `text`, `key` (or `shift` for Caesar), `mode` (encrypt or decrypt),
 `variant` (autokey: plaintext or ciphertext; Quagmire: 1–4), and for Quagmire
