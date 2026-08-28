@@ -102,6 +102,17 @@ const tools = [
         }
       </nav>
     </header>
+    <noscript>
+      <div
+        class="mx-auto max-w-3xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300"
+      >
+        The cipher tools on vigenere.org run entirely in your browser with
+        JavaScript, so no ciphertext is ever sent to a server. Enable JavaScript
+        to encrypt, decrypt, and break ciphers. Fetching a tool URL without a
+        JavaScript engine (for example with curl) returns this page, not a
+        computed result.
+      </div>
+    </noscript>
     <main class="mx-auto w-full max-w-3xl grow px-4 py-8">
       <slot />
     </main>
