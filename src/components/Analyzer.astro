@@ -97,6 +97,11 @@ import { buttonClass, fieldClass } from "../styles/form";
             "Period suggested by per-column coincidence.",
           ],
           [
+            "Coincidence rate",
+            d.kappaAtPeriod.toFixed(4),
+            "Kappa at the key length; rises above ~0.038 when the text is periodic or English.",
+          ],
+          [
             "Autokey delta IoC",
             `${d.autokeyDeltaIoc.toFixed(3)} at lag ${d.autokeyLag}`,
             "High means ciphertext autokey; the lag is the primer length.",

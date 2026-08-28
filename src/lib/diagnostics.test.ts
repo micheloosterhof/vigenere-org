@@ -7,7 +7,6 @@ import { autokey, beaufort, substitution, vigenere } from "./cipher";
 import {
   analyze,
   chiSquaredUniform,
-  conditionalIoc,
   deltaStreamIoc,
   iocPerPeriod,
   normalizedIoc,
@@ -62,13 +61,10 @@ describe("iocPerPeriod", () => {
   });
 });
 
-describe("conditionalIoc and deltaStreamIoc detect ciphertext autokey", () => {
+describe("deltaStreamIoc detects ciphertext autokey", () => {
   it("elevates for ciphertext autokey at the primer-length lag", () => {
     const cipher = autokey(ENGLISH, "TYPEWRITER", "ciphertext", "encrypt");
-    const delta = deltaStreamIoc(cipher, 10, "sub");
-    const conditional = conditionalIoc(cipher, 10);
-    expect(delta).toBeGreaterThan(1.4);
-    expect(conditional).toBeGreaterThan(1.3);
+    expect(deltaStreamIoc(cipher, 10, "sub")).toBeGreaterThan(1.4);
   });
 
   it("stays near 1.0 for a Vigenère cipher", () => {

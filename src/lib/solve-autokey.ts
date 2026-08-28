@@ -149,27 +149,12 @@ export function breakCiphertextAutokey(
   }
   recoverHead(plain, best.length, table);
 
-  // Reinsert into the original text, preserving case and non-letters.
-  let position = 0;
-  const plaintext = [...text]
-    .map((char) => {
-      const upper = char.toUpperCase();
-      if (upper < "A" || upper > "Z") {
-        return char;
-      }
-      const output = String.fromCharCode(CODE_A + plain[position]);
-      position += 1;
-      return char === upper ? output : output.toLowerCase();
-    })
-    .join("");
-
-  const fitness =
-    QUADGRAM_MIN_LOG10 + meanQuadgram(plain, table) * QUADGRAM_LOG10_SCALE;
   return {
     primerLength: best.length,
     variant: best.variant,
-    plaintext,
-    fitness,
+    plaintext: reinsert(text, plain),
+    fitness:
+      QUADGRAM_MIN_LOG10 + meanQuadgram(plain, table) * QUADGRAM_LOG10_SCALE,
   };
 }
 

@@ -9,6 +9,7 @@ import {
 } from "./data/english-quadgrams-meta";
 import { toLetterValues } from "./solve";
 import { substituteLetters } from "./cipher";
+import { iocPerPeriod, MAX_PERIOD } from "./period";
 
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
@@ -22,17 +23,6 @@ const RESTARTS = 10;
 // Average quadgram log10 probability at which a decryption reads as English;
 // once a restart reaches it, further restarts cannot meaningfully improve.
 const EARLY_EXIT_FITNESS = -3.6;
-const MAX_PERIOD = 12;
-
-// A column whose normalized index of coincidence exceeds this looks
-// monoalphabetic: English lands between roughly 1.45 and 1.75 depending on
-// the text, while polyalphabetic ciphertext sits near random's 1.0.
-const IOC_ENGLISH = 1.3;
-// A curve whose peak rises less than this over its baseline shows no period.
-const IOC_SIGNAL = 0.1;
-// How far above the baseline, as a fraction of the peak's rise, a period must
-// score to be accepted; the smallest such period wins so multiples lose.
-const IOC_PEAK_FRACTION = 0.6;
 
 export interface PolyalphabeticResult {
   period: number;
@@ -57,54 +47,13 @@ interface Options {
   onProgress?: (progress: PolyalphabeticProgress) => void;
 }
 
-/** Mean normalized index of coincidence over the period's columns; 1.0 is random, English is near 1.73. */
-function columnIoc(values: number[], period: number): number {
-  let sum = 0;
-  for (let column = 0; column < period; column += 1) {
-    const counts = new Array<number>(ALPHABET_SIZE).fill(0);
-    let length = 0;
-    for (let i = column; i < values.length; i += period) {
-      counts[values[i]] += 1;
-      length += 1;
-    }
-    if (length < 2) {
-      return 0;
-    }
-    let coincidences = 0;
-    for (const count of counts) {
-      coincidences += count * (count - 1);
-    }
-    sum += (ALPHABET_SIZE * coincidences) / (length * (length - 1));
-  }
-  return sum / period;
-}
-
-/**
- * Finds the key period by looking for the first clear jump in per-column
- * index of coincidence, falling back to the highest-scoring period.
- */
+/** Suggests the key period; throws on text too short to analyze. */
 export function detectPeriod(text: string, maxPeriod = MAX_PERIOD): number {
   const values = toLetterValues(text);
   if (values.length < 4) {
     throw new Error("text must contain at least four letters");
   }
-  const longest = Math.max(
-    1,
-    Math.min(maxPeriod, Math.floor(values.length / 20)),
-  );
-  const iocs = Array.from({ length: longest }, (_, i) =>
-    columnIoc(values, i + 1),
-  );
-  if (iocs[0] >= IOC_ENGLISH) {
-    return 1;
-  }
-  const baseline = [...iocs].sort((a, b) => a - b)[Math.floor(iocs.length / 2)];
-  const peak = Math.max(...iocs);
-  if (peak - baseline < IOC_SIGNAL) {
-    return iocs.indexOf(peak) + 1;
-  }
-  const threshold = baseline + IOC_PEAK_FRACTION * (peak - baseline);
-  return iocs.findIndex((ioc) => ioc >= threshold) + 1;
+  return iocPerPeriod(values, maxPeriod).period;
 }
 
 /** Sum of quantized quadgram scores for the sample decrypted through the per-column mappings. */

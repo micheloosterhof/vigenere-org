@@ -3,14 +3,13 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { toLetterValues } from "./solve";
+import { ENGLISH_IOC, iocPerPeriod, MAX_PERIOD } from "./period";
+
+export { iocPerPeriod } from "./period";
 
 const ALPHABET_SIZE = 26;
 
-// English normalized IoC sits near 1.73; random text near 1.0. These thresholds
-// separate the families with comfortable margins on the texts we handle.
-const MONO_IOC = 1.3;
 const AUTOKEY_DELTA_IOC = 1.35;
-const MAX_PERIOD = 20;
 const MAX_LAG = 20;
 
 export type CipherFamily =
@@ -31,6 +30,8 @@ export interface Diagnostics {
   period: number;
   /** Per-column IoC at the suggested period. */
   periodIoc: number;
+  /** Coincidence rate at the suggested period; elevated when the text is periodic. */
+  kappaAtPeriod: number;
   /** Best ciphertext-autokey delta-stream IoC found, and the lag (primer length) that gave it. */
   autokeyDeltaIoc: number;
   autokeyLag: number;
@@ -63,51 +64,6 @@ export function normalizedIoc(text: string | number[], length = 1): number {
     total += 1;
   }
   return ALPHABET_SIZE ** length * coincidence([...counts.values()], total);
-}
-
-/** Mean per-column normalized IoC when the text is split into `period` columns. */
-function columnIoc(values: number[], period: number): number {
-  let sum = 0;
-  for (let column = 0; column < period; column += 1) {
-    const counts = new Array<number>(ALPHABET_SIZE).fill(0);
-    let total = 0;
-    for (let i = column; i < values.length; i += period) {
-      counts[values[i]] += 1;
-      total += 1;
-    }
-    sum += ALPHABET_SIZE * coincidence(counts, total);
-  }
-  return sum / period;
-}
-
-/**
- * Suggests the key period from per-column IoC. Reports the shortest period whose
- * columns look monoalphabetic (well above random), so the true period beats its
- * multiples, falling back to the highest-scoring period.
- */
-export function iocPerPeriod(
-  text: string | number[],
-  maxPeriod = MAX_PERIOD,
-): { period: number; ioc: number; curve: number[] } {
-  const values = typeof text === "string" ? toLetterValues(text) : text;
-  const longest = Math.max(
-    1,
-    Math.min(maxPeriod, Math.floor(values.length / 20)),
-  );
-  const curve = Array.from({ length: longest }, (_, i) =>
-    columnIoc(values, i + 1),
-  );
-  if (curve[0] >= MONO_IOC) {
-    return { period: 1, ioc: curve[0], curve };
-  }
-  const peak = Math.max(...curve);
-  const baseline = [...curve].sort((a, b) => a - b)[
-    Math.floor(curve.length / 2)
-  ];
-  const threshold =
-    peak - baseline < 0.1 ? peak : baseline + 0.6 * (peak - baseline);
-  const period = curve.findIndex((v) => v >= threshold) + 1;
-  return { period, ioc: curve[period - 1], curve };
 }
 
 /** Kappa: the coincidence rate at a given lag; peaks at multiples of the key period. */
@@ -144,36 +100,6 @@ export function deltaStreamIoc(
     stream.push(((combined % ALPHABET_SIZE) + ALPHABET_SIZE) % ALPHABET_SIZE);
   }
   return normalizedIoc(stream, 1);
-}
-
-/**
- * Conditional IoC: groups each letter by the letter `lag` positions before it and
- * pools the within-group coincidences. Elevated for ciphertext autokey because
- * each group is a monoalphabetic image of the plaintext.
- */
-export function conditionalIoc(text: string | number[], lag: number): number {
-  const values = typeof text === "string" ? toLetterValues(text) : text;
-  const buckets = Array.from({ length: ALPHABET_SIZE }, () =>
-    new Array<number>(ALPHABET_SIZE).fill(0),
-  );
-  const sizes = new Array<number>(ALPHABET_SIZE).fill(0);
-  for (let i = lag; i < values.length; i += 1) {
-    buckets[values[i - lag]][values[i]] += 1;
-    sizes[values[i - lag]] += 1;
-  }
-  let numerator = 0;
-  let denominator = 0;
-  for (let group = 0; group < ALPHABET_SIZE; group += 1) {
-    const total = sizes[group];
-    if (total < 2) {
-      continue;
-    }
-    for (const count of buckets[group]) {
-      numerator += count * (count - 1);
-    }
-    denominator += total * (total - 1);
-  }
-  return denominator > 0 ? (ALPHABET_SIZE * numerator) / denominator : 0;
 }
 
 /** Best ciphertext-autokey delta-stream IoC over all lags, with the winning lag. */
@@ -241,9 +167,9 @@ export function analyze(text: string): Diagnostics {
   const autokey = bestAutokeyLag(values, MAX_LAG);
 
   let likelyFamily: CipherFamily;
-  if (autokey.ioc >= AUTOKEY_DELTA_IOC && ioc < MONO_IOC) {
+  if (autokey.ioc >= AUTOKEY_DELTA_IOC && ioc < ENGLISH_IOC) {
     likelyFamily = "ciphertext-autokey";
-  } else if (ioc >= MONO_IOC) {
+  } else if (ioc >= ENGLISH_IOC) {
     likelyFamily = "monoalphabetic";
   } else if (period > 1) {
     likelyFamily = "periodic";
@@ -259,6 +185,7 @@ export function analyze(text: string): Diagnostics {
     chiSquared: chiSquaredUniform(values),
     period,
     periodIoc,
+    kappaAtPeriod: kappa(values, Math.max(1, period)),
     autokeyDeltaIoc: autokey.ioc,
     autokeyLag: autokey.lag,
     likelyFamily,
