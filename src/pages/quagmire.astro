@@ -28,10 +28,12 @@ import QuagmireBreaker from "../components/QuagmireBreaker.astro";
   <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
     The solver first breaks the text as a general polyalphabetic cipher, then
     checks whether one shared mixed alphabet explains every key position — the
-    mark of Quagmire III — and uses it to repair stray errors. It needs roughly
-    two hundred letters per key position and can take a minute or two; it runs
-    entirely in your browser. Other variants come out as the general
-    polyalphabetic decryption, as on the
+    mark of Quagmire III — and uses it to repair stray errors. It rewrites the
+    recovered alphabet into its keyword form and names the period key, so a
+    KRYPTOS/PALIMPSEST-style cipher comes back with the very words the author
+    chose. It needs roughly two hundred letters per key position and can take a
+    minute or two; it runs entirely in your browser. Other variants come out as
+    the general polyalphabetic decryption, as on the
     <a
       href="/polyalphabetic"
       class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"

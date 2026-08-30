@@ -58,9 +58,9 @@ describe("breakQuagmire", () => {
     expect(result.isQuagmire).toBe(true);
     expect(result.period).toBe(4);
     expect(result.plaintext).toBe(PLAIN);
-    expect([...result.alphabet].sort().join("")).toBe(
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    );
+    expect(result.alphabet).toBe("KRYPTOSABCDEFGHIJLMNQUVWXZ");
+    expect(result.key).toBe("TALE");
+    expect(result.indicator).toBe("K");
   });
 
   it(

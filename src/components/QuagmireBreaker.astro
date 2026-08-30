@@ -149,7 +149,7 @@ import { buttonClass, fieldClass } from "../styles/form";
             worker.terminate();
             const solved = message.result;
             summary.textContent = solved.isQuagmire
-              ? `Quagmire III confirmed: one shared alphabet explains all ${solved.period} key positions.`
+              ? `Quagmire III confirmed: key ${solved.key} with indicator ${solved.indicator}; one shared alphabet explains all ${solved.period} key positions.`
               : `No shared alphabet found at key length ${solved.period}; showing the general polyalphabetic decryption. Rare letters may be wrong.`;
             output.value = solved.plaintext;
             alphabet.textContent = solved.alphabet;
