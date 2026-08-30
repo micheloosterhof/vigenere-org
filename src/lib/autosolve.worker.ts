@@ -7,6 +7,7 @@ import { autosolve } from "./autosolve";
 interface Request {
   text: string;
   table: ArrayBuffer;
+  words?: string[];
 }
 
 const scope = self as unknown as {
@@ -15,9 +16,10 @@ const scope = self as unknown as {
 };
 
 scope.onmessage = (event) => {
-  const { text, table } = event.data;
+  const { text, table, words } = event.data;
   try {
     const result = autosolve(text, new Uint8Array(table), {
+      words,
       onProgress: (progress) =>
         scope.postMessage({ type: "progress", ...progress }),
     });

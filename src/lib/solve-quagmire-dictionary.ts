@@ -1,5 +1,5 @@
-// ABOUTME: Quagmire III keyword dictionary attack: tries every wordlist keyword as the mixed alphabet.
-// ABOUTME: With the alphabet fixed each column is a 26-way shift, so short texts break in seconds.
+// ABOUTME: Quagmire keyword dictionary attack: tries every wordlist keyword as the mixed alphabet.
+// ABOUTME: Covers variants I-III; with the alphabet fixed each column is a 26-way shift, so short texts break in seconds.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { inverseAlphabet, mixedAlphabet, substituteLetters } from "./cipher";
@@ -28,9 +28,13 @@ const READABLE_QUADGRAM = -4.7;
 // the true period beats longer ones that overfit.
 const FITNESS_EPSILON = 0.1;
 
+export type DictionaryVariant = 1 | 2 | 3;
+
 export interface QuagmireDictionaryResult {
   /** True when the best decryption reads as English. */
   found: boolean;
+  /** Which Quagmire variant fit: 1 keys the plaintext alphabet, 2 the ciphertext alphabet, 3 both. */
+  variant: DictionaryVariant;
   /** The dictionary keyword whose alphabet produced the best decryption. */
   keyword: string;
   /** The keyword-mixed alphabet. */
@@ -52,14 +56,48 @@ interface Options {
   onProgress?: (done: number, total: number) => void;
 }
 
+// Every variant decrypts as plain = out[(in[cipher] - offset) mod 26]:
+// I reads positions straight off the ciphertext, II writes them straight out,
+// III maps both through the mixed alphabet.
+interface VariantPlan {
+  variant: DictionaryVariant;
+  input: number[];
+  output: number[];
+}
+
+function decryptValues(
+  cipher: number[],
+  plan: VariantPlan,
+  offsets: number[],
+): number[] {
+  const period = offsets.length;
+  return cipher.map(
+    (value, i) =>
+      plan.output[
+        (plan.input[value] - offsets[i % period] + ALPHABET_SIZE) %
+          ALPHABET_SIZE
+      ],
+  );
+}
+
+const IDENTITY = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
+
+function variantPlans(alphabet: number[], index: number[]): VariantPlan[] {
+  return [
+    { variant: 1, input: IDENTITY, output: alphabet },
+    { variant: 2, input: index, output: IDENTITY },
+    { variant: 3, input: index, output: alphabet },
+  ];
+}
+
 /**
- * Breaks a Quagmire III by trying every dictionary word as the alphabet
- * keyword. For each keyword and period, every column's shift is chosen
- * independently against English letter frequencies — cheap enough to scan the
- * whole dictionary — then a bigram-scored shortlist is rescored with the
- * quadgram table, which decides the winner. Works on far shorter text than
- * the statistical solver, but only when the keyword really is in the list:
- * check `found`.
+ * Breaks a Quagmire I, II, or III by trying every dictionary word as the
+ * alphabet keyword. For each keyword, variant, and period, every column's
+ * shift is chosen independently against English letter frequencies — cheap
+ * enough to scan the whole dictionary — then a bigram-scored shortlist is
+ * rescored with the quadgram table, which decides the winner. Works on far
+ * shorter text than the statistical solver, but only when the keyword really
+ * is in the list: check `found`.
  */
 export function breakQuagmireDictionary(
   text: string,
@@ -91,6 +129,7 @@ export function breakQuagmireDictionary(
 
   interface Candidate {
     word: string;
+    variant: DictionaryVariant;
     period: number;
     offsets: number[];
     bigram: number;
@@ -117,50 +156,49 @@ export function breakQuagmireDictionary(
   words.forEach((word, wordCount) => {
     const alphabet = mixedAlphabet(word);
     const index = inverseAlphabet(alphabet);
-    // English log-frequency of the plaintext letter at each alphabet position.
-    const positionScore = new Float64Array(ALPHABET_SIZE);
-    for (let position = 0; position < ALPHABET_SIZE; position += 1) {
-      positionScore[position] = logFreq[alphabet[position]];
-    }
 
-    for (let period = shortest; period <= cappedLongest; period += 1) {
-      const counts = countsAtPeriod[period];
-      const offsets = new Array<number>(period);
-      for (let column = 0; column < period; column += 1) {
-        let bestOffset = 0;
-        let bestScore = -Infinity;
-        for (let offset = 0; offset < ALPHABET_SIZE; offset += 1) {
-          let score = 0;
-          for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
-            const count = counts[column * ALPHABET_SIZE + letter];
-            if (count > 0) {
-              score +=
-                count *
-                positionScore[
-                  (index[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
-                ];
-            }
-          }
-          if (score > bestScore) {
-            bestScore = score;
-            bestOffset = offset;
-          }
-        }
-        offsets[column] = bestOffset;
+    for (const plan of variantPlans(alphabet, index)) {
+      // English log-frequency of the plaintext letter each position decrypts to.
+      const positionScore = new Float64Array(ALPHABET_SIZE);
+      for (let position = 0; position < ALPHABET_SIZE; position += 1) {
+        positionScore[position] = logFreq[plan.output[position]];
       }
 
-      const plain = cipher.map(
-        (value, i) =>
-          alphabet[
-            (index[value] - offsets[i % period] + ALPHABET_SIZE) % ALPHABET_SIZE
-          ],
-      );
-      shortlistAdd({
-        word,
-        period,
-        offsets,
-        bigram: scoreLetterValues(plain),
-      });
+      for (let period = shortest; period <= cappedLongest; period += 1) {
+        const counts = countsAtPeriod[period];
+        const offsets = new Array<number>(period);
+        for (let column = 0; column < period; column += 1) {
+          let bestOffset = 0;
+          let bestScore = -Infinity;
+          for (let offset = 0; offset < ALPHABET_SIZE; offset += 1) {
+            let score = 0;
+            for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
+              const count = counts[column * ALPHABET_SIZE + letter];
+              if (count > 0) {
+                score +=
+                  count *
+                  positionScore[
+                    (plan.input[letter] - offset + ALPHABET_SIZE) %
+                      ALPHABET_SIZE
+                  ];
+              }
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              bestOffset = offset;
+            }
+          }
+          offsets[column] = bestOffset;
+        }
+
+        shortlistAdd({
+          word,
+          variant: plan.variant,
+          period,
+          offsets,
+          bigram: scoreLetterValues(decryptValues(cipher, plan, offsets)),
+        });
+      }
     }
 
     if (
@@ -171,20 +209,18 @@ export function breakQuagmireDictionary(
     }
   });
 
-  const finalists = shortlist.map((candidate) => {
+  const planFor = (candidate: Candidate): VariantPlan => {
     const alphabet = mixedAlphabet(candidate.word);
     const index = inverseAlphabet(alphabet);
-    const plain = cipher.map(
-      (value, i) =>
-        alphabet[
-          (index[value] -
-            candidate.offsets[i % candidate.period] +
-            ALPHABET_SIZE) %
-            ALPHABET_SIZE
-        ],
-    );
-    return { ...candidate, fitness: quadgramFitness(plain, table) };
-  });
+    return variantPlans(alphabet, index)[candidate.variant - 1];
+  };
+  const finalists = shortlist.map((candidate) => ({
+    ...candidate,
+    fitness: quadgramFitness(
+      decryptValues(cipher, planFor(candidate), candidate.offsets),
+      table,
+    ),
+  }));
   const top = Math.max(...finalists.map((finalist) => finalist.fitness));
   finalists.sort((a, b) => {
     const aNearTop = a.fitness >= top - FITNESS_EPSILON;
@@ -195,7 +231,8 @@ export function breakQuagmireDictionary(
       return (
         a.period - b.period ||
         b.fitness - a.fitness ||
-        a.word.length - b.word.length
+        a.word.length - b.word.length ||
+        a.variant - b.variant
       );
     }
     if (aNearTop !== bNearTop) {
@@ -205,20 +242,26 @@ export function breakQuagmireDictionary(
   });
   const winner = finalists[0];
 
-  const alphabet = mixedAlphabet(winner.word);
-  const index = inverseAlphabet(alphabet);
-  const alphabetText = alphabet
+  const plan = planFor(winner);
+  const alphabetText = mixedAlphabet(winner.word)
     .map((value) => String.fromCharCode(CODE_A + value))
     .join("");
-  const recovered = recoverQuagmireKey(alphabetText, winner.offsets);
+  const recovered = recoverQuagmireKey(
+    alphabetText,
+    winner.offsets,
+    winner.variant,
+  );
   const plaintext = substituteLetters(
     text,
     winner.offsets,
     (letter, offset) =>
-      alphabet[(index[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE],
+      plan.output[
+        (plan.input[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
+      ],
   );
   return {
     found: winner.fitness >= READABLE_QUADGRAM,
+    variant: winner.variant,
     keyword: winner.word,
     alphabet: alphabetText,
     period: winner.period,

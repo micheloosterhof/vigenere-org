@@ -14,7 +14,15 @@ import {
 } from "./cipher";
 import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
+import { quagmire } from "./quagmire";
 import { autosolve } from "./autosolve";
+
+const WORDS = readFileSync(
+  new URL("../../public/data/english-words.txt", import.meta.url),
+  "utf8",
+)
+  .split("\n")
+  .filter((word) => word !== "");
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -88,6 +96,28 @@ describe("autosolve", () => {
     expect(result.best.plaintext).toContain(letters.slice(4, -4));
     expect(result.best.plaintext).toHaveLength(letters.length);
   });
+
+  it(
+    "identifies a Quagmire III cipher through the keyword dictionary",
+    { timeout: 60000 },
+    () => {
+      const ciphertext = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      const result = autosolve(ciphertext, TABLE, {
+        rng: mulberry32(12),
+        words: WORDS,
+      });
+      expect(result.best.cipher).toBe("Quagmire III");
+      expect(result.best.keyLabel).toBe("keyword SPRING, key TALE");
+      expect(result.best.plaintext).toBe(PLAIN);
+      expect(result.attempts.some((a) => a.cipher === "Polyalphabetic")).toBe(
+        false,
+      );
+    },
+  );
 
   it("identifies a keyword substitution cipher", () => {
     const ciphertext = substitution(PLAIN, "zebras", "encrypt");

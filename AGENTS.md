@@ -24,9 +24,10 @@ lint, and tests.
     reconcile one shared alphabet (`reconcile-quagmire.ts`); the solution
     is normalized to keyword form and its key named
     (`keyword-alphabet.ts`).
-  - `solve-quagmire-dictionary.ts` — Quagmire III keyword dictionary
+  - `solve-quagmire-dictionary.ts` — Quagmire I-III keyword dictionary
     attack over `public/data/english-words.txt` (google-10000-english);
-    works on short texts and runs before the statistical solver.
+    works on short texts and runs before the statistical solver, both on
+    the quagmire page and inside the auto-solver.
   - `solve-autokey.ts` — primer recovery for both autokey variants.
   - `diagnostics.ts` — the statistical feature vector (IoC, chi-squared,
     autokey delta stream, transposition signature) behind `/analyze`.

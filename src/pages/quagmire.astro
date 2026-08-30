@@ -23,19 +23,20 @@ import QuagmireBreaker from "../components/QuagmireBreaker.astro";
   <QuagmireTool />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
-    Break Quagmire III without the keywords
+    Break Quagmire without the keywords
   </h2>
   <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
     The solver tries nearly ten thousand English words as the alphabet keyword
-    first — with the alphabet fixed, each key position is a simple shift, so
-    even short ciphertexts break in seconds when the keyword is a dictionary
-    word. If no keyword fits, it falls back to the statistical attack: break the
-    text as a general polyalphabetic cipher, check whether one shared mixed
-    alphabet explains every key position — the mark of Quagmire III — and
-    rewrite that alphabet into its keyword form, naming the period key. The
-    fallback needs roughly two hundred letters per key position and can take a
-    minute or two; everything runs in your browser. Other variants come out as
-    the general polyalphabetic decryption, as on the
+    first, in all three single-keyword variants (I, II, and III) — with the
+    alphabet fixed, each key position is a simple shift, so even short
+    ciphertexts break in seconds when the keyword is a dictionary word. If no
+    keyword fits, it falls back to the statistical attack: break the text as a
+    general polyalphabetic cipher, check whether one shared mixed alphabet
+    explains every key position — the mark of Quagmire III — and rewrite that
+    alphabet into its keyword form, naming the period key. The fallback needs
+    roughly two hundred letters per key position and can take a minute or two;
+    everything runs in your browser. Quagmire IV comes out as the general
+    polyalphabetic decryption, as on the
     <a
       href="/polyalphabetic"
       class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"

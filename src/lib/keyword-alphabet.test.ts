@@ -80,4 +80,26 @@ describe("recoverQuagmireKey", () => {
     expect(recovered.indicator).toBe("A");
     expect(recovered.key).toHaveLength(1);
   });
+
+  it("recovers a Quagmire I key, where the ciphertext alphabet is straight", () => {
+    // Q1: offset = key letter value - index(indicator) in the mixed alphabet.
+    const indicatorIndex = KRYPTOS.indexOf("K");
+    const offsets = [..."PALIMPSEST"].map(
+      (letter) => (letter.charCodeAt(0) - 65 - indicatorIndex + 26) % 26,
+    );
+    const recovered = recoverQuagmireKey(KRYPTOS, offsets, 1);
+    expect(recovered.key).toBe("PALIMPSEST");
+    expect(recovered.indicator).toBe("K");
+  });
+
+  it("recovers a Quagmire II key, where the plaintext alphabet is straight", () => {
+    // Q2: offset = index(key letter) in the mixed alphabet - indicator value.
+    const indicatorValue = "D".charCodeAt(0) - 65;
+    const offsets = [..."PALIMPSEST"].map(
+      (letter) => (KRYPTOS.indexOf(letter) - indicatorValue + 26) % 26,
+    );
+    const recovered = recoverQuagmireKey(KRYPTOS, offsets, 2);
+    expect(recovered.key).toBe("PALIMPSEST");
+    expect(recovered.indicator).toBe("D");
+  });
 });

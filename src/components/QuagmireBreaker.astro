@@ -167,7 +167,8 @@ import { buttonClass, fieldClass } from "../styles/form";
             worker.terminate();
             if (message.method === "dictionary") {
               const solved = message.dictionary;
-              summary.textContent = `Keyword ${solved.keyword} found in the dictionary: key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
+              const name = { 1: "I", 2: "II", 3: "III" }[solved.variant];
+              summary.textContent = `Quagmire ${name}: keyword ${solved.keyword} found in the dictionary; key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
               output.value = solved.plaintext;
               alphabet.textContent = solved.alphabet;
               alphabetRow.hidden = false;

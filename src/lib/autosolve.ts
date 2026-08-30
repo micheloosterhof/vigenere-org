@@ -13,6 +13,10 @@ import {
 } from "./solve";
 import { breakRailFence } from "./railfence";
 import { breakColumnar } from "./transposition";
+import {
+  breakQuagmireDictionary,
+  type DictionaryVariant,
+} from "./solve-quagmire-dictionary";
 import { breakSubstitution } from "./solve-substitution";
 import {
   breakPolyalphabetic,
@@ -36,6 +40,9 @@ const COMPLEXITY: Record<string, number> = {
   Beaufort: 1,
   "Columnar transposition": 2,
   Substitution: 2,
+  "Quagmire I": 2,
+  "Quagmire II": 2,
+  "Quagmire III": 2,
   "Ciphertext autokey": 2,
   "Plaintext autokey": 3,
   Polyalphabetic: 3,
@@ -64,8 +71,16 @@ interface Options {
   rng?: () => number;
   /** Restart count for the polyalphabetic fallback. */
   restarts?: number;
+  /** Keyword list enabling the Quagmire dictionary attack. */
+  words?: string[];
   onProgress?: (progress: PolyalphabeticProgress) => void;
 }
+
+const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
+  1: "Quagmire I",
+  2: "Quagmire II",
+  3: "Quagmire III",
+};
 
 /**
  * Breaks ciphertext without being told the cipher. The index of coincidence
@@ -184,6 +199,21 @@ export function autosolve(
       plaintext: recovered.plaintext,
       href: "/autokey",
     });
+  }
+
+  // The keyword dictionary attack covers the Quagmire family on far shorter
+  // text than the general attack, and is much cheaper, so it goes first.
+  if (options.words !== undefined && !readable()) {
+    const dictionary = breakQuagmireDictionary(text, options.words, table);
+    if (dictionary.found) {
+      attempts.push({
+        cipher: QUAGMIRE_NAME[dictionary.variant],
+        keyLabel: `keyword ${dictionary.keyword}, key ${dictionary.key}`,
+        fitness: scoreText(dictionary.plaintext),
+        plaintext: dictionary.plaintext,
+        href: "/quagmire",
+      });
+    }
   }
 
   if (period > 1 && !readable()) {

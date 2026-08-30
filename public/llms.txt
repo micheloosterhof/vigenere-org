@@ -20,7 +20,7 @@ If you use these tools or their output, please credit vigenere.org.
 - [Rail fence](https://vigenere.org/railfence/): zigzag transposition, with a rail-count solver.
 - [Columnar transposition](https://vigenere.org/transposition/): keyword column order, with a solver up to seven columns.
 - [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
-- [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a Quagmire III solver (keyword dictionary attack first, statistical fallback).
+- [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a solver for variants I-III (keyword dictionary attack first, statistical fallback).
 - [Playfair](https://vigenere.org/playfair/): digraph substitution over a keyword-mixed 5x5 square.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.
 - [Kryptos](https://vigenere.org/kryptos/): the CIA sculpture's ciphers, with one-click decryption of K1 and K2.

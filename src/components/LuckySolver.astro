@@ -79,6 +79,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 
 <script>
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { loadWordlist } from "../lib/wordlist";
   import type { AutosolveResult } from "../lib/autosolve";
   import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
 
@@ -165,7 +166,10 @@ import { buttonClass, fieldClass } from "../styles/form";
       setProgress("Loading language data…");
       progress.hidden = false;
       try {
-        const quadgrams = await loadQuadgramTable();
+        const [quadgrams, words] = await Promise.all([
+          loadQuadgramTable(),
+          loadWordlist(),
+        ]);
         const worker = new Worker(
           new URL("../lib/autosolve.worker.ts", import.meta.url),
           {
@@ -217,7 +221,11 @@ import { buttonClass, fieldClass } from "../styles/form";
             finish();
           }
         };
-        worker.postMessage({ text: input.value, table: quadgrams.buffer });
+        worker.postMessage({
+          text: input.value,
+          table: quadgrams.buffer,
+          words,
+        });
         setProgress("Solving…");
       } catch (cause) {
         error.textContent =

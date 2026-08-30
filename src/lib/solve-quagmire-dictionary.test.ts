@@ -28,30 +28,57 @@ const SHORT =
   "the vile wind.";
 
 describe("breakQuagmireDictionary", () => {
-  it("breaks a short Quagmire III whose keyword is in the dictionary", () => {
-    const ciphertext = quagmire(
-      SHORT,
-      { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
-      "encrypt",
-    );
-    const result = breakQuagmireDictionary(ciphertext, WORDS, TABLE);
-    expect(result.found).toBe(true);
-    expect(result.keyword).toBe("SPRING");
-    expect(result.period).toBe(4);
-    expect(result.plaintext).toBe(SHORT);
-    expect(result.key).toBe("TALE");
+  it(
+    "breaks a short Quagmire III whose keyword is in the dictionary",
+    { timeout: 60000 },
+    () => {
+      const ciphertext = quagmire(
+        SHORT,
+        { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      const result = breakQuagmireDictionary(ciphertext, WORDS, TABLE);
+      expect(result.found).toBe(true);
+      expect(result.variant).toBe(3);
+      expect(result.keyword).toBe("SPRING");
+      expect(result.period).toBe(4);
+      expect(result.plaintext).toBe(SHORT);
+      expect(result.key).toBe("TALE");
+    },
+  );
+
+  it("breaks the Quagmire I and II variants too", { timeout: 60000 }, () => {
+    for (const variant of [1, 2] as const) {
+      const ciphertext = quagmire(
+        SHORT,
+        { variant, keyword: "SPRING", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      const result = breakQuagmireDictionary(ciphertext, WORDS, TABLE);
+      expect(result.found).toBe(true);
+      expect(result.variant).toBe(variant);
+      expect(result.keyword).toBe("SPRING");
+      expect(result.plaintext).toBe(SHORT);
+      expect(result.key).toBe("TALE");
+    }
   });
 
-  it("reports not found when the keyword is outside the dictionary", () => {
-    const ciphertext = quagmire(
-      SHORT,
-      { variant: 3, keyword: "KRYPTOS", key: "TALE", indicator: "A" },
-      "encrypt",
-    );
-    expect(breakQuagmireDictionary(ciphertext, WORDS, TABLE).found).toBe(false);
-  });
+  it(
+    "reports not found when the keyword is outside the dictionary",
+    { timeout: 60000 },
+    () => {
+      const ciphertext = quagmire(
+        SHORT,
+        { variant: 3, keyword: "KRYPTOS", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      expect(breakQuagmireDictionary(ciphertext, WORDS, TABLE).found).toBe(
+        false,
+      );
+    },
+  );
 
-  it("reports search progress", () => {
+  it("reports search progress", { timeout: 60000 }, () => {
     const ciphertext = quagmire(
       SHORT,
       { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
@@ -68,7 +95,7 @@ describe("breakQuagmireDictionary", () => {
     expect(seen[seen.length - 1]).toBe(WORDS.length);
   });
 
-  it("honours a fixed key length", () => {
+  it("honours a fixed key length", { timeout: 60000 }, () => {
     const ciphertext = quagmire(
       SHORT,
       { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },

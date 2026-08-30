@@ -147,27 +147,31 @@ test("deep link decrypts Kryptos K1 on the quagmire page", async ({ page }) => {
   );
 });
 
-test("the quagmire breaker finds a dictionary keyword", async ({ page }) => {
-  const plaintext =
-    "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
-    "THIRTEEN WINSTON SMITH SLIPPED QUICKLY THROUGH THE GLASS DOORS";
-  await page.goto(
-    `/quagmire/?text=${encodeURIComponent(plaintext)}&variant=3&keyword=SPRING&key=TALE&indicator=A&mode=encrypt`,
-  );
-  const ciphertext = await page
-    .locator("[data-quagmire] [data-output]")
-    .inputValue();
-  expect(ciphertext).not.toBe(plaintext);
+for (const variant of ["1", "3"]) {
+  test(`the quagmire breaker finds a dictionary keyword (variant ${variant})`, async ({
+    page,
+  }) => {
+    const plaintext =
+      "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
+      "THIRTEEN WINSTON SMITH SLIPPED QUICKLY THROUGH THE GLASS DOORS";
+    await page.goto(
+      `/quagmire/?text=${encodeURIComponent(plaintext)}&variant=${variant}&keyword=SPRING&key=TALE&indicator=A&mode=encrypt`,
+    );
+    const ciphertext = await page
+      .locator("[data-quagmire] [data-output]")
+      .inputValue();
+    expect(ciphertext).not.toBe(plaintext);
 
-  const breaker = page.locator("[data-quagmire-breaker]");
-  await breaker.locator("[data-input]").fill(ciphertext);
-  await breaker.locator("[data-solve]").click();
-  await expect(breaker.locator("[data-summary]")).toContainText(
-    "Keyword SPRING found in the dictionary: key TALE",
-    { timeout: 60_000 },
-  );
-  await expect(breaker.locator("[data-output]")).toHaveValue(plaintext);
-});
+    const breaker = page.locator("[data-quagmire-breaker]");
+    await breaker.locator("[data-input]").fill(ciphertext);
+    await breaker.locator("[data-solve]").click();
+    await expect(breaker.locator("[data-summary]")).toContainText(
+      `Quagmire ${variant === "1" ? "I" : "III"}: keyword SPRING found in the dictionary; key TALE`,
+      { timeout: 60_000 },
+    );
+    await expect(breaker.locator("[data-output]")).toHaveValue(plaintext);
+  });
+}
 
 test("the kryptos page decrypts K1 with one click", async ({ page }) => {
   await page.goto("/kryptos/");
