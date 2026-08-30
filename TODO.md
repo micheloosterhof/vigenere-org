@@ -1,19 +1,12 @@
 # TODO
 
-## Colour scheme — accessibility contrast (decision pending)
+## Decided
 
-axe-core (WCAG 2.1 AA) flags one serious issue on every page: **colour contrast on
-the orange header and buttons.**
-
-- Nav links `text-orange-100` (#ffedd4) on `bg-orange-600` (#f54900) = **3.13:1**, needs 4.5:1.
-- Brand text and buttons: white on orange-600 = **3.59:1**, needs 4.5:1.
-
-Darkening to `orange-700` was tried 2026-08-30 and rejected: it reads as red,
-and Michel prefers the bright orange. White text on any orange that bright
-cannot reach 4.5:1, so the remaining options are:
-
-- Bright orange band/buttons with near-black text (~5.3:1, passes), or
-- keep white text and accept the AA finding as a brand decision.
+- Colour contrast (2026-08-30): axe-core flags white/orange-100 text on the
+  orange-600 header and buttons (3.13:1–3.59:1 vs the 4.5:1 AA threshold).
+  Michel accepts the finding as a brand decision: the bright orange stays.
+  Darkening to orange-700 was tried and rejected as too red. Do not "fix"
+  this in future audits.
 
 ## Later
 
