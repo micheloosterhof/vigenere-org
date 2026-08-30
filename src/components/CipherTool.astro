@@ -6,15 +6,23 @@
 
 interface Props {
   cipher:
-    "vigenere" | "beaufort" | "caesar" | "substitution" | "atbash" | "rot13";
+    | "vigenere"
+    | "beaufort"
+    | "caesar"
+    | "substitution"
+    | "atbash"
+    | "rot13"
+    | "railfence";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
 
 const { cipher } = Astro.props;
 const usesShift = cipher === "caesar";
+const usesRails = cipher === "railfence";
 const keyless = cipher === "atbash" || cipher === "rot13";
 const reciprocal = cipher === "beaufort" || keyless;
+const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
 ---
 
 <div data-cipher={cipher} class="flex flex-col gap-4">
@@ -30,13 +38,13 @@ const reciprocal = cipher === "beaufort" || keyless;
   {
     !keyless && (
       <label class="flex flex-col gap-1">
-        <span class="text-sm font-medium">{usesShift ? "Shift" : "Key"}</span>
-        {usesShift ? (
+        <span class="text-sm font-medium">{keyLabel}</span>
+        {usesShift || usesRails ? (
           <input
             data-key
             type="number"
-            min="0"
-            max="25"
+            min={usesRails ? "1" : "0"}
+            max={usesRails ? "20" : "25"}
             value="3"
             class={`${fieldClass} max-w-32`}
           />
@@ -88,6 +96,7 @@ const reciprocal = cipher === "beaufort" || keyless;
     vigenere,
     type Mode,
   } from "../lib/cipher";
+  import { railFence } from "../lib/railfence";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
@@ -118,6 +127,13 @@ const reciprocal = cipher === "beaufort" || keyless;
           }
           return caesar(text, mode === "encrypt" ? shift : -shift);
         }
+        case "railfence": {
+          const rails = Number.parseInt(keyValue(), 10);
+          if (Number.isNaN(rails)) {
+            throw new Error("rails must be a number between 1 and 20");
+          }
+          return railFence(text, rails, mode);
+        }
         default:
           return vigenere(text, keyValue(), mode);
       }
@@ -142,13 +158,17 @@ const reciprocal = cipher === "beaufort" || keyless;
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
 
-    // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt (key for other ciphers)
+    // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt (rails for rail fence, key for the rest)
     const params = new URLSearchParams(location.search);
     const text = params.get("text");
     if (text !== null) {
       input.value = text;
       const linkedKey =
-        cipher === "caesar" ? params.get("shift") : params.get("key");
+        cipher === "caesar"
+          ? params.get("shift")
+          : cipher === "railfence"
+            ? params.get("rails")
+            : params.get("key");
       if (key && linkedKey !== null) {
         key.value = linkedKey;
       }

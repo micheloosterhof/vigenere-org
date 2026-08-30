@@ -17,6 +17,7 @@ If you use these tools or their output, please credit vigenere.org.
 - [ROT13](https://vigenere.org/rot13/): encode and decode the self-inverse shift of 13.
 - [Atbash](https://vigenere.org/atbash/): the keyless mirror-alphabet cipher.
 - [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
+- [Rail fence](https://vigenere.org/railfence/): zigzag transposition, with a rail-count solver.
 - [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a Quagmire III solver.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.

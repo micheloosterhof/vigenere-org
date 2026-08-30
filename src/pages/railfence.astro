@@ -1,0 +1,57 @@
+---
+// ABOUTME: Rail fence cipher tool page with encrypt/decrypt form and rail-count breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+---
+
+<Base
+  title="Rail fence cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the rail fence transposition cipher online with any number of rails. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Rail fence cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The rail fence cipher writes the message in a zigzag over a number of rails
+    and reads it off row by row. It is a transposition cipher: every character
+    keeps its identity but changes position. Pick the number of rails to encrypt
+    or decrypt.
+  </p>
+  <CipherTool cipher="railfence" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the rail count
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste rail fence ciphertext and the solver tries every rail count up to
+    twenty, ranking each by how much the result looks like English.
+  </p>
+  <Breaker cipher="railfence" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the rail fence cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      Write the message diagonally downwards, bounce off the bottom rail, climb
+      back to the top, and repeat: the path traces the pickets of a fence. With
+      three rails, WE ARE DISCOVERED becomes a top row taken from every fourth
+      letter, a middle row from the letters in between, and a bottom row from
+      the valleys. Reading the rows left to right produces the ciphertext.
+    </p>
+    <p>
+      Because it only rearranges letters, the ciphertext keeps the exact letter
+      frequencies of English — the <a
+        href="/analyze"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >cipher identifier</a
+      > flags that combination as a transposition. And since the key is a single small
+      number, trying every rail count breaks it instantly, as the solver above shows.
+      Militaries used it only for low-value traffic, often adding a second transposition
+      on top.
+    </p>
+  </div>
+</Base>

@@ -12,6 +12,7 @@ no message text ever leaves the page.
 - **Vigenère, Beaufort, Caesar**: encrypt, decrypt, and break with a
   bigram-fitness key search (Guballa's adjacent-key-pair method).
 - **ROT13 and Atbash**: the keyless self-inverse classics.
+- **Rail fence**: zigzag transposition with a rail-count solver.
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts

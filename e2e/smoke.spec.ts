@@ -14,6 +14,7 @@ const pages: [string, string][] = [
   ["/autokey/", "Autokey cipher"],
   ["/quagmire/", "Quagmire ciphers"],
   ["/substitution/", "Substitution cipher"],
+  ["/railfence/", "Rail fence cipher"],
   ["/polyalphabetic/", "Polyalphabetic cipher solver"],
   ["/analyze/", "What cipher is this?"],
   ["/privacy/", "Privacy policy"],
@@ -90,6 +91,15 @@ test("deep link decrypts on the caesar page", async ({ page }) => {
   await expect(page.locator("[data-cipher=caesar] [data-output]")).toHaveValue(
     "Hello",
   );
+});
+
+test("deep link decrypts on the rail fence page", async ({ page }) => {
+  await page.goto(
+    "/railfence/?text=WECRLTEERDSOEEFEAOCAIVDEN&rails=3&mode=decrypt",
+  );
+  await expect(
+    page.locator("[data-cipher=railfence] [data-output]"),
+  ).toHaveValue("WEAREDISCOVEREDFLEEATONCE");
 });
 
 test("deep link decodes on the rot13 page", async ({ page }) => {

@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 interface Props {
-  cipher: "vigenere" | "beaufort" | "caesar" | "substitution";
+  cipher: "vigenere" | "beaufort" | "caesar" | "substitution" | "railfence";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
@@ -30,7 +30,9 @@ const { cipher } = Astro.props;
           ? "Try all 26 shifts"
           : cipher === "substitution"
             ? "Recover alphabet"
-            : "Recover key"
+            : cipher === "railfence"
+              ? "Find rail count"
+              : "Recover key"
       }
     </button>
   </div>
@@ -50,7 +52,13 @@ const { cipher } = Astro.props;
           <thead>
             <tr class="border-b border-slate-300 dark:border-slate-700">
               <th class="py-1 pr-4 font-medium"
-                >{cipher === "caesar" ? "Shift" : "Key"}</th
+                >{
+                  cipher === "caesar"
+                    ? "Shift"
+                    : cipher === "railfence"
+                      ? "Rails"
+                      : "Key"
+                }</th
               >
               <th class="py-1 pr-4 font-medium">Fitness</th>
               <th class="py-1 font-medium">Preview</th>
@@ -72,6 +80,7 @@ const { cipher } = Astro.props;
     vigenereDecrypt,
   } from "../lib/solve";
   import { breakSubstitution } from "../lib/solve-substitution";
+  import { breakRailFence } from "../lib/railfence";
   import { loadQuadgramTable } from "../lib/quadgrams";
 
   const CANDIDATE_ROWS = 5;
@@ -95,6 +104,14 @@ const { cipher } = Astro.props;
           summary: `Recovered alphabet: ${result.key}`,
         },
       ];
+    }
+    if (cipher === "railfence") {
+      return breakRailFence(text).map((candidate) => ({
+        label: String(candidate.rails),
+        fitness: candidate.fitness,
+        plaintext: candidate.plaintext,
+        summary: `Best rail count: ${candidate.rails}`,
+      }));
     }
     if (cipher === "caesar") {
       return caesarCandidates(text).map((candidate) => ({
