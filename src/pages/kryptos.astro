@@ -1,0 +1,106 @@
+---
+// ABOUTME: Kryptos sculpture page: the story of K1-K4 with one-click decryption of K1 and K2.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import { buttonClass } from "../styles/form";
+
+const K1 = "EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD";
+const K2 =
+  "VFPJUDEEHZWETZYVGWHKKQETGFQJNCEGGWHKK?DQMCPFQZDQMMIAGPFXHQRLG" +
+  "TIMVMZJANQLVKQEDAGDVFRPJUNGEUNAQZGZLECGYUXUEENJTBJLBQCRTBJDFHRR" +
+  "YIZETKZEMVDUFKSJHKFWHKUWQLSZFTIHHDDDUVH?DWKBFUFPWNTDFIYCUQZERE" +
+  "EVLDKFEZMOQQJLTTUGSYQPFEUNLAVIDXFLGGTEZ?FKZBSFDQVGOGIPUFXHHDRKF" +
+  "FHQNTGPUAECNUVPDJMQCLQUMUNEDFQELZZVRRGKFFVOEEXBDMVPNFQXEZLGRE" +
+  "DNQFMPNZGLFLPMRJQYALMGNUVPDXVKPDQUMEBEDMHDAFMJGZNUPLGEWJLLAETG";
+
+const decryptUrl = (text: string, key: string): string =>
+  `/quagmire/?text=${encodeURIComponent(text)}&variant=3&keyword=KRYPTOS&key=${key}&indicator=K&mode=decrypt`;
+
+const linkClass =
+  "text-orange-700 underline-offset-2 hover:underline dark:text-orange-400";
+---
+
+<Base
+  title="Kryptos — decrypt K1 and K2 yourself"
+  description="The CIA's Kryptos sculpture: decrypt sections K1 and K2 with one click using the Quagmire III cipher, and read how K3 works and why K4 is still unsolved."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">The Kryptos sculpture</h1>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      Since 1990 a curved copper screen by the artist Jim Sanborn has stood in a
+      courtyard at CIA headquarters in Langley, its surface cut with about 1,800
+      letters. The text hides four messages, K1 through K4. Three have been
+      solved; the fourth has resisted every attack for three decades and is one
+      of the most famous unsolved ciphers in the world.
+    </p>
+    <p>
+      K1 and K2 are Quagmire III ciphers — Vigenère variants over an alphabet
+      mixed with the keyword KRYPTOS. Sanborn even carved the cipher table onto
+      the sculpture's other half. Because every tool on this site runs in your
+      browser, you can decrypt the real ciphertext yourself.
+    </p>
+  </div>
+
+  <h2 class="mt-10 mb-4 text-2xl font-bold tracking-tight">
+    K1 — key PALIMPSEST
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p class="overflow-x-auto font-mono text-sm">{K1}</p>
+    <p>
+      Sixty-three letters that decrypt to a sentence of Sanborn's own, with the
+      deliberate misspelling IQLUSION.
+    </p>
+    <p>
+      <a href={decryptUrl(K1, "PALIMPSEST")} class={buttonClass}>
+        Decrypt K1 in the Quagmire tool
+      </a>
+    </p>
+  </div>
+
+  <h2 class="mt-10 mb-4 text-2xl font-bold tracking-tight">
+    K2 — key ABSCISSA
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      The longest solved section: 369 letters pointing to something "buried out
+      there", complete with compass coordinates. The carved text contains a
+      famous flaw — Sanborn omitted a letter, so the decryption ends IDBYROWS
+      where he intended X LAYER TWO. He confirmed the correction in 2006. The
+      misspellings UNDERGRUUND and DESPARATLY elsewhere are deliberate.
+    </p>
+    <p>
+      <a href={decryptUrl(K2, "ABSCISSA")} class={buttonClass}>
+        Decrypt K2 in the Quagmire tool
+      </a>
+    </p>
+  </div>
+
+  <h2 class="mt-10 mb-4 text-2xl font-bold tracking-tight">K3 and K4</h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      K3 changes method entirely: it is a
+      <a href="/transposition" class={linkClass}>transposition</a> — the letters of
+      a passage from Howard Carter's diary on opening Tutankhamun's tomb ("Can you
+      see anything?") are rearranged by a double rotation rather than substituted.
+      The <a href="/analyze" class={linkClass}>cipher identifier</a> shows the telltale
+      signature: English letter frequencies, unreadable text.
+    </p>
+    <p>
+      K4 is 97 letters and still unsolved. Sanborn has released four plaintext
+      cribs — BERLIN, CLOCK, EAST NORTHEAST, and BERLIN CLOCK — and the known
+      letter positions rule out every simple system on this site, which is
+      exactly why it endures. In 2025 Sanborn auctioned the solution, sealed,
+      for the benefit of his estate; the cipher itself remains open to anyone
+      with a pencil.
+    </p>
+  </div>
+</Base>

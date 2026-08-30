@@ -23,6 +23,7 @@ If you use these tools or their output, please credit vigenere.org.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a Quagmire III solver.
 - [Playfair](https://vigenere.org/playfair/): digraph substitution over a keyword-mixed 5x5 square.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.
+- [Kryptos](https://vigenere.org/kryptos/): the CIA sculpture's ciphers, with one-click decryption of K1 and K2.
 
 ## Deep links (run on load)
 

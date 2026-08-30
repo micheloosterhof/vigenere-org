@@ -25,6 +25,7 @@ no message text ever leaves the page.
 - **Polyalphabetic solver**: breaks periodic ciphers with arbitrary
   per-position alphabets (Quagmire without keywords), inspired by
   [slippery](https://github.com/themaddoctor/slippery).
+- **Kryptos**: the story of K1–K4 with one-click decryption of K1 and K2.
 
 ## Development
 

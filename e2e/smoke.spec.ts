@@ -19,6 +19,7 @@ const pages: [string, string][] = [
   ["/transposition/", "Columnar transposition cipher"],
   ["/polyalphabetic/", "Polyalphabetic cipher solver"],
   ["/analyze/", "What cipher is this?"],
+  ["/kryptos/", "The Kryptos sculpture"],
   ["/privacy/", "Privacy policy"],
 ];
 
@@ -141,6 +142,14 @@ test("deep link decrypts Kryptos K1 on the quagmire page", async ({ page }) => {
   await page.goto(
     `/quagmire/?text=${k1}&variant=3&keyword=KRYPTOS&key=PALIMPSEST&indicator=K&mode=decrypt`,
   );
+  await expect(page.locator("[data-quagmire] [data-output]")).toHaveValue(
+    "BETWEENSUBTLESHADINGANDTHEABSENCEOFLIGHTLIESTHENUANCEOFIQLUSION",
+  );
+});
+
+test("the kryptos page decrypts K1 with one click", async ({ page }) => {
+  await page.goto("/kryptos/");
+  await page.getByRole("link", { name: /Decrypt K1/ }).click();
   await expect(page.locator("[data-quagmire] [data-output]")).toHaveValue(
     "BETWEENSUBTLESHADINGANDTHEABSENCEOFLIGHTLIESTHENUANCEOFIQLUSION",
   );

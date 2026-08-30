@@ -1,5 +1,6 @@
 // ABOUTME: Unit tests for the four Quagmire ciphers.
-// ABOUTME: Vectors come from ACA sample ciphers and Kryptos K1, via the aldegonde test suite.
+// ABOUTME: Vectors come from ACA sample ciphers and Kryptos K1/K2 (K2 from the
+// ABOUTME: Gwyn/Washington Post transcript, hand-verified by Elonka Dunin).
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
@@ -65,6 +66,33 @@ describe("quagmire 3", () => {
     const ciphertext =
       "EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD";
     expect(quagmire(plaintext, config, "encrypt")).toBe(ciphertext);
+    expect(quagmire(ciphertext, config, "decrypt")).toBe(plaintext);
+  });
+
+  it("decrypts Kryptos K2 as carved, including the misaligned tail", () => {
+    const config = {
+      variant: 3,
+      keyword: "KRYPTOS",
+      key: "ABSCISSA",
+      indicator: "K",
+    } as const;
+    const ciphertext =
+      "VFPJUDEEHZWETZYVGWHKKQETGFQJNCEGGWHKK?DQMCPFQZDQMMIAGPFXHQRLG" +
+      "TIMVMZJANQLVKQEDAGDVFRPJUNGEUNAQZGZLECGYUXUEENJTBJLBQCRTBJDFHRR" +
+      "YIZETKZEMVDUFKSJHKFWHKUWQLSZFTIHHDDDUVH?DWKBFUFPWNTDFIYCUQZERE" +
+      "EVLDKFEZMOQQJLTTUGSYQPFEUNLAVIDXFLGGTEZ?FKZBSFDQVGOGIPUFXHHDRKF" +
+      "FHQNTGPUAECNUVPDJMQCLQUMUNEDFQELZZVRRGKFFVOEEXBDMVPNFQXEZLGRE" +
+      "DNQFMPNZGLFLPMRJQYALMGNUVPDXVKPDQUMEBEDMHDAFMJGZNUPLGEWJLLAETG";
+    // Sanborn omitted a letter, so the carved text ends IDBYROWS where the
+    // intended reading is X LAYER TWO.
+    const plaintext =
+      "ITWASTOTALLYINVISIBLEHOWSTHATPOSSIBLE?THEYUSEDTHEEARTHSMAGNETIC" +
+      "FIELDXTHEINFORMATIONWASGATHEREDANDTRANSMITTEDUNDERGRUUNDTOAN" +
+      "UNKNOWNLOCATIONXDOESLANGLEYKNOWABOUTTHIS?THEYSHOULDITSBURIED" +
+      "OUTTHERESOMEWHEREXWHOKNOWSTHEEXACTLOCATION?ONLYWWTHISWASHIS" +
+      "LASTMESSAGEXTHIRTYEIGHTDEGREESFIFTYSEVENMINUTESSIXPOINTFIVE" +
+      "SECONDSNORTHSEVENTYSEVENDEGREESEIGHTMINUTESFORTYFOURSECONDS" +
+      "WESTIDBYROWS";
     expect(quagmire(ciphertext, config, "decrypt")).toBe(plaintext);
   });
 
