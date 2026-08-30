@@ -13,6 +13,10 @@ const BIGRAM_LOGPROBS = Float64Array.from(ENGLISH_BIGRAM_LOGPROBS);
 // higher by overfitting.
 const FITNESS_EPSILON = 0.05;
 
+// A text whose average bigram log10 probability reaches this reads as English;
+// correct decryptions land near -2.4, wrong ones below -2.6.
+export const READABLE_BIGRAM = -2.55;
+
 /** Maps a ciphertext letter and a key letter (both 0-25) to a plaintext letter. */
 export type Decrypt = (cipher: number, key: number) => number;
 

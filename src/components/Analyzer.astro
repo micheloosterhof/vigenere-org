@@ -47,6 +47,8 @@ import { buttonClass, fieldClass } from "../styles/form";
       "The letters keep an English-like frequency profile, so this looks monoalphabetic — a Caesar or substitution cipher.",
     periodic:
       "The letter frequencies are flattened but sharpen when split into columns, the signature of a repeating-key cipher: Vigenère, Beaufort, or Quagmire.",
+    transposition:
+      "The letters keep exactly English frequencies but the text does not read, so they were moved rather than disguised: a transposition cipher such as rail fence or columnar.",
     "ciphertext-autokey":
       "A difference of the ciphertext reads as English, the signature of a ciphertext autokey cipher.",
     unknown:
@@ -90,6 +92,16 @@ import { buttonClass, fieldClass } from "../styles/form";
             "Entropy (bits)",
             d.entropy.toFixed(3),
             "Higher is closer to uniform random.",
+          ],
+          [
+            "English frequency fit",
+            d.chiSquaredEnglish.toFixed(2),
+            "Chi-squared per letter against English frequencies; below ~1 the letters themselves are English.",
+          ],
+          [
+            "Bigram fitness",
+            d.bigramFitness.toFixed(2),
+            "Average bigram log probability as the text stands; English reads above about -2.55.",
           ],
           [
             "Key length",

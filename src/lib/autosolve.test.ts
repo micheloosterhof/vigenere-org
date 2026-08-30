@@ -12,6 +12,8 @@ import {
   substitution,
   vigenere,
 } from "./cipher";
+import { railFence } from "./railfence";
+import { columnarTransposition } from "./transposition";
 import { autosolve } from "./autosolve";
 
 const TABLE = new Uint8Array(
@@ -59,6 +61,32 @@ describe("autosolve", () => {
     expect(result.attempts.some((a) => a.cipher === "Substitution")).toBe(
       false,
     );
+  });
+
+  it("identifies rail fence ciphertext without running the substitution climb", () => {
+    const result = autosolve(railFence(PLAIN, 5, "encrypt"), TABLE, {
+      rng: mulberry32(10),
+    });
+    expect(result.best.cipher).toBe("Rail fence");
+    expect(result.best.keyLabel).toBe("5 rails");
+    expect(result.best.plaintext).toBe(PLAIN);
+    expect(result.attempts.some((a) => a.cipher === "Substitution")).toBe(
+      false,
+    );
+  });
+
+  it("identifies columnar transposition ciphertext", () => {
+    const letters = PLAIN.toUpperCase().replace(/[^A-Z]/g, "");
+    const result = autosolve(
+      columnarTransposition(letters, "SECRET", "encrypt"),
+      TABLE,
+      { rng: mulberry32(11) },
+    );
+    expect(result.best.cipher).toBe("Columnar transposition");
+    // Orders differing only at the text's edges tie on bigram fitness, so
+    // recovery may rotate a few letters past the seam; the body must be intact.
+    expect(result.best.plaintext).toContain(letters.slice(4, -4));
+    expect(result.best.plaintext).toHaveLength(letters.length);
   });
 
   it("identifies a keyword substitution cipher", () => {

@@ -4,8 +4,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
 import { autokey, beaufort, substitution, vigenere } from "./cipher";
+import { railFence } from "./railfence";
+import { columnarTransposition } from "./transposition";
 import {
   analyze,
+  chiSquaredEnglish,
   chiSquaredUniform,
   deltaStreamIoc,
   iocPerPeriod,
@@ -89,7 +92,29 @@ describe("chiSquaredUniform", () => {
   });
 });
 
+describe("chiSquaredEnglish", () => {
+  it("is small for transposed English and large for substituted English", () => {
+    expect(chiSquaredEnglish(railFence(ENGLISH, 5, "encrypt"))).toBeLessThan(1);
+    expect(
+      chiSquaredEnglish(substitution(ENGLISH, "zebras", "encrypt")),
+    ).toBeGreaterThan(1);
+  });
+});
+
 describe("analyze", () => {
+  it("classifies transposed English as transposition", () => {
+    for (const ciphertext of [
+      railFence(ENGLISH, 5, "encrypt"),
+      columnarTransposition(ENGLISH, "SECRET", "encrypt"),
+    ]) {
+      expect(analyze(ciphertext).likelyFamily).toBe("transposition");
+    }
+  });
+
+  it("does not classify readable English as transposition", () => {
+    expect(analyze(ENGLISH).likelyFamily).toBe("monoalphabetic");
+  });
+
   it("classifies a Vigenère cipher as periodic polyalphabetic", () => {
     const report = analyze(vigenere(ENGLISH, "LEMON", "encrypt"));
     expect(report.period).toBe(5);

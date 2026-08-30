@@ -7,9 +7,12 @@ import {
   beaufortDecrypt,
   breakPeriodic,
   caesarCandidates,
+  READABLE_BIGRAM,
   scoreText,
   vigenereDecrypt,
 } from "./solve";
+import { breakRailFence } from "./railfence";
+import { breakColumnar } from "./transposition";
 import { breakSubstitution } from "./solve-substitution";
 import {
   breakPolyalphabetic,
@@ -22,18 +25,16 @@ import {
 } from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
 
-// A decryption whose average bigram log10 probability reaches this reads as
-// English; correct decryptions land near -2.4, wrong ones below -2.6.
-const READABLE = -2.55;
-
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
 
 const COMPLEXITY: Record<string, number> = {
   Atbash: 0,
   Caesar: 0,
+  "Rail fence": 1,
   Vigenère: 1,
   Beaufort: 1,
+  "Columnar transposition": 2,
   Substitution: 2,
   "Ciphertext autokey": 2,
   "Plaintext autokey": 3,
@@ -80,7 +81,8 @@ export function autosolve(
   const diagnostics = analyze(text);
   const period = diagnostics.period;
   const attempts: Attempt[] = [];
-  const readable = (): boolean => attempts.some((a) => a.fitness >= READABLE);
+  const readable = (): boolean =>
+    attempts.some((a) => a.fitness >= READABLE_BIGRAM);
   // Both autokey attacks need more text than the others; short text gets the
   // attacks it can support rather than an error.
   const longEnoughForAutokey = diagnostics.length >= AUTOKEY_MIN_LENGTH;
@@ -97,6 +99,27 @@ export function autosolve(
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
       href: "/autokey",
+    });
+  }
+
+  // English-frequency letters that do not read as English were moved, not
+  // substituted; both transposition attacks are cheap exhaustive searches.
+  if (diagnostics.likelyFamily === "transposition") {
+    const [rail] = breakRailFence(text);
+    attempts.push({
+      cipher: "Rail fence",
+      keyLabel: `${rail.rails} rails`,
+      fitness: rail.fitness,
+      plaintext: rail.plaintext,
+      href: "/railfence",
+    });
+    const [columnar] = breakColumnar(text);
+    attempts.push({
+      cipher: "Columnar transposition",
+      keyLabel: columnar.key,
+      fitness: columnar.fitness,
+      plaintext: columnar.plaintext,
+      href: "/transposition",
     });
   }
 
@@ -190,6 +213,6 @@ export function autosolve(
     diagnostics,
     best: attempts[0],
     attempts,
-    alreadyEnglish: scoreText(text) >= READABLE,
+    alreadyEnglish: scoreText(text) >= READABLE_BIGRAM,
   };
 }

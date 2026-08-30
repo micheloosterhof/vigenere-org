@@ -2,7 +2,7 @@
 // ABOUTME: Pure functions producing the feature vector that routes the auto-solver (and, later, a classifier).
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { toLetterValues } from "./solve";
+import { READABLE_BIGRAM, scoreText, toLetterValues } from "./solve";
 import { ENGLISH_IOC, iocPerPeriod, MAX_PERIOD } from "./period";
 
 export { iocPerPeriod } from "./period";
@@ -11,12 +11,28 @@ const ALPHABET_SIZE = 26;
 
 const AUTOKEY_DELTA_IOC = 1.35;
 const MAX_LAG = 20;
+// Per-letter chi-squared against English letter frequencies below this means
+// the letters themselves are English: real text scores well under it, any
+// substitution well over it.
+const ENGLISH_FREQUENCY_MATCH = 1;
+
+// English letter frequencies A-Z, from Lewand, "Cryptological Mathematics".
+const ENGLISH_FREQUENCIES = [
+  0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015, 0.06094,
+  0.06966, 0.00153, 0.00772, 0.04025, 0.02406, 0.06749, 0.07507, 0.01929,
+  0.00095, 0.05987, 0.06327, 0.09056, 0.02758, 0.00978, 0.0236, 0.0015, 0.01974,
+  0.00074,
+];
 // Four letters is one quadgram and the shortest text every attack accepts. The
 // statistics below are noisy on so little text, but a short Caesar still breaks.
 const MIN_LENGTH = 4;
 
 export type CipherFamily =
-  "monoalphabetic" | "periodic" | "ciphertext-autokey" | "unknown";
+  | "monoalphabetic"
+  | "periodic"
+  | "transposition"
+  | "ciphertext-autokey"
+  | "unknown";
 
 export interface Diagnostics {
   /** Number of letters analyzed. */
@@ -29,6 +45,10 @@ export interface Diagnostics {
   entropy: number;
   /** Chi-squared distance of the letter distribution from uniform. */
   chiSquared: number;
+  /** Per-letter chi-squared distance from English letter frequencies; small means the letters are English. */
+  chiSquaredEnglish: number;
+  /** Average bigram log10 probability of the text as it stands; above about -2.55 reads as English. */
+  bigramFitness: number;
   /** Key length suggested by the index of coincidence; 1 means monoalphabetic. */
   period: number;
   /** Per-column IoC at the suggested period. */
@@ -167,6 +187,28 @@ export function chiSquaredUniform(text: string | number[]): number {
   return chiSquared;
 }
 
+/**
+ * Chi-squared distance from English letter frequencies, per letter. Real
+ * English (also transposed) stays well below 1; substituted alphabets score
+ * far above it.
+ */
+export function chiSquaredEnglish(text: string | number[]): number {
+  const values = typeof text === "string" ? toLetterValues(text) : text;
+  if (values.length === 0) {
+    return 0;
+  }
+  const counts = new Array<number>(ALPHABET_SIZE).fill(0);
+  for (const value of values) {
+    counts[value] += 1;
+  }
+  let chiSquared = 0;
+  for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
+    const expected = ENGLISH_FREQUENCIES[letter] * values.length;
+    chiSquared += (counts[letter] - expected) ** 2 / expected;
+  }
+  return chiSquared / values.length;
+}
+
 /** Computes the full diagnostics feature vector and a coarse family guess. */
 export function analyze(text: string): Diagnostics {
   const values = toLetterValues(text);
@@ -178,12 +220,20 @@ export function analyze(text: string): Diagnostics {
   const ioc = normalizedIoc(values, 1);
   const { period, ioc: periodIoc } = iocPerPeriod(values, MAX_PERIOD);
   const autokey = bestAutokeyLag(values, MAX_LAG);
+  const frequencyDistance = chiSquaredEnglish(values);
+  const bigramFitness = scoreText(text);
 
   let likelyFamily: CipherFamily;
   if (autokey.ioc >= AUTOKEY_DELTA_IOC && ioc < ENGLISH_IOC) {
     likelyFamily = "ciphertext-autokey";
   } else if (ioc >= ENGLISH_IOC) {
-    likelyFamily = "monoalphabetic";
+    // English-frequency letters that do not read as English have been moved,
+    // not substituted: the transposition signature.
+    likelyFamily =
+      frequencyDistance <= ENGLISH_FREQUENCY_MATCH &&
+      bigramFitness < READABLE_BIGRAM
+        ? "transposition"
+        : "monoalphabetic";
   } else if (period > 1) {
     likelyFamily = "periodic";
   } else {
@@ -196,6 +246,8 @@ export function analyze(text: string): Diagnostics {
     digraphIoc: normalizedIoc(values, 2),
     entropy: shannonEntropy(values),
     chiSquared: chiSquaredUniform(values),
+    chiSquaredEnglish: frequencyDistance,
+    bigramFitness,
     period,
     periodIoc,
     kappaAtPeriod: kappa(values, Math.max(1, period)),
