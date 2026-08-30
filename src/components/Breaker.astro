@@ -5,7 +5,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 interface Props {
-  cipher: "vigenere" | "beaufort" | "caesar" | "substitution" | "railfence";
+  cipher:
+    | "vigenere"
+    | "beaufort"
+    | "caesar"
+    | "substitution"
+    | "railfence"
+    | "columnar";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
@@ -32,7 +38,9 @@ const { cipher } = Astro.props;
             ? "Recover alphabet"
             : cipher === "railfence"
               ? "Find rail count"
-              : "Recover key"
+              : cipher === "columnar"
+                ? "Recover column order"
+                : "Recover key"
       }
     </button>
   </div>
@@ -81,6 +89,7 @@ const { cipher } = Astro.props;
   } from "../lib/solve";
   import { breakSubstitution } from "../lib/solve-substitution";
   import { breakRailFence } from "../lib/railfence";
+  import { breakColumnar } from "../lib/transposition";
   import { loadQuadgramTable } from "../lib/quadgrams";
 
   const CANDIDATE_ROWS = 5;
@@ -104,6 +113,14 @@ const { cipher } = Astro.props;
           summary: `Recovered alphabet: ${result.key}`,
         },
       ];
+    }
+    if (cipher === "columnar") {
+      return breakColumnar(text).map((candidate) => ({
+        label: candidate.key,
+        fitness: candidate.fitness,
+        plaintext: candidate.plaintext,
+        summary: `Recovered column order: ${candidate.key} (length ${candidate.keyLength})`,
+      }));
     }
     if (cipher === "railfence") {
       return breakRailFence(text).map((candidate) => ({

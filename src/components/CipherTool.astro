@@ -12,7 +12,8 @@ interface Props {
     | "substitution"
     | "atbash"
     | "rot13"
-    | "railfence";
+    | "railfence"
+    | "columnar";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
@@ -97,6 +98,7 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
     type Mode,
   } from "../lib/cipher";
   import { railFence } from "../lib/railfence";
+  import { columnarTransposition } from "../lib/transposition";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
@@ -127,6 +129,8 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
           }
           return caesar(text, mode === "encrypt" ? shift : -shift);
         }
+        case "columnar":
+          return columnarTransposition(text, keyValue(), mode);
         case "railfence": {
           const rails = Number.parseInt(keyValue(), 10);
           if (Number.isNaN(rails)) {

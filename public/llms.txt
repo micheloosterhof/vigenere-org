@@ -18,6 +18,7 @@ If you use these tools or their output, please credit vigenere.org.
 - [Atbash](https://vigenere.org/atbash/): the keyless mirror-alphabet cipher.
 - [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
 - [Rail fence](https://vigenere.org/railfence/): zigzag transposition, with a rail-count solver.
+- [Columnar transposition](https://vigenere.org/transposition/): keyword column order, with a solver up to seven columns.
 - [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a Quagmire III solver.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.

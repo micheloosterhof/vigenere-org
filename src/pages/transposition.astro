@@ -1,0 +1,64 @@
+---
+// ABOUTME: Columnar transposition tool page with encrypt/decrypt form and column-order breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+---
+
+<Base
+  title="Columnar transposition cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the columnar transposition cipher online with any keyword. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">
+    Columnar transposition cipher
+  </h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    Columnar transposition writes the message in rows under a keyword and reads
+    the columns out in the alphabetical order of the keyword's letters. Nothing
+    is substituted; every character keeps its identity but moves. The last row
+    may be incomplete (irregular columnar, no padding).
+  </p>
+  <CipherTool cipher="columnar" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the keyword
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste ciphertext and the solver tries every column order up to seven
+    columns, ranking each by how much the result looks like English. It reports
+    a canonical keyword (ABC ranks) that you can paste into the form above. It
+    works best on letters-only ciphertext: the position of spaces and
+    punctuation carries no statistical signal.
+  </p>
+  <Breaker cipher="columnar" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the columnar transposition cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      Transposition is the other half of classical cryptography: where
+      substitution ciphers disguise the letters, transposition ciphers leave
+      them alone and scramble their order. The keyword only fixes a column order
+      — ZEBRAS means "read column 5 first, then 3, then 2…" — so the real key
+      space is the number of ways to order the columns. That grows quickly,
+      which is why armies used columnar transposition into the twentieth
+      century, usually applied twice (double transposition) for serious traffic.
+    </p>
+    <p>
+      Its weakness is that the ciphertext keeps English letter frequencies
+      exactly — an index of coincidence at English levels with unreadable text
+      is the transposition signature the
+      <a
+        href="/analyze"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >cipher identifier</a
+      > looks for. Short keys fall to trying every order, as the solver above does;
+      longer keys fall to anagramming columns whose bigrams glue together well.
+    </p>
+  </div>
+</Base>
