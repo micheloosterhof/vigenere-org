@@ -13,6 +13,7 @@ const pages: [string, string][] = [
   ["/atbash/", "Atbash cipher"],
   ["/autokey/", "Autokey cipher"],
   ["/quagmire/", "Quagmire ciphers"],
+  ["/playfair/", "Playfair cipher"],
   ["/substitution/", "Substitution cipher"],
   ["/railfence/", "Rail fence cipher"],
   ["/transposition/", "Columnar transposition cipher"],
@@ -101,6 +102,15 @@ test("deep link decrypts on the rail fence page", async ({ page }) => {
   await expect(
     page.locator("[data-cipher=railfence] [data-output]"),
   ).toHaveValue("WEAREDISCOVEREDFLEEATONCE");
+});
+
+test("deep link encrypts on the playfair page", async ({ page }) => {
+  await page.goto(
+    "/playfair/?text=Hide%20the%20gold%20in%20the%20tree%20stump&key=playfair%20example&mode=encrypt",
+  );
+  await expect(
+    page.locator("[data-cipher=playfair] [data-output]"),
+  ).toHaveValue("BMODZBXDNABEKUDMUIXMMOUVIF");
 });
 
 test("deep link decrypts on the transposition page", async ({ page }) => {

@@ -1,0 +1,48 @@
+---
+// ABOUTME: Playfair cipher tool page with keyword-based digraph encrypt/decrypt form.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="Playfair cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt the Playfair cipher online with a keyword-mixed 5x5 square. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Playfair cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Playfair cipher encrypts letters two at a time using a 5×5 square built
+    from a keyword, with I and J sharing a cell. The output is a block of
+    letters: spaces and punctuation are dropped, doubled letters are split with
+    an X, and an odd-length message is padded.
+  </p>
+  <CipherTool cipher="playfair" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Playfair cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      Charles Wheatstone invented the cipher in 1854; it carries the name of
+      Lord Playfair, who championed it to the British government. Encrypting
+      digraphs instead of single letters was its innovation: with 600-odd
+      digraph frequencies to tabulate instead of 26 letter frequencies, simple
+      frequency analysis becomes much harder, yet the whole system fits on a 5×5
+      grid two soldiers can share as a single memorable word. It served British
+      forces in the Boer War and the First World War, and Australian
+      coastwatchers in the Second.
+    </p>
+    <p>
+      Its rules are mechanical. Letters in the same row of the square move one
+      step right, letters in the same column move one step down, and any other
+      pair forms a rectangle whose corners swap columns. Decryption reverses the
+      shifts. The structure leaks, though: a digraph and its reverse encrypt to
+      a pair and its reverse, and X-split doubles betray themselves. With a few
+      hundred letters, Playfair falls to hill-climbing over candidate squares —
+      a solver is on this site's roadmap.
+    </p>
+  </div>
+</Base>
