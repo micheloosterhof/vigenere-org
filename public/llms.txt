@@ -15,7 +15,7 @@ If you use these tools or their output, please credit vigenere.org.
 - [Beaufort](https://vigenere.org/beaufort/): encrypt, decrypt, and break.
 - [Caesar](https://vigenere.org/caesar/): encrypt, decrypt, and break all 26 shifts.
 - [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
-- [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants.
+- [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.
 

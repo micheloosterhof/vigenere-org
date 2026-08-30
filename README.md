@@ -11,7 +11,8 @@ no message text ever leaves the page.
   through Vigenère/Beaufort to a general polyalphabetic attack.
 - **Vigenère, Beaufort, Caesar**: encrypt, decrypt, and break with a
   bigram-fitness key search (Guballa's adjacent-key-pair method).
-- **Autokey**: plaintext and ciphertext variants.
+- **Autokey**: plaintext and ciphertext variants, with a primer-recovery
+  solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts
   Kryptos K1/K2 with the right keys.
 - **Substitution**: encrypt/decrypt plus a quadgram hill-climbing solver.

@@ -1,0 +1,81 @@
+---
+// ABOUTME: Key-recovery form for autokey ciphertext with an unknown primer.
+// ABOUTME: Runs both variant attacks and reports the one that reads as English.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass } from "../styles/form";
+---
+
+<div data-autokey-breaker class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Ciphertext</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Paste autokey ciphertext with an unknown primer"></textarea>
+  </label>
+
+  <div>
+    <button data-solve type="button" class={buttonClass}>
+      Recover plaintext
+    </button>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <div data-result hidden class="flex flex-col gap-4">
+    <p data-summary class="text-sm font-medium"></p>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Decrypted text</span>
+      <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+    </label>
+  </div>
+</div>
+
+<script>
+  import {
+    breakCiphertextAutokey,
+    breakPlaintextAutokey,
+  } from "../lib/solve-autokey";
+  import { loadQuadgramTable } from "../lib/quadgrams";
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-autokey-breaker]",
+  )) {
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    const result = root.querySelector<HTMLElement>("[data-result]");
+    const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    if (!input || !solve || !error || !result || !summary || !output) {
+      continue;
+    }
+
+    solve.addEventListener("click", async () => {
+      error.hidden = true;
+      result.hidden = true;
+      solve.disabled = true;
+      try {
+        const table = await loadQuadgramTable();
+        const plaintextAttempt = breakPlaintextAutokey(input.value, table);
+        const ciphertextAttempt = breakCiphertextAutokey(input.value, table);
+        const plaintextWins =
+          plaintextAttempt.fitness >= ciphertextAttempt.fitness;
+        const best = plaintextWins ? plaintextAttempt : ciphertextAttempt;
+        summary.textContent = plaintextWins
+          ? `Plaintext autokey, primer length ${best.primerLength}.`
+          : `Ciphertext autokey, primer length ${best.primerLength}; the first ~${best.primerLength} letters are reconstructed from context and may be off.`;
+        output.value = best.plaintext;
+        result.hidden = false;
+      } catch (cause) {
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      } finally {
+        solve.disabled = false;
+      }
+    });
+  }
+</script>

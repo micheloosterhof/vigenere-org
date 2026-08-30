@@ -4,11 +4,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import AutokeyTool from "../components/AutokeyTool.astro";
+import AutokeyBreaker from "../components/AutokeyBreaker.astro";
 ---
 
 <Base
-  title="Autokey cipher — encrypt and decrypt online"
-  description="Encrypt and decrypt the autokey cipher online, in both the plaintext and ciphertext variants. Runs in your browser."
+  title="Autokey cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the autokey cipher online, in both the plaintext and ciphertext variants. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Autokey cipher</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
@@ -18,6 +19,17 @@ import AutokeyTool from "../components/AutokeyTool.astro";
     continues with the ciphertext just produced.
   </p>
   <AutokeyTool />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break autokey without the primer
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste ciphertext of at least 26 letters and the solver tries both variants
+    over every primer length, keeping the decryption that reads as English. The
+    plaintext variant is recovered exactly; in the ciphertext variant the
+    opening letters are reconstructed from context.
+  </p>
+  <AutokeyBreaker />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the autokey cipher
