@@ -4,7 +4,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { autokey, beaufort, caesar, substitution, vigenere } from "./cipher";
+import {
+  atbash,
+  autokey,
+  beaufort,
+  caesar,
+  substitution,
+  vigenere,
+} from "./cipher";
 import { autosolve } from "./autosolve";
 
 const TABLE = new Uint8Array(
@@ -39,6 +46,15 @@ describe("autosolve", () => {
     const result = autosolve(caesar(PLAIN, 7), TABLE, { rng: mulberry32(1) });
     expect(result.best.cipher).toBe("Caesar");
     expect(result.best.keyLabel).toBe("shift 7");
+    expect(result.best.plaintext).toBe(PLAIN);
+    expect(result.attempts.some((a) => a.cipher === "Substitution")).toBe(
+      false,
+    );
+  });
+
+  it("identifies Atbash ciphertext without running the substitution climb", () => {
+    const result = autosolve(atbash(PLAIN), TABLE, { rng: mulberry32(9) });
+    expect(result.best.cipher).toBe("Atbash");
     expect(result.best.plaintext).toBe(PLAIN);
     expect(result.attempts.some((a) => a.cipher === "Substitution")).toBe(
       false,

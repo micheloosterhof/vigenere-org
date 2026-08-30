@@ -9,6 +9,8 @@ const pages: [string, string][] = [
   ["/vigenere/", "Vigenère cipher"],
   ["/beaufort/", "Beaufort cipher"],
   ["/caesar/", "Caesar cipher"],
+  ["/rot13/", "ROT13"],
+  ["/atbash/", "Atbash cipher"],
   ["/autokey/", "Autokey cipher"],
   ["/quagmire/", "Quagmire ciphers"],
   ["/substitution/", "Substitution cipher"],
@@ -86,6 +88,13 @@ test("deep link decrypts on the vigenère page", async ({ page }) => {
 test("deep link decrypts on the caesar page", async ({ page }) => {
   await page.goto("/caesar/?text=Khoor&shift=3&mode=decrypt");
   await expect(page.locator("[data-cipher=caesar] [data-output]")).toHaveValue(
+    "Hello",
+  );
+});
+
+test("deep link decodes on the rot13 page", async ({ page }) => {
+  await page.goto("/rot13/?text=Uryyb");
+  await expect(page.locator("[data-cipher=rot13] [data-output]")).toHaveValue(
     "Hello",
   );
 });

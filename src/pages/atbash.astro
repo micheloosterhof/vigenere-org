@@ -1,0 +1,45 @@
+---
+// ABOUTME: Atbash cipher tool page with a keyless encrypt/decrypt form.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="Atbash cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt Atbash cipher text online: each letter maps to its mirror, A to Z. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Atbash cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    Atbash replaces each letter with its mirror image in the alphabet: A becomes
+    Z, B becomes Y, and so on. There is no key, and applying it twice restores
+    the original text, so one button both encrypts and decrypts.
+  </p>
+  <CipherTool cipher="atbash" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Atbash cipher
+  </h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      Atbash is one of the oldest ciphers on record, invented for the Hebrew
+      alphabet: aleph maps to tav, bet to shin, which gives the cipher its name
+      (A-T-B-Sh). The Hebrew Bible uses it — the book of Jeremiah writes
+      "Sheshach" for Babel — and applied to the Latin alphabet it becomes the
+      mirror substitution this page computes.
+    </p>
+    <p>
+      As cryptography it is weaker than a Caesar shift: there is exactly one
+      possible key, so recognizing the cipher is the same as breaking it. It is
+      a fixed substitution alphabet, which makes it a special case of the
+      <a
+        href="/substitution"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >simple substitution cipher</a
+      >, and any monoalphabetic solver breaks it instantly.
+    </p>
+  </div>
+</Base>

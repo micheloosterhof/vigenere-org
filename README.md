@@ -11,6 +11,7 @@ no message text ever leaves the page.
   through Vigenère/Beaufort to a general polyalphabetic attack.
 - **Vigenère, Beaufort, Caesar**: encrypt, decrypt, and break with a
   bigram-fitness key search (Guballa's adjacent-key-pair method).
+- **ROT13 and Atbash**: the keyless self-inverse classics.
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts

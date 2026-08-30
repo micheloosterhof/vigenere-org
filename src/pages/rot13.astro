@@ -1,0 +1,42 @@
+---
+// ABOUTME: ROT13 tool page with a keyless encode/decode form.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+---
+
+<Base
+  title="ROT13 — encode and decode online"
+  description="Encode and decode ROT13 text online: every letter shifts 13 places, and the same operation reverses it. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">ROT13</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    ROT13 shifts every letter 13 places, halfway around the alphabet, so
+    applying it a second time restores the original text. One button both
+    encodes and decodes.
+  </p>
+  <CipherTool cipher="rot13" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">About ROT13</h2>
+  <div
+    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
+  >
+    <p>
+      ROT13 is the <a
+        href="/caesar"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >Caesar cipher</a
+      > with a shift of 13 — the one shift that is its own inverse, because 13 doubled
+      wraps the 26-letter alphabet exactly. That symmetry made it the standard way
+      to hide spoilers, puzzle answers, and punchlines on Usenet in the 1980s, a role
+      it still plays in forums and geocaching hints today.
+    </p>
+    <p>
+      It was never meant to keep secrets: everyone knows the shift, so decoding
+      needs no key and no skill. Think of it as a "look away if you don't want
+      to know" marker rather than encryption. Anything genuinely secret needs at
+      least a key — and, for real protection, modern cryptography.
+    </p>
+  </div>
+</Base>

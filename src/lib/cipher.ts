@@ -127,6 +127,11 @@ export function autokey(
     .join("");
 }
 
+/** Atbash cipher: maps each letter to its mirror (A to Z). Reciprocal, so it has no mode. */
+export function atbash(text: string): string {
+  return substituteLetters(text, [0], (letter) => ALPHABET_SIZE - 1 - letter);
+}
+
 /** Caesar cipher: shifts every letter by a fixed amount; negative shifts decrypt. */
 export function caesar(text: string, shift: number): string {
   return substituteLetters(

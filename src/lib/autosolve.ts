@@ -2,7 +2,7 @@
 // ABOUTME: Routes by index of coincidence, escalating from Caesar to the general polyalphabetic attack.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { beaufort, caesar, substitution, vigenere } from "./cipher";
+import { atbash, beaufort, caesar, substitution, vigenere } from "./cipher";
 import {
   beaufortDecrypt,
   breakPeriodic,
@@ -30,6 +30,7 @@ const READABLE = -2.55;
 const SIMPLER_EPSILON = 0.05;
 
 const COMPLEXITY: Record<string, number> = {
+  Atbash: 0,
   Caesar: 0,
   Vigenère: 1,
   Beaufort: 1,
@@ -108,6 +109,14 @@ export function autosolve(
       fitness: scoreText(shiftPlain),
       plaintext: shiftPlain,
       href: "/caesar",
+    });
+    const atbashPlain = atbash(text);
+    attempts.push({
+      cipher: "Atbash",
+      keyLabel: "none",
+      fitness: scoreText(atbashPlain),
+      plaintext: atbashPlain,
+      href: "/atbash",
     });
     if (!readable()) {
       const recovered = breakSubstitution(text, table, { rng: options.rng });

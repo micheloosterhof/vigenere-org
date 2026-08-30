@@ -3,7 +3,31 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
-import { autokey, beaufort, caesar, substitution, vigenere } from "./cipher";
+import {
+  atbash,
+  autokey,
+  beaufort,
+  caesar,
+  substitution,
+  vigenere,
+} from "./cipher";
+
+describe("atbash", () => {
+  it("maps the alphabet to its reverse", () => {
+    expect(atbash("ABCDEFGHIJKLMNOPQRSTUVWXYZ")).toBe(
+      "ZYXWVUTSRQPONMLKJIHGFEDCBA",
+    );
+  });
+
+  it("preserves case and passes non-letters through", () => {
+    expect(atbash("Attack at dawn!")).toBe("Zggzxp zg wzdm!");
+  });
+
+  it("is its own inverse", () => {
+    const text = "The quick brown fox jumps over the lazy dog, 42 times.";
+    expect(atbash(atbash(text))).toBe(text);
+  });
+});
 
 describe("vigenere", () => {
   it("encrypts the Wikipedia test vector", () => {

@@ -14,6 +14,8 @@ If you use these tools or their output, please credit vigenere.org.
 - [Vigenère](https://vigenere.org/vigenere/): encrypt, decrypt, and break.
 - [Beaufort](https://vigenere.org/beaufort/): encrypt, decrypt, and break.
 - [Caesar](https://vigenere.org/caesar/): encrypt, decrypt, and break all 26 shifts.
+- [ROT13](https://vigenere.org/rot13/): encode and decode the self-inverse shift of 13.
+- [Atbash](https://vigenere.org/atbash/): the keyless mirror-alphabet cipher.
 - [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
 - [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a Quagmire III solver.

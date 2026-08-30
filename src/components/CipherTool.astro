@@ -5,14 +5,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 interface Props {
-  cipher: "vigenere" | "beaufort" | "caesar" | "substitution";
+  cipher:
+    "vigenere" | "beaufort" | "caesar" | "substitution" | "atbash" | "rot13";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
 
 const { cipher } = Astro.props;
 const usesShift = cipher === "caesar";
-const reciprocal = cipher === "beaufort";
+const keyless = cipher === "atbash" || cipher === "rot13";
+const reciprocal = cipher === "beaufort" || keyless;
 ---
 
 <div data-cipher={cipher} class="flex flex-col gap-4">
@@ -25,28 +27,30 @@ const reciprocal = cipher === "beaufort";
       placeholder="Enter plaintext or ciphertext"></textarea>
   </label>
 
-  <label class="flex flex-col gap-1">
-    <span class="text-sm font-medium">{usesShift ? "Shift" : "Key"}</span>
-    {
-      usesShift ? (
-        <input
-          data-key
-          type="number"
-          min="0"
-          max="25"
-          value="3"
-          class={`${fieldClass} max-w-32`}
-        />
-      ) : (
-        <input
-          data-key
-          type="text"
-          class={fieldClass}
-          placeholder="Enter key"
-        />
-      )
-    }
-  </label>
+  {
+    !keyless && (
+      <label class="flex flex-col gap-1">
+        <span class="text-sm font-medium">{usesShift ? "Shift" : "Key"}</span>
+        {usesShift ? (
+          <input
+            data-key
+            type="number"
+            min="0"
+            max="25"
+            value="3"
+            class={`${fieldClass} max-w-32`}
+          />
+        ) : (
+          <input
+            data-key
+            type="text"
+            class={fieldClass}
+            placeholder="Enter key"
+          />
+        )}
+      </label>
+    )
+  }
 
   <div class="flex gap-3">
     {
@@ -77,6 +81,7 @@ const reciprocal = cipher === "beaufort";
 
 <script>
   import {
+    atbash,
     beaufort,
     caesar,
     substitution,
@@ -90,25 +95,31 @@ const reciprocal = cipher === "beaufort";
     const key = root.querySelector<HTMLInputElement>("[data-key]");
     const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
-    if (!cipher || !input || !key || !output || !error) {
+    if (!cipher || !input || !output || !error) {
       continue;
     }
 
+    const keyValue = (): string => key?.value ?? "";
+
     const apply = (text: string, mode: Mode): string => {
       switch (cipher) {
+        case "atbash":
+          return atbash(text);
+        case "rot13":
+          return caesar(text, 13);
         case "beaufort":
-          return beaufort(text, key.value);
+          return beaufort(text, keyValue());
         case "substitution":
-          return substitution(text, key.value, mode);
+          return substitution(text, keyValue(), mode);
         case "caesar": {
-          const shift = Number.parseInt(key.value, 10);
+          const shift = Number.parseInt(keyValue(), 10);
           if (Number.isNaN(shift)) {
             throw new Error("shift must be a number between 0 and 25");
           }
           return caesar(text, mode === "encrypt" ? shift : -shift);
         }
         default:
-          return vigenere(text, key.value, mode);
+          return vigenere(text, keyValue(), mode);
       }
     };
 
@@ -136,10 +147,10 @@ const reciprocal = cipher === "beaufort";
     const text = params.get("text");
     if (text !== null) {
       input.value = text;
-      const keyValue =
+      const linkedKey =
         cipher === "caesar" ? params.get("shift") : params.get("key");
-      if (keyValue !== null) {
-        key.value = keyValue;
+      if (key && linkedKey !== null) {
+        key.value = linkedKey;
       }
       run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
     }
