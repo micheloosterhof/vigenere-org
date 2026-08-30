@@ -24,6 +24,18 @@ import { buttonClass, fieldClass } from "../styles/form";
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-base font-medium"></p>
+    <div>
+      <span class="text-sm font-medium">Letter frequencies</span>
+      <svg
+        data-chart
+        viewBox="0 0 580 190"
+        role="img"
+        aria-label="Letter frequency bar chart of the analyzed text compared with typical English"
+        class="mt-1 w-full max-w-xl"></svg>
+      <p class="text-xs text-slate-500 dark:text-slate-400">
+        Bars: this text. Marks: typical English.
+      </p>
+    </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead>
@@ -40,7 +52,59 @@ import { buttonClass, fieldClass } from "../styles/form";
 </div>
 
 <script>
-  import { analyze, type CipherFamily } from "../lib/diagnostics";
+  import {
+    analyze,
+    ENGLISH_FREQUENCIES,
+    type CipherFamily,
+  } from "../lib/diagnostics";
+  import { toLetterValues } from "../lib/solve";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  /** Draws bars for the text's letter frequencies with marks at English levels. */
+  function drawChart(chart: SVGSVGElement, values: number[]): void {
+    chart.replaceChildren();
+    const counts = new Array<number>(26).fill(0);
+    for (const value of values) {
+      counts[value] += 1;
+    }
+    const freqs = counts.map((count) => count / values.length);
+    const peak = Math.max(...freqs, ...ENGLISH_FREQUENCIES);
+    const slot = 22;
+    const barWidth = 14;
+    const height = 160;
+    const baseline = 168;
+    for (let letter = 0; letter < 26; letter += 1) {
+      const x = letter * slot + 4;
+      const barHeight = (freqs[letter] / peak) * height;
+      const bar = document.createElementNS(SVG_NS, "rect");
+      bar.setAttribute("x", String(x));
+      bar.setAttribute("y", String(baseline - barHeight));
+      bar.setAttribute("width", String(barWidth));
+      bar.setAttribute("height", String(barHeight));
+      bar.setAttribute("class", "fill-orange-500 dark:fill-orange-400");
+      chart.append(bar);
+      const mark = document.createElementNS(SVG_NS, "line");
+      const y = baseline - (ENGLISH_FREQUENCIES[letter] / peak) * height;
+      mark.setAttribute("x1", String(x - 2));
+      mark.setAttribute("x2", String(x + barWidth + 2));
+      mark.setAttribute("y1", String(y));
+      mark.setAttribute("y2", String(y));
+      mark.setAttribute("stroke-width", "2");
+      mark.setAttribute("class", "stroke-slate-500 dark:stroke-slate-400");
+      chart.append(mark);
+      const label = document.createElementNS(SVG_NS, "text");
+      label.textContent = String.fromCharCode(65 + letter);
+      label.setAttribute("x", String(x + barWidth / 2));
+      label.setAttribute("y", "184");
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute(
+        "class",
+        "fill-slate-600 text-[11px] dark:fill-slate-400",
+      );
+      chart.append(label);
+    }
+  }
 
   const FAMILY_TEXT: Record<CipherFamily, string> = {
     monoalphabetic:
@@ -65,7 +129,16 @@ import { buttonClass, fieldClass } from "../styles/form";
     const result = root.querySelector<HTMLElement>("[data-result]");
     const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
     const rows = root.querySelector<HTMLTableSectionElement>("[data-rows]");
-    if (!input || !analyzeButton || !error || !result || !summary || !rows) {
+    const chart = root.querySelector<SVGSVGElement>("[data-chart]");
+    if (
+      !input ||
+      !analyzeButton ||
+      !error ||
+      !result ||
+      !summary ||
+      !rows ||
+      !chart
+    ) {
       continue;
     }
 
@@ -76,6 +149,7 @@ import { buttonClass, fieldClass } from "../styles/form";
       try {
         const d = analyze(input.value);
         summary.textContent = FAMILY_TEXT[d.likelyFamily];
+        drawChart(chart, toLetterValues(input.value));
         const entries: [string, string, string][] = [
           ["Letters", String(d.length), "Length of the analyzed text."],
           [

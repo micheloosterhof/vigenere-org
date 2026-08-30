@@ -162,4 +162,7 @@ test("deep link analyzes text on the analyze page", async ({ page }) => {
   await expect(page.locator("[data-analyzer] [data-summary]")).toContainText(
     "monoalphabetic",
   );
+  await expect(page.locator("[data-analyzer] [data-chart] rect")).toHaveCount(
+    26,
+  );
 });
