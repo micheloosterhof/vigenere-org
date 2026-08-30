@@ -60,7 +60,11 @@ function averageBigramLogProb(values: number[]): number {
 
 /** Average bigram log10 probability of the text's letters; higher is more English-like. */
 export function scoreText(text: string): number {
-  const values = toLetterValues(text);
+  return scoreLetterValues(toLetterValues(text));
+}
+
+/** Average bigram log10 probability of letter values; higher is more English-like. */
+export function scoreLetterValues(values: number[]): number {
   if (values.length < 2) {
     throw new Error("text must contain at least two letters");
   }

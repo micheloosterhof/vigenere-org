@@ -19,8 +19,10 @@ no message text ever leaves the page.
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts
-  Kryptos K1/K2 with the right keys. A solver breaks Quagmire III blind by
-  reconciling the general polyalphabetic result into one shared alphabet.
+  Kryptos K1/K2 with the right keys. A solver breaks Quagmire III blind:
+  a keyword dictionary attack handles short texts in seconds, and a
+  statistical fallback reconciles the general polyalphabetic result into
+  one shared alphabet, normalized to keyword form with the key named.
 - **Substitution**: encrypt/decrypt plus a quadgram hill-climbing solver.
 - **Polyalphabetic solver**: breaks periodic ciphers with arbitrary
   per-position alphabets (Quagmire without keywords), inspired by

@@ -71,12 +71,20 @@ import { buttonClass, fieldClass } from "../styles/form";
 
 <script>
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { loadWordlist } from "../lib/wordlist";
   import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
   import type { QuagmireSolveResult } from "../lib/solve-quagmire";
+  import type { QuagmireDictionaryResult } from "../lib/solve-quagmire-dictionary";
 
   type WorkerMessage =
-    | ({ type: "progress" } & PolyalphabeticProgress)
-    | { type: "result"; result: QuagmireSolveResult }
+    | { type: "progress"; phase: "dictionary"; done: number; total: number }
+    | ({ type: "progress"; phase: "general" } & PolyalphabeticProgress)
+    | {
+        type: "result";
+        method: "dictionary";
+        dictionary: QuagmireDictionaryResult;
+      }
+    | { type: "result"; method: "general"; result: QuagmireSolveResult }
     | { type: "error"; message: string };
 
   for (const root of document.querySelectorAll<HTMLElement>(
@@ -132,7 +140,10 @@ import { buttonClass, fieldClass } from "../styles/form";
       setProgress("Loading language data…");
       progress.hidden = false;
       try {
-        const table = await loadQuadgramTable();
+        const [table, words] = await Promise.all([
+          loadQuadgramTable(),
+          loadWordlist(),
+        ]);
         const period = Number.parseInt(periodInput.value, 10);
         const worker = new Worker(
           new URL("../lib/quagmire.worker.ts", import.meta.url),
@@ -141,12 +152,29 @@ import { buttonClass, fieldClass } from "../styles/form";
         worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
           const message = event.data;
           if (message.type === "progress") {
-            setProgress(
-              `Solving… attempt ${message.restart} of ${message.restarts}`,
-              message.restart / message.restarts,
-            );
+            if (message.phase === "dictionary") {
+              setProgress(
+                `Trying ${message.total.toLocaleString()} dictionary keywords…`,
+                message.done / message.total,
+              );
+            } else {
+              setProgress(
+                `No dictionary keyword fits; solving statistically… attempt ${message.restart} of ${message.restarts}`,
+                message.restart / message.restarts,
+              );
+            }
           } else if (message.type === "result") {
             worker.terminate();
+            if (message.method === "dictionary") {
+              const solved = message.dictionary;
+              summary.textContent = `Keyword ${solved.keyword} found in the dictionary: key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
+              output.value = solved.plaintext;
+              alphabet.textContent = solved.alphabet;
+              alphabetRow.hidden = false;
+              result.hidden = false;
+              finish();
+              return;
+            }
             const solved = message.result;
             summary.textContent = solved.isQuagmire
               ? `Quagmire III confirmed: key ${solved.key} with indicator ${solved.indicator}; one shared alphabet explains all ${solved.period} key positions.`
@@ -166,6 +194,7 @@ import { buttonClass, fieldClass } from "../styles/form";
         worker.postMessage({
           text: input.value,
           table: table.buffer,
+          words,
           period: Number.isNaN(period) ? undefined : period,
         });
         setProgress("Solving…");
