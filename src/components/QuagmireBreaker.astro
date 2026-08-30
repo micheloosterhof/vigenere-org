@@ -1,0 +1,180 @@
+---
+// ABOUTME: Form for the Quagmire III solver; runs the attack in a Web Worker.
+// ABOUTME: Reports whether one shared alphabet explains every column, the decryption, and the alphabet.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass } from "../styles/form";
+---
+
+<div data-quagmire-breaker class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Ciphertext</span>
+    <textarea
+      data-input
+      rows="8"
+      class={fieldClass}
+      placeholder="Paste Quagmire ciphertext with unknown keywords"></textarea>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Key length (leave empty to detect)</span>
+    <input
+      data-period
+      type="number"
+      min="1"
+      max="12"
+      class={`${fieldClass} max-w-32`}
+    />
+  </label>
+
+  <div class="flex flex-col gap-3">
+    <div>
+      <button data-solve type="button" class={buttonClass}>Break cipher</button>
+    </div>
+    <div
+      data-progress
+      hidden
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      class="flex max-w-sm flex-col gap-1"
+    >
+      <span
+        data-progress-text
+        class="text-sm text-slate-500 dark:text-slate-400"></span>
+      <div
+        class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950"
+      >
+        <div
+          data-progress-bar
+          class="h-full w-0 rounded-full bg-orange-600 transition-all duration-300 dark:bg-orange-400"
+        >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+
+  <div data-result hidden class="flex flex-col gap-4">
+    <p data-summary class="text-sm font-medium"></p>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Decrypted text</span>
+      <textarea data-output rows="8" readonly class={fieldClass}></textarea>
+    </label>
+    <div data-alphabet-row hidden>
+      <span class="text-sm font-medium">Recovered mixed alphabet</span>
+      <pre data-alphabet class="mt-1 overflow-x-auto font-mono text-sm"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { loadQuadgramTable } from "../lib/quadgrams";
+  import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
+  import type { QuagmireSolveResult } from "../lib/solve-quagmire";
+
+  type WorkerMessage =
+    | ({ type: "progress" } & PolyalphabeticProgress)
+    | { type: "result"; result: QuagmireSolveResult }
+    | { type: "error"; message: string };
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-quagmire-breaker]",
+  )) {
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const periodInput = root.querySelector<HTMLInputElement>("[data-period]");
+    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
+    const progress = root.querySelector<HTMLElement>("[data-progress]");
+    const progressText = root.querySelector<HTMLElement>(
+      "[data-progress-text]",
+    );
+    const progressBar = root.querySelector<HTMLElement>("[data-progress-bar]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    const result = root.querySelector<HTMLElement>("[data-result]");
+    const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    const alphabetRow = root.querySelector<HTMLElement>("[data-alphabet-row]");
+    const alphabet = root.querySelector<HTMLPreElement>("[data-alphabet]");
+    if (
+      !input ||
+      !periodInput ||
+      !solve ||
+      !progress ||
+      !progressText ||
+      !progressBar ||
+      !error ||
+      !result ||
+      !summary ||
+      !output ||
+      !alphabetRow ||
+      !alphabet
+    ) {
+      continue;
+    }
+
+    const setProgress = (label: string, fraction?: number): void => {
+      progressText.textContent = label;
+      const percent = fraction === undefined ? 8 : Math.round(fraction * 100);
+      progressBar.style.width = `${percent}%`;
+      progress.setAttribute("aria-valuenow", String(percent));
+    };
+
+    const finish = (): void => {
+      solve.disabled = false;
+      progress.hidden = true;
+    };
+
+    solve.addEventListener("click", async () => {
+      error.hidden = true;
+      result.hidden = true;
+      solve.disabled = true;
+      setProgress("Loading language data…");
+      progress.hidden = false;
+      try {
+        const table = await loadQuadgramTable();
+        const period = Number.parseInt(periodInput.value, 10);
+        const worker = new Worker(
+          new URL("../lib/quagmire.worker.ts", import.meta.url),
+          { type: "module" },
+        );
+        worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+          const message = event.data;
+          if (message.type === "progress") {
+            setProgress(
+              `Solving… attempt ${message.restart} of ${message.restarts}`,
+              message.restart / message.restarts,
+            );
+          } else if (message.type === "result") {
+            worker.terminate();
+            const solved = message.result;
+            summary.textContent = solved.isQuagmire
+              ? `Quagmire III confirmed: one shared alphabet explains all ${solved.period} key positions.`
+              : `No shared alphabet found at key length ${solved.period}; showing the general polyalphabetic decryption. Rare letters may be wrong.`;
+            output.value = solved.plaintext;
+            alphabet.textContent = solved.alphabet;
+            alphabetRow.hidden = !solved.isQuagmire;
+            result.hidden = false;
+            finish();
+          } else {
+            worker.terminate();
+            error.textContent = message.message;
+            error.hidden = false;
+            finish();
+          }
+        };
+        worker.postMessage({
+          text: input.value,
+          table: table.buffer,
+          period: Number.isNaN(period) ? undefined : period,
+        });
+        setProgress("Solving…");
+      } catch (cause) {
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+        finish();
+      }
+    });
+  }
+</script>

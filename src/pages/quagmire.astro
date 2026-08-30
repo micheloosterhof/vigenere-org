@@ -4,11 +4,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import QuagmireTool from "../components/QuagmireTool.astro";
+import QuagmireBreaker from "../components/QuagmireBreaker.astro";
 ---
 
 <Base
-  title="Quagmire cipher I-IV — encrypt and decrypt online"
-  description="Encrypt and decrypt all four Quagmire ciphers online with keyword-mixed alphabets, period key, and indicator letter. Runs in your browser."
+  title="Quagmire cipher I-IV — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break all four Quagmire ciphers online with keyword-mixed alphabets, period key, and indicator letter. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Quagmire ciphers</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
@@ -21,14 +22,23 @@ import QuagmireTool from "../components/QuagmireTool.astro";
   </p>
   <QuagmireTool />
 
-  <p class="mt-6 max-w-prose text-slate-600 dark:text-slate-400">
-    Have Quagmire ciphertext but no keywords? The
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break Quagmire III without the keywords
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    The solver first breaks the text as a general polyalphabetic cipher, then
+    checks whether one shared mixed alphabet explains every key position — the
+    mark of Quagmire III — and uses it to repair stray errors. It needs roughly
+    two hundred letters per key position and can take a minute or two; it runs
+    entirely in your browser. Other variants come out as the general
+    polyalphabetic decryption, as on the
     <a
       href="/polyalphabetic"
       class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
       >polyalphabetic solver</a
-    > can break it blind, given a few hundred letters of text.
+    > page.
   </p>
+  <QuagmireBreaker />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the Quagmire ciphers
