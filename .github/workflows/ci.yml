@@ -1,4 +1,4 @@
-# ABOUTME: CI for pushes and pull requests: formatting, lint, and unit tests.
+# ABOUTME: CI for pushes and pull requests: formatting, lint, build, and unit tests.
 # SPDX-FileCopyrightText: 2026 Michel Oosterhof
 # SPDX-License-Identifier: CC0-1.0
 name: CI
@@ -24,6 +24,7 @@ jobs:
       - run: npm ci
       - run: npx prettier --check .
       - run: npm run lint
+      - run: npm run build
 
   test:
     runs-on: ubuntu-latest
