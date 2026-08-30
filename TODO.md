@@ -20,5 +20,10 @@ This is a visible brand-colour change, so it needs a look before deploy.
 
 - Cloudflare proxy would enable brotli, long cache on `/_astro/*`, and security
   headers (HSTS, CSP) — none settable on GitHub Pages.
-- Random-forest cipher classifier once the cipher set grows (Playfair, transposition, etc.).
+- Playfair solver (hill climb over candidate squares); the /playfair page
+  promises it as "on the roadmap".
+- Random-forest cipher classifier: Playfair and both transpositions now exist,
+  so the cipher zoo is large enough to train on the diagnostics feature vector.
+- More languages (German, French, Spanish n-gram tables from the aldegonde
+  counts) — needs corpus decisions.
 - Slow-solver fuzz for Quagmire / polyalphabetic behind a slow-test tag.
