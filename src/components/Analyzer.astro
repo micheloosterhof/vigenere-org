@@ -58,6 +58,7 @@ import { buttonClass, fieldClass } from "../styles/form";
     type CipherFamily,
   } from "../lib/diagnostics";
   import { toLetterValues } from "../lib/solve";
+  import { liveShareUrl } from "./live-url";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -211,6 +212,11 @@ import { buttonClass, fieldClass } from "../styles/form";
         error.hidden = false;
       }
     });
+
+    const syncUrl = liveShareUrl(() =>
+      input.value === "" ? null : [["text", input.value]],
+    );
+    input.addEventListener("input", syncUrl);
 
     // Deep link: /analyze?text=...
     const text = new URLSearchParams(location.search).get("text");

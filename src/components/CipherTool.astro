@@ -101,6 +101,7 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
   import { railFence } from "../lib/railfence";
   import { columnarTransposition } from "../lib/transposition";
   import { playfair } from "../lib/playfair";
+  import { liveShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
@@ -147,7 +148,24 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
       }
     };
 
+    const keyParam =
+      cipher === "caesar" ? "shift" : cipher === "railfence" ? "rails" : "key";
+    let lastMode: Mode = "encrypt";
+    const syncUrl = liveShareUrl(() =>
+      input.value === ""
+        ? null
+        : [
+            ["text", input.value],
+            [keyParam, keyValue()],
+            ["mode", lastMode === "decrypt" ? "decrypt" : ""],
+          ],
+    );
+    input.addEventListener("input", syncUrl);
+    key?.addEventListener("input", syncUrl);
+
     const run = (mode: Mode): void => {
+      lastMode = mode;
+      syncUrl();
       error.hidden = true;
       try {
         output.value = apply(input.value, mode);

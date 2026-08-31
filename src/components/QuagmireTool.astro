@@ -83,6 +83,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 <script>
   import type { Mode } from "../lib/cipher";
   import { quagmire, type QuagmireVariant } from "../lib/quagmire";
+  import { liveShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-quagmire]",
@@ -116,7 +117,28 @@ import { buttonClass, fieldClass } from "../styles/form";
     variant.addEventListener("change", syncVariant);
     syncVariant();
 
+    let lastMode: Mode = "encrypt";
+    const syncUrl = liveShareUrl(() =>
+      input.value === ""
+        ? null
+        : [
+            ["text", input.value],
+            ["variant", variant.value],
+            ["keyword", keyword.value],
+            ["keyword2", keyword2.value],
+            ["key", key.value],
+            ["indicator", indicator.value],
+            ["mode", lastMode === "decrypt" ? "decrypt" : ""],
+          ],
+    );
+    variant.addEventListener("change", syncUrl);
+    for (const field of [input, keyword, keyword2, key, indicator]) {
+      field.addEventListener("input", syncUrl);
+    }
+
     const run = (mode: Mode): void => {
+      lastMode = mode;
+      syncUrl();
       error.hidden = true;
       try {
         output.value = quagmire(

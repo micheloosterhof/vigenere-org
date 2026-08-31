@@ -53,6 +53,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 
 <script>
   import { autokey, type AutokeyVariant, type Mode } from "../lib/cipher";
+  import { liveShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-autokey]")) {
     const variant = root.querySelector<HTMLSelectElement>("[data-variant]");
@@ -64,7 +65,24 @@ import { buttonClass, fieldClass } from "../styles/form";
       continue;
     }
 
+    let lastMode: Mode = "encrypt";
+    const syncUrl = liveShareUrl(() =>
+      input.value === ""
+        ? null
+        : [
+            ["text", input.value],
+            ["key", key.value],
+            ["variant", variant.value],
+            ["mode", lastMode === "decrypt" ? "decrypt" : ""],
+          ],
+    );
+    input.addEventListener("input", syncUrl);
+    key.addEventListener("input", syncUrl);
+    variant.addEventListener("change", syncUrl);
+
     const run = (mode: Mode): void => {
+      lastMode = mode;
+      syncUrl();
       error.hidden = true;
       try {
         output.value = autokey(

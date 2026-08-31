@@ -181,6 +181,86 @@ test("the kryptos page decrypts K1 with one click", async ({ page }) => {
   );
 });
 
+test("editing the vigenère form keeps the URL a shareable deep link", async ({
+  page,
+}) => {
+  await page.goto("/vigenere/");
+  const tool = page.locator("[data-cipher=vigenere]");
+  await tool.locator("[data-input]").fill("LXFOPVEFRNHR");
+  await tool.locator("[data-key]").fill("LEMON");
+  await tool.locator("[data-decrypt]").click();
+  await expect(page).toHaveURL(
+    "/vigenere/?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt",
+  );
+  await page.reload();
+  await expect(tool.locator("[data-output]")).toHaveValue("ATTACKATDAWN");
+});
+
+test("editing the caesar form mirrors the shift into the URL", async ({
+  page,
+}) => {
+  await page.goto("/caesar/");
+  const tool = page.locator("[data-cipher=caesar]");
+  await tool.locator("[data-input]").fill("Khoor");
+  await tool.locator("[data-key]").fill("3");
+  await tool.locator("[data-decrypt]").click();
+  await expect(page).toHaveURL("/caesar/?text=Khoor&shift=3&mode=decrypt");
+  await page.reload();
+  await expect(tool.locator("[data-output]")).toHaveValue("Hello");
+});
+
+test("editing the quagmire form mirrors its settings into the URL", async ({
+  page,
+}) => {
+  await page.goto("/quagmire/");
+  const tool = page.locator("[data-quagmire]");
+  await tool.locator("[data-input]").fill("HELLO");
+  await tool.locator("[data-keyword]").fill("KRYPTOS");
+  await tool.locator("[data-key]").fill("PALIMPSEST");
+  await tool.locator("[data-encrypt]").click();
+  await expect(page).toHaveURL(
+    "/quagmire/?text=HELLO&variant=3&keyword=KRYPTOS&key=PALIMPSEST&indicator=A",
+  );
+  const ciphertext = await tool.locator("[data-output]").inputValue();
+  expect(ciphertext).not.toBe("");
+  await page.reload();
+  await expect(tool.locator("[data-output]")).toHaveValue(ciphertext);
+});
+
+test("editing the autokey form mirrors its settings into the URL", async ({
+  page,
+}) => {
+  await page.goto("/autokey/");
+  const tool = page.locator("[data-autokey]");
+  await tool.locator("[data-input]").fill("HELLO");
+  await tool.locator("[data-key]").fill("QUEEN");
+  await tool.locator("[data-encrypt]").click();
+  await expect(page).toHaveURL(
+    "/autokey/?text=HELLO&key=QUEEN&variant=plaintext",
+  );
+  const ciphertext = await tool.locator("[data-output]").inputValue();
+  expect(ciphertext).not.toBe("");
+  await page.reload();
+  await expect(tool.locator("[data-output]")).toHaveValue(ciphertext);
+});
+
+test("typing on the analyze page mirrors the text into the URL", async ({
+  page,
+}) => {
+  await page.goto("/analyze/");
+  await page.locator("[data-analyzer] [data-input]").fill("WKLVLVDVHFUHW");
+  await expect(page).toHaveURL("/analyze/?text=WKLVLVDVHFUHW");
+});
+
+test("clearing the text clears the URL again", async ({ page }) => {
+  await page.goto("/vigenere/");
+  const tool = page.locator("[data-cipher=vigenere]");
+  await tool.locator("[data-input]").fill("HELLO");
+  await expect(page).toHaveURL("/vigenere/?text=HELLO");
+  await tool.locator("[data-input]").fill("");
+  await expect(page).toHaveURL("/vigenere/");
+});
+
 test("deep link analyzes text on the analyze page", async ({ page }) => {
   await page.goto(
     "/analyze/?text=WKLV%20LV%20D%20VHFUHW%20PHVVDJH%20WR%20YHULIB%20WKH%20VROYHU",
