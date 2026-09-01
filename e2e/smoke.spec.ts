@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const pages: [string, string][] = [
   ["/", "secret message"],
@@ -259,6 +260,44 @@ test("clearing the text clears the URL again", async ({ page }) => {
   await expect(page).toHaveURL("/vigenere/?text=HELLO");
   await tool.locator("[data-input]").fill("");
   await expect(page).toHaveURL("/vigenere/");
+});
+
+async function jsonLdBlocks(page: Page): Promise<Record<string, unknown>[]> {
+  const scripts = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  return scripts.map((s) => JSON.parse(s) as Record<string, unknown>);
+}
+
+test("the home page declares the site name and no breadcrumb", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const blocks = await jsonLdBlocks(page);
+  expect(blocks.find((b) => b["@type"] === "WebSite")).toMatchObject({
+    name: "vigenere.org",
+    url: "https://vigenere.org/",
+  });
+  expect(blocks.find((b) => b["@type"] === "BreadcrumbList")).toBeUndefined();
+});
+
+test("tool pages carry a breadcrumb trail back to the home page", async ({
+  page,
+}) => {
+  await page.goto("/vigenere/");
+  const blocks = await jsonLdBlocks(page);
+  expect(blocks.find((b) => b["@type"] === "WebSite")).toBeUndefined();
+  expect(blocks.find((b) => b["@type"] === "BreadcrumbList")).toMatchObject({
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://vigenere.org/",
+      },
+      { "@type": "ListItem", position: 2, name: "Vigenère cipher" },
+    ],
+  });
 });
 
 test("deep link analyzes text on the analyze page", async ({ page }) => {
