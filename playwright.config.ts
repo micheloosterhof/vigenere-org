@@ -10,7 +10,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: "http://127.0.0.1:4321" },
   webServer: {
-    command: "npm run build && node e2e/server.mjs",
+    command:
+      "PUBLIC_ADSENSE_CLIENT=ca-pub-0000000000000000 npm run build && node e2e/server.mjs",
     url: "http://127.0.0.1:4321",
     reuseExistingServer: !process.env.CI,
   },

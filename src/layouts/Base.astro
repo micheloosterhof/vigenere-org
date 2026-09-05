@@ -9,9 +9,11 @@ import ClipboardButtons from "../components/ClipboardButtons.astro";
 interface Props {
   title: string;
   description: string;
+  /** Google policy forbids ads on error, legal, and other non-content pages. */
+  ads?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, ads = true } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN as
@@ -103,7 +105,7 @@ const tools = [
       )
     }
     {
-      adsenseClient && (
+      ads && adsenseClient && (
         <script
           is:inline
           async

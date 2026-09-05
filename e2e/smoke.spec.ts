@@ -37,6 +37,20 @@ test("unknown URLs get the 404 page", async ({ page }) => {
   await expect(page.locator("h1")).toContainText("Page not found");
 });
 
+const adScript = 'script[src*="pagead2.googlesyndication.com"]';
+
+test("tool pages carry the AdSense script", async ({ page }) => {
+  await page.goto("/vigenere/");
+  expect(await page.locator(adScript).count()).toBeGreaterThan(0);
+});
+
+test("the privacy and 404 pages carry no ad code", async ({ page }) => {
+  await page.goto("/privacy/");
+  await expect(page.locator(adScript)).toHaveCount(0);
+  await page.goto("/no-such-page/");
+  await expect(page.locator(adScript)).toHaveCount(0);
+});
+
 test("vigenère form encrypts ATTACKATDAWN with LEMON", async ({ page }) => {
   await page.goto("/vigenere/");
   const tool = page.locator("[data-cipher=vigenere]");
