@@ -27,6 +27,16 @@ const SHORT =
   "Winston Smith, his chin nuzzled into his breast in an effort to escape " +
   "the vile wind.";
 
+// Kryptos K1-K3 are carved with the KRYPTOS-keyed alphabet; K2's period key is
+// ABSCISSA. Ciphertext as carved, with Sanborn's question marks dropped.
+const KRYPTOS_K2 =
+  "VFPJUDEEHZWETZYVGWHKKQETGFQJNCEGGWHKKDQMCPFQZDQMMIAGPFXHQRLG" +
+  "TIMVMZJANQLVKQEDAGDVFRPJUNGEUNAQZGZLECGYUXUEENJTBJLBQCRTBJDFHRR" +
+  "YIZETKZEMVDUFKSJHKFWHKUWQLSZFTIHHDDDUVHDWKBFUFPWNTDFIYCUQZERE" +
+  "EVLDKFEZMOQQJLTTUGSYQPFEUNLAVIDXFLGGTEZFKZBSFDQVGOGIPUFXHHDRKF" +
+  "FHQNTGPUAECNUVPDJMQCLQUMUNEDFQELZZVRRGKFFVOEEXBDMVPNFQXEZLGRE" +
+  "DNQFMPNZGLFLPMRJQYALMGNUVPDXVKPDQUMEBEDMHDAFMJGZNUPLGEWJLLAETG";
+
 describe("breakQuagmireDictionary", () => {
   it(
     "breaks a short Quagmire III whose keyword is in the dictionary",
@@ -64,12 +74,26 @@ describe("breakQuagmireDictionary", () => {
   });
 
   it(
+    "breaks Kryptos K2, whose alphabet keyword is KRYPTOS",
+    { timeout: 60000 },
+    () => {
+      const result = breakQuagmireDictionary(KRYPTOS_K2, WORDS, TABLE);
+      expect(result.found).toBe(true);
+      expect(result.variant).toBe(3);
+      expect(result.keyword).toBe("KRYPTOS");
+      expect(result.alphabet).toBe("KRYPTOSABCDEFGHIJLMNQUVWXZ");
+      expect(result.period).toBe(8);
+      expect(result.plaintext.startsWith("ITWASTOTALLYINVISIBLE")).toBe(true);
+    },
+  );
+
+  it(
     "reports not found when the keyword is outside the dictionary",
     { timeout: 60000 },
     () => {
       const ciphertext = quagmire(
         SHORT,
-        { variant: 3, keyword: "KRYPTOS", key: "TALE", indicator: "A" },
+        { variant: 3, keyword: "PALIMPSEST", key: "TALE", indicator: "A" },
         "encrypt",
       );
       expect(breakQuagmireDictionary(ciphertext, WORDS, TABLE).found).toBe(
