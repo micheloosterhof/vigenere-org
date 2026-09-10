@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
+import ShareLink from "./ShareLink.astro";
 ---
 
 <div data-quagmire-breaker class="flex flex-col gap-4">
@@ -28,8 +29,9 @@ import { buttonClass, fieldClass } from "../styles/form";
   </label>
 
   <div class="flex flex-col gap-3">
-    <div>
+    <div class="flex items-center gap-3">
       <button data-solve type="button" class={buttonClass}>Break cipher</button>
+      <ShareLink />
     </div>
     <div
       data-progress
@@ -208,7 +210,7 @@ import { buttonClass, fieldClass } from "../styles/form";
       }
     });
 
-    // Deep link: /quagmire?text=...&mode=break
-    breakerShareUrl(input, solve);
+    // Deep link: /quagmire?text=...&period=6&mode=break
+    breakerShareUrl(input, solve, [["period", periodInput]]);
   }
 </script>

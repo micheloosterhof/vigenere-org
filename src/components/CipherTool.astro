@@ -18,6 +18,7 @@ interface Props {
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
+import ShareLink from "./ShareLink.astro";
 
 const { cipher } = Astro.props;
 const usesShift = cipher === "caesar";
@@ -79,6 +80,7 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
         </>
       )
     }
+    <ShareLink />
   </div>
 
   <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>

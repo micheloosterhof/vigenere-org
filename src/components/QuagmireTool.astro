@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
+import ShareLink from "./ShareLink.astro";
 ---
 
 <div data-quagmire class="flex flex-col gap-4">
@@ -70,6 +71,7 @@ import { buttonClass, fieldClass } from "../styles/form";
   <div class="flex gap-3">
     <button data-encrypt type="button" class={buttonClass}>Encrypt</button>
     <button data-decrypt type="button" class={buttonClass}>Decrypt</button>
+    <ShareLink />
   </div>
 
   <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>

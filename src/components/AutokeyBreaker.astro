@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
+import ShareLink from "./ShareLink.astro";
 ---
 
 <div data-autokey-breaker class="flex flex-col gap-4">
@@ -16,10 +17,11 @@ import { buttonClass, fieldClass } from "../styles/form";
       placeholder="Paste autokey ciphertext with an unknown primer"></textarea>
   </label>
 
-  <div>
+  <div class="flex items-center gap-3">
     <button data-solve type="button" class={buttonClass}>
       Recover plaintext
     </button>
+    <ShareLink />
   </div>
 
   <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>

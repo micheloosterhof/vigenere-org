@@ -7,22 +7,13 @@
 
 <script>
   import { subtleButtonClass } from "../styles/form";
+  import { flash } from "./flash";
 
-  const FEEDBACK_MS = 1200;
   // Firefox denies clipboard reads to page scripts, so the Paste button falls
   // back to telling the reader which keys do it.
   const PASTE_KEYS = /Mac|iPhone|iPad/.test(navigator.userAgent)
     ? "Press ⌘V"
     : "Press Ctrl+V";
-
-  function flash(button: HTMLButtonElement, message: string): void {
-    const original = button.dataset.label ?? button.textContent ?? "";
-    button.dataset.label = original;
-    button.textContent = message;
-    window.setTimeout(() => {
-      button.textContent = original;
-    }, FEEDBACK_MS);
-  }
 
   function makeButton(
     label: string,

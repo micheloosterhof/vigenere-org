@@ -41,8 +41,9 @@ Tool pages accept URL query parameters and run automatically, populating the
 
 Parameters: `text`, `key` (or `shift` for Caesar), `mode` (encrypt, decrypt, or
 break to run the page's key-recovery attack instead), `variant` (autokey:
-plaintext or ciphertext; Quagmire: 1–4), and for Quagmire `keyword`,
-`keyword2`, `indicator`.
+plaintext or ciphertext; Quagmire: 1–4), for Quagmire `keyword`, `keyword2`,
+`indicator`, and for the Quagmire and polyalphabetic breakers an optional
+`period` (key length).
 
 Note: the tools compute in the browser, so fetching a URL without executing its
 JavaScript returns the page shell, not the result.

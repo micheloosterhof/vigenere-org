@@ -308,6 +308,38 @@ test("the home page solver mirrors its ciphertext into the URL and the link reru
   );
 });
 
+test("the polyalphabetic breaker carries its key length in the URL", async ({
+  page,
+}) => {
+  await page.goto("/polyalphabetic/");
+  const breaker = page.locator("[data-poly]");
+  await breaker.locator("[data-input]").fill(FRUGAL_CIPHERTEXT);
+  await breaker.locator("[data-period]").fill("6");
+  await expect(page).toHaveURL(
+    `/polyalphabetic/?text=${FRUGAL_CIPHERTEXT}&period=6&mode=break`,
+  );
+  await page.reload();
+  await expect(breaker.locator("[data-period]")).toHaveValue("6");
+});
+
+test("the copy link button puts the current deep link on the clipboard", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/vigenere/");
+  const tool = page.locator("[data-cipher=vigenere]");
+  await tool.locator("[data-input]").fill("LXFOPVEFRNHR");
+  await tool.locator("[data-key]").fill("LEMON");
+  await tool.locator("[data-decrypt]").click();
+  const share = tool.locator("[data-share-link]");
+  await share.click();
+  await expect(share).toHaveText("Link copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    "http://127.0.0.1:4321/vigenere/?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt",
+  );
+});
+
 test("clearing the text clears the URL again", async ({ page }) => {
   await page.goto("/vigenere/");
   const tool = page.locator("[data-cipher=vigenere]");

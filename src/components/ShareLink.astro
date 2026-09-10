@@ -1,0 +1,30 @@
+---
+// ABOUTME: Button that copies the page's current deep link, so a tool's state can be shared.
+// ABOUTME: Flushes the pending address-bar update first, so the copied link is never stale.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { secondaryButtonClass } from "../styles/form";
+---
+
+<button data-share-link type="button" class={secondaryButtonClass}>
+  Copy link
+</button>
+
+<script>
+  import { flash } from "./flash";
+  import { flushShareUrl } from "./live-url";
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>(
+    "[data-share-link]",
+  )) {
+    button.addEventListener("click", async () => {
+      flushShareUrl();
+      try {
+        await navigator.clipboard.writeText(location.href);
+        flash(button, "Link copied");
+      } catch {
+        flash(button, "Copy failed");
+      }
+    });
+  }
+</script>
