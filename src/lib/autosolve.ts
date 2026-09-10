@@ -83,10 +83,11 @@ const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
 };
 
 /**
- * Breaks ciphertext without being told the cipher. The index of coincidence
- * chooses between the monoalphabetic route (Caesar, then substitution) and
- * the periodic route (Vigenère and Beaufort, then the general polyalphabetic
- * attack when neither reads as English).
+ * Breaks ciphertext without being told the cipher. The cheap attacks (Caesar
+ * and Atbash when the text looks monoalphabetic, Vigenère and Beaufort
+ * always) run first; the index of coincidence then chooses the slow fallback
+ * when nothing reads as English: the substitution climb for monoalphabetic
+ * text, the general polyalphabetic attack for periodic text.
  */
 export function autosolve(
   text: string,
@@ -156,35 +157,40 @@ export function autosolve(
       plaintext: atbashPlain,
       href: "/atbash",
     });
-    if (!readable()) {
-      const recovered = breakSubstitution(text, table, { rng: options.rng });
-      const plain = substitution(text, recovered.key, "decrypt");
-      attempts.push({
-        cipher: "Substitution",
-        keyLabel: recovered.key,
-        fitness: scoreText(plain),
-        plaintext: plain,
-        href: "/substitution",
-      });
-    }
-  } else {
-    const [vigenereBest] = breakPeriodic(text, vigenereDecrypt);
-    const vigenerePlain = vigenere(text, vigenereBest.key, "decrypt");
+  }
+
+  // The periodic breakers search every key length themselves and are cheap,
+  // so they run whatever the period estimate says: on short text the index
+  // of coincidence can call a Vigenère monoalphabetic. A key of length 1 ties
+  // with Caesar on fitness and loses to it on simplicity.
+  const [vigenereBest] = breakPeriodic(text, vigenereDecrypt);
+  const vigenerePlain = vigenere(text, vigenereBest.key, "decrypt");
+  attempts.push({
+    cipher: "Vigenère",
+    keyLabel: vigenereBest.key,
+    fitness: scoreText(vigenerePlain),
+    plaintext: vigenerePlain,
+    href: "/vigenere",
+  });
+  const [beaufortBest] = breakPeriodic(text, beaufortDecrypt);
+  const beaufortPlain = beaufort(text, beaufortBest.key);
+  attempts.push({
+    cipher: "Beaufort",
+    keyLabel: beaufortBest.key,
+    fitness: scoreText(beaufortPlain),
+    plaintext: beaufortPlain,
+    href: "/beaufort",
+  });
+
+  if (period === 1 && !readable()) {
+    const recovered = breakSubstitution(text, table, { rng: options.rng });
+    const plain = substitution(text, recovered.key, "decrypt");
     attempts.push({
-      cipher: "Vigenère",
-      keyLabel: vigenereBest.key,
-      fitness: scoreText(vigenerePlain),
-      plaintext: vigenerePlain,
-      href: "/vigenere",
-    });
-    const [beaufortBest] = breakPeriodic(text, beaufortDecrypt);
-    const beaufortPlain = beaufort(text, beaufortBest.key);
-    attempts.push({
-      cipher: "Beaufort",
-      keyLabel: beaufortBest.key,
-      fitness: scoreText(beaufortPlain),
-      plaintext: beaufortPlain,
-      href: "/beaufort",
+      cipher: "Substitution",
+      keyLabel: recovered.key,
+      fitness: scoreText(plain),
+      plaintext: plain,
+      href: "/substitution",
     });
   }
 

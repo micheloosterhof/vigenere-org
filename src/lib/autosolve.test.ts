@@ -138,6 +138,22 @@ describe("autosolve", () => {
     );
   });
 
+  // 80 letters under a 6-letter key: the raw IoC drifts above the
+  // monoalphabetic threshold by noise and the period scan is too short to
+  // score period 6, so the routing statistics alone would never try Vigenère.
+  it("breaks a short Vigenère whose statistics look monoalphabetic", () => {
+    const text =
+      "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ " +
+      "HZZKQ NAEDF OJOYT KHKEO NJXKA CFKUT YAWZW KCLYF";
+    const result = autosolve(text, TABLE, { rng: mulberry32(9), words: WORDS });
+    expect(result.best.cipher).toBe("Vigenère");
+    expect(result.best.keyLabel).toBe("FRUGAL");
+    expect(result.best.plaintext).toBe(
+      "BUYNO TWHAT YOUCA NUSEB UTWHA TYOUC ANNOT DOWIT " +
+        "HOUTW HATYO UDONO TNEED ISDEA RATAN YPRIC ECATO",
+    );
+  });
+
   it("identifies Beaufort ciphertext and recovers the key", () => {
     const result = autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),
