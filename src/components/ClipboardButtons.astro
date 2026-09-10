@@ -74,10 +74,10 @@
   for (const field of document.querySelectorAll("textarea")) {
     const buttons = document.createElement("div");
     buttons.className = "flex items-center gap-2";
+    buttons.append(copyButton(field));
     if (!field.readOnly) {
       buttons.append(pasteButton(field));
     }
-    buttons.append(copyButton(field));
 
     // Labelled fields share the caption's line; a bare field gets its own row.
     const caption = field.closest("label")?.querySelector(":scope > span");
