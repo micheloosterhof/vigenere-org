@@ -91,6 +91,7 @@ const { cipher } = Astro.props;
   import { breakRailFence } from "../lib/railfence";
   import { breakColumnar } from "../lib/transposition";
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { breakerShareUrl } from "./live-url";
 
   const CANDIDATE_ROWS = 5;
   const PREVIEW_LENGTH = 40;
@@ -210,5 +211,8 @@ const { cipher } = Astro.props;
         solve.disabled = false;
       }
     });
+
+    // Deep link: /vigenere?text=...&mode=break
+    breakerShareUrl(input, solve);
   }
 </script>

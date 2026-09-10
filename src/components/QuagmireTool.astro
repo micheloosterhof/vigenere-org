@@ -83,7 +83,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 <script>
   import type { Mode } from "../lib/cipher";
   import { quagmire, type QuagmireVariant } from "../lib/quagmire";
-  import { liveShareUrl } from "./live-url";
+  import { deepLink, liveShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-quagmire]",
@@ -168,10 +168,9 @@ import { buttonClass, fieldClass } from "../styles/form";
       ?.addEventListener("click", () => run("decrypt"));
 
     // Deep link: /quagmire?text=...&variant=3&keyword=KRYPTOS&key=PALIMPSEST&indicator=K&mode=decrypt
-    const params = new URLSearchParams(location.search);
-    const text = params.get("text");
-    if (text !== null) {
-      input.value = text;
+    const params = deepLink("tool");
+    if (params) {
+      input.value = params.get("text") ?? "";
       const set = (name: string, field: HTMLInputElement): void => {
         const value = params.get(name);
         if (value !== null) {

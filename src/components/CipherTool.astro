@@ -101,7 +101,7 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
   import { railFence } from "../lib/railfence";
   import { columnarTransposition } from "../lib/transposition";
   import { playfair } from "../lib/playfair";
-  import { liveShareUrl } from "./live-url";
+  import { deepLink, liveShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
@@ -185,10 +185,9 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
       ?.addEventListener("click", () => run("decrypt"));
 
     // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt (rails for rail fence, key for the rest)
-    const params = new URLSearchParams(location.search);
-    const text = params.get("text");
-    if (text !== null) {
-      input.value = text;
+    const params = deepLink("tool");
+    if (params) {
+      input.value = params.get("text") ?? "";
       const linkedKey =
         cipher === "caesar"
           ? params.get("shift")

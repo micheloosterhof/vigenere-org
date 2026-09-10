@@ -72,6 +72,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 <script>
   import { loadQuadgramTable } from "../lib/quadgrams";
   import { loadWordlist } from "../lib/wordlist";
+  import { breakerShareUrl } from "./live-url";
   import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
   import type { QuagmireSolveResult } from "../lib/solve-quagmire";
   import type { QuagmireDictionaryResult } from "../lib/solve-quagmire-dictionary";
@@ -206,5 +207,8 @@ import { buttonClass, fieldClass } from "../styles/form";
         finish();
       }
     });
+
+    // Deep link: /quagmire?text=...&mode=break
+    breakerShareUrl(input, solve);
   }
 </script>

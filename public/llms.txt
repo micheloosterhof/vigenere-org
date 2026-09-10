@@ -37,10 +37,12 @@ Tool pages accept URL query parameters and run automatically, populating the
 - Substitution: https://vigenere.org/substitution/?text=FLEE&key=ZEBRAS&mode=encrypt
 - Autokey: https://vigenere.org/autokey/?text=NOTIFY&key=X&variant=ciphertext&mode=encrypt
 - Analyze: https://vigenere.org/analyze/?text=LXFOPVEFRNHR
+- Break with an unknown key (any tool page, or the auto-solver on the home page): https://vigenere.org/vigenere/?text=LXFOPVEFRNHR&mode=break
 
-Parameters: `text`, `key` (or `shift` for Caesar), `mode` (encrypt or decrypt),
-`variant` (autokey: plaintext or ciphertext; Quagmire: 1–4), and for Quagmire
-`keyword`, `keyword2`, `indicator`.
+Parameters: `text`, `key` (or `shift` for Caesar), `mode` (encrypt, decrypt, or
+break to run the page's key-recovery attack instead), `variant` (autokey:
+plaintext or ciphertext; Quagmire: 1–4), and for Quagmire `keyword`,
+`keyword2`, `indicator`.
 
 Note: the tools compute in the browser, so fetching a URL without executing its
 JavaScript returns the page shell, not the result.

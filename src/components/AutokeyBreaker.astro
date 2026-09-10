@@ -39,6 +39,7 @@ import { buttonClass, fieldClass } from "../styles/form";
     breakPlaintextAutokey,
   } from "../lib/solve-autokey";
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { breakerShareUrl } from "./live-url";
 
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-autokey-breaker]",
@@ -77,5 +78,8 @@ import { buttonClass, fieldClass } from "../styles/form";
         solve.disabled = false;
       }
     });
+
+    // Deep link: /autokey?text=...&mode=break
+    breakerShareUrl(input, solve);
   }
 </script>

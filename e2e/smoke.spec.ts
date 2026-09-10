@@ -267,6 +267,47 @@ test("typing on the analyze page mirrors the text into the URL", async ({
   await expect(page).toHaveURL("/analyze/?text=WKLVLVDVHFUHW");
 });
 
+// A Vigenère under FRUGAL; the breaker recovers the key on its own.
+const FRUGAL_CIPHERTEXT =
+  "GLSTOEBYUZYZZTUTUDJSOZWSFKSUUNFEHUTOTNCZHZZKQNAEDFOJOYTKHKEONJXKACFKUTYAWZWKCLYF";
+
+test("the vigenère breaker mirrors its ciphertext into the URL and the link reruns it", async ({
+  page,
+}) => {
+  await page.goto("/vigenere/");
+  const breaker = page.locator("[data-breaker=vigenere]");
+  await breaker.locator("[data-input]").fill(FRUGAL_CIPHERTEXT);
+  await expect(page).toHaveURL(
+    `/vigenere/?text=${FRUGAL_CIPHERTEXT}&mode=break`,
+  );
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Recovered key: FRUGAL",
+  );
+  await page.reload();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Recovered key: FRUGAL",
+  );
+  // The encrypt/decrypt form on the same page leaves a breaker link alone.
+  await expect(page.locator("[data-cipher=vigenere] [data-input]")).toHaveValue(
+    "",
+  );
+});
+
+test("the home page solver mirrors its ciphertext into the URL and the link reruns it", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const solver = page.locator("[data-lucky]");
+  await solver.locator("[data-input]").fill(FRUGAL_CIPHERTEXT);
+  await expect(page).toHaveURL(`/?text=${FRUGAL_CIPHERTEXT}&mode=break`);
+  await page.reload();
+  await expect(solver.locator("[data-summary]")).toContainText(
+    "Vigenère cipher (FRUGAL)",
+    { timeout: 30_000 },
+  );
+});
+
 test("clearing the text clears the URL again", async ({ page }) => {
   await page.goto("/vigenere/");
   const tool = page.locator("[data-cipher=vigenere]");

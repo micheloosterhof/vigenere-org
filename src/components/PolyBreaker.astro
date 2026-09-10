@@ -73,6 +73,7 @@ import { buttonClass, fieldClass } from "../styles/form";
 
 <script>
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { breakerShareUrl } from "./live-url";
   import type {
     PolyalphabeticProgress,
     PolyalphabeticResult,
@@ -175,5 +176,8 @@ import { buttonClass, fieldClass } from "../styles/form";
         finish();
       }
     });
+
+    // Deep link: /polyalphabetic?text=...&mode=break
+    breakerShareUrl(input, solve);
   }
 </script>
