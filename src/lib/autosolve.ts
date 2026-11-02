@@ -28,6 +28,7 @@ import {
   breakPlaintextAutokey,
 } from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
+import { shareSearch } from "./share-url";
 
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
@@ -54,7 +55,21 @@ export interface Attempt {
   /** Average bigram log10 probability of the decryption, comparable across all attempts. */
   fitness: number;
   plaintext: string;
+  /** Deep link to the tool page with the ciphertext and recovered key filled in. */
   href: string;
+}
+
+/**
+ * Deep link to a tool page: `decrypt` opens its form showing the plaintext,
+ * `break` opens its breaker on the ciphertext when the key cannot be filled in.
+ */
+function deepLink(
+  page: string,
+  text: string,
+  fields: ReadonlyArray<[name: string, value: string]>,
+  mode: "decrypt" | "break",
+): string {
+  return `/${page}/${shareSearch([["text", text], ...fields, ["mode", mode]])}`;
 }
 
 export interface AutosolveResult {
@@ -114,7 +129,7 @@ export function autosolve(
       keyLabel: `primer length ${recovered.primerLength}, opening ~${recovered.primerLength} letters approximate`,
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
-      href: "/autokey",
+      href: deepLink("autokey", text, [], "break"),
     });
   }
 
@@ -127,7 +142,12 @@ export function autosolve(
       keyLabel: `${rail.rails} rails`,
       fitness: rail.fitness,
       plaintext: rail.plaintext,
-      href: "/railfence",
+      href: deepLink(
+        "railfence",
+        text,
+        [["rails", String(rail.rails)]],
+        "decrypt",
+      ),
     });
     const [columnar] = breakColumnar(text);
     attempts.push({
@@ -135,7 +155,7 @@ export function autosolve(
       keyLabel: columnar.key,
       fitness: columnar.fitness,
       plaintext: columnar.plaintext,
-      href: "/transposition",
+      href: deepLink("transposition", text, [["key", columnar.key]], "decrypt"),
     });
   }
 
@@ -147,7 +167,12 @@ export function autosolve(
       keyLabel: `shift ${shift.shift}`,
       fitness: scoreText(shiftPlain),
       plaintext: shiftPlain,
-      href: "/caesar",
+      href: deepLink(
+        "caesar",
+        text,
+        [["shift", String(shift.shift)]],
+        "decrypt",
+      ),
     });
     const atbashPlain = atbash(text);
     attempts.push({
@@ -155,7 +180,7 @@ export function autosolve(
       keyLabel: "none",
       fitness: scoreText(atbashPlain),
       plaintext: atbashPlain,
-      href: "/atbash",
+      href: deepLink("atbash", text, [], "decrypt"),
     });
   }
 
@@ -171,7 +196,7 @@ export function autosolve(
     keyLabel: vigenereBest.key,
     fitness: scoreText(vigenerePlain),
     plaintext: vigenerePlain,
-    href: "/vigenere",
+    href: deepLink("vigenere", text, [["key", vigenereBest.key]], "decrypt"),
   });
   const [beaufortBest] = breakPeriodic(text, beaufortDecrypt, periodic);
   const beaufortPlain = beaufort(text, beaufortBest.key);
@@ -180,7 +205,7 @@ export function autosolve(
     keyLabel: beaufortBest.key,
     fitness: scoreText(beaufortPlain),
     plaintext: beaufortPlain,
-    href: "/beaufort",
+    href: deepLink("beaufort", text, [["key", beaufortBest.key]], "decrypt"),
   });
 
   if (period === 1 && !readable()) {
@@ -191,7 +216,7 @@ export function autosolve(
       keyLabel: recovered.key,
       fitness: scoreText(plain),
       plaintext: plain,
-      href: "/substitution",
+      href: deepLink("substitution", text, [["key", recovered.key]], "decrypt"),
     });
   }
 
@@ -204,7 +229,7 @@ export function autosolve(
       keyLabel: `primer length ${recovered.primerLength}`,
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
-      href: "/autokey",
+      href: deepLink("autokey", text, [], "break"),
     });
   }
 
@@ -218,7 +243,17 @@ export function autosolve(
         keyLabel: `keyword ${dictionary.keyword}, key ${dictionary.key}`,
         fitness: scoreText(dictionary.plaintext),
         plaintext: dictionary.plaintext,
-        href: "/quagmire",
+        href: deepLink(
+          "quagmire",
+          text,
+          [
+            ["variant", String(dictionary.variant)],
+            ["keyword", dictionary.keyword],
+            ["key", dictionary.key],
+            ["indicator", dictionary.indicator],
+          ],
+          "decrypt",
+        ),
       });
     }
   }
@@ -235,7 +270,12 @@ export function autosolve(
       keyLabel: `period ${recovered.period}`,
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
-      href: "/polyalphabetic",
+      href: deepLink(
+        "polyalphabetic",
+        text,
+        [["period", String(recovered.period)]],
+        "break",
+      ),
     });
   }
 

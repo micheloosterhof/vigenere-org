@@ -306,6 +306,21 @@ test("the home page solver mirrors its ciphertext into the URL and the link reru
     "Vigenère cipher (FRUGAL)",
     { timeout: 30_000 },
   );
+  // Each attempt links to its tool with the ciphertext and key filled in.
+  const vigenereLink = solver.locator("[data-attempts] a", {
+    hasText: "Vigenère",
+  });
+  await expect(vigenereLink).toHaveAttribute(
+    "href",
+    `/vigenere/?text=${FRUGAL_CIPHERTEXT}&key=FRUGAL&mode=decrypt`,
+  );
+  await vigenereLink.click();
+  await expect(page.locator("[data-cipher=vigenere] [data-key]")).toHaveValue(
+    "FRUGAL",
+  );
+  await expect(
+    page.locator("[data-cipher=vigenere] [data-output]"),
+  ).toHaveValue(/^BUYNOTWHAT/);
 });
 
 test("the polyalphabetic breaker carries its key length in the URL", async ({

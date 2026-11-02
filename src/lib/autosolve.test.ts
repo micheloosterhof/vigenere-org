@@ -166,6 +166,95 @@ describe("autosolve", () => {
     expect(result.best.plaintext).toBe("lookwhatthetidebroughtin");
   });
 
+  // The links use the same query parameters the tool pages read back, so each
+  // one opens its tool with the ciphertext and recovered key already filled in.
+  const attemptNamed = (
+    result: ReturnType<typeof autosolve>,
+    cipher: string,
+  ): { href: string; keyLabel: string } => {
+    const attempt = result.attempts.find((a) => a.cipher === cipher);
+    if (!attempt) {
+      throw new Error(`no ${cipher} attempt`);
+    }
+    return attempt;
+  };
+  const urlText = (text: string): string =>
+    encodeURIComponent(text).replace(/%20/g, "+");
+
+  it("links every attempt to its tool page with the text and key filled in", () => {
+    const text = "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ";
+    const result = autosolve(text, TABLE, { rng: mulberry32(9), words: WORDS });
+    const encoded = urlText(text);
+    const vig = attemptNamed(result, "Vigenère");
+    expect(vig.href).toBe(
+      `/vigenere/?text=${encoded}&key=${vig.keyLabel}&mode=decrypt`,
+    );
+    const beau = attemptNamed(result, "Beaufort");
+    expect(beau.href).toBe(
+      `/beaufort/?text=${encoded}&key=${beau.keyLabel}&mode=decrypt`,
+    );
+    const shift = attemptNamed(result, "Caesar");
+    expect(shift.href).toBe(
+      `/caesar/?text=${encoded}&shift=${shift.keyLabel.replace("shift ", "")}&mode=decrypt`,
+    );
+    expect(attemptNamed(result, "Atbash").href).toBe(
+      `/atbash/?text=${encoded}&mode=decrypt`,
+    );
+
+    // The substitution climb only runs once nothing cheaper reads as English.
+    const substituted = substitution(PLAIN, "zebras", "encrypt");
+    const sub = attemptNamed(
+      autosolve(substituted, TABLE, { rng: mulberry32(2) }),
+      "Substitution",
+    );
+    expect(sub.href).toBe(
+      `/substitution/?text=${urlText(substituted)}&key=${sub.keyLabel}&mode=decrypt`,
+    );
+  });
+
+  it(
+    "links transposition, Quagmire and autokey attempts with their keys",
+    { timeout: 60000 },
+    () => {
+      const letters = PLAIN.toUpperCase().replace(/[^A-Z]/g, "");
+      const transposedText = columnarTransposition(
+        letters,
+        "SECRET",
+        "encrypt",
+      );
+      const transposed = autosolve(transposedText, TABLE, {
+        rng: mulberry32(11),
+      });
+      const columnar = attemptNamed(transposed, "Columnar transposition");
+      expect(columnar.href).toBe(
+        `/transposition/?text=${transposedText}&key=${columnar.keyLabel}&mode=decrypt`,
+      );
+      const rail = attemptNamed(transposed, "Rail fence");
+      expect(rail.href).toBe(
+        `/railfence/?text=${transposedText}&rails=${rail.keyLabel.replace(" rails", "")}&mode=decrypt`,
+      );
+
+      const quagmireText = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      const quag = autosolve(quagmireText, TABLE, {
+        rng: mulberry32(12),
+        words: WORDS,
+      });
+      expect(attemptNamed(quag, "Quagmire III").href).toBe(
+        `/quagmire/?text=${urlText(quagmireText)}&variant=3&keyword=SPRING&key=TALE&indicator=A&mode=decrypt`,
+      );
+
+      const autokeyText = autokey(PLAIN, "QUEEN", "ciphertext", "encrypt");
+      const auto = autosolve(autokeyText, TABLE, { rng: mulberry32(5) });
+      expect(attemptNamed(auto, "Ciphertext autokey").href).toBe(
+        `/autokey/?text=${urlText(autokeyText)}&mode=break`,
+      );
+    },
+  );
+
   it("identifies Beaufort ciphertext and recovers the key", () => {
     const result = autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),
@@ -229,6 +318,9 @@ describe("autosolve", () => {
         .join("");
       const result = autosolve(ciphertext, TABLE, { rng, restarts: 3 });
       expect(result.best.cipher).toBe("Polyalphabetic");
+      expect(result.best.href).toBe(
+        `/polyalphabetic/?text=${encodeURIComponent(ciphertext).replace(/%20/g, "+")}&period=3&mode=break`,
+      );
       let matches = 0;
       for (let i = 0; i < PLAIN.length; i += 1) {
         if (result.best.plaintext[i] === PLAIN[i]) {
