@@ -13,21 +13,21 @@
     "fmt": "prettier --write ."
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
-    "@astrojs/sitemap": "^3.7.3",
-    "@playwright/test": "^1.62.1",
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/sitemap": "^3.7.4",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.2.8",
-    "eslint": "^10.9.1",
-    "eslint-plugin-astro": "^3.1.0",
-    "fast-check": "^4.9.0",
-    "oxlint": "^1.80.0",
-    "prettier": "^3.9.6",
+    "astro": "^7.4.4",
+    "eslint": "^10.14.0",
+    "eslint-plugin-astro": "^3.2.1",
+    "fast-check": "^4.10.2",
+    "oxlint": "^1.90.0",
+    "prettier": "^3.9.10",
     "prettier-plugin-astro": "^0.14.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.68.0",
-    "vitest": "^4.1.11"
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.1.12"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
