@@ -2,6 +2,7 @@
 // ABOUTME: Uses text encrypted with the cipher core and checks the key is recovered.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { beaufort, vigenere, caesar } from "./cipher";
 import {
@@ -11,6 +12,12 @@ import {
   scoreText,
   vigenereDecrypt,
 } from "./solve";
+
+const TABLE = new Uint8Array(
+  readFileSync(
+    new URL("../../public/data/english-quadgrams.bin", import.meta.url),
+  ),
+);
 
 const PLAIN =
   "It was a bright cold day in April, and the clocks were striking thirteen. " +
@@ -57,6 +64,30 @@ describe("breakPeriodic", () => {
     const ciphertext = vigenere(PLAIN, "Q", "encrypt");
     const [best] = breakPeriodic(ciphertext, vigenereDecrypt);
     expect(best.key).toBe("Q");
+  });
+
+  // 24 letters under a 6-letter key: four letters per column is too few for
+  // the bigram vote, which rates the wrong key letter Y higher than F.
+  // Quadgrams tell "look what the tide" from "loor what toe tide".
+  it("refines a short key with quadgrams when the bigram vote misses a letter", () => {
+    const ciphertext = "aozpbfptemjrxdpgwmjgsynl";
+    const [unrefined] = breakPeriodic(ciphertext, vigenereDecrypt);
+    expect(unrefined.key).toBe("PALYFY");
+    const [best] = breakPeriodic(ciphertext, vigenereDecrypt, {
+      quadgrams: TABLE,
+    });
+    expect(best.key).toBe("PALFFY");
+    expect(vigenere(ciphertext, best.key, "decrypt")).toBe(
+      "lookwhatthetidebroughtin",
+    );
+  });
+
+  it("refines a Beaufort key with quadgrams", () => {
+    const ciphertext = beaufort("look what the tide brought in", "PALFFY");
+    const [best] = breakPeriodic(ciphertext, beaufortDecrypt, {
+      quadgrams: TABLE,
+    });
+    expect(best.key).toBe("PALFFY");
   });
 
   it("throws when the text has too few letters", () => {

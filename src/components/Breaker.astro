@@ -141,15 +141,18 @@ const { cipher } = Astro.props;
         summary: `Best shift: ${candidate.shift}`,
       }));
     }
+    const periodic = { quadgrams: await loadQuadgramTable() };
     if (cipher === "beaufort") {
-      return breakPeriodic(text, beaufortDecrypt).map((candidate) => ({
-        label: candidate.key,
-        fitness: candidate.fitness,
-        plaintext: beaufort(text, candidate.key),
-        summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength})`,
-      }));
+      return breakPeriodic(text, beaufortDecrypt, periodic).map(
+        (candidate) => ({
+          label: candidate.key,
+          fitness: candidate.fitness,
+          plaintext: beaufort(text, candidate.key),
+          summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength})`,
+        }),
+      );
     }
-    return breakPeriodic(text, vigenereDecrypt).map((candidate) => ({
+    return breakPeriodic(text, vigenereDecrypt, periodic).map((candidate) => ({
       label: candidate.key,
       fitness: candidate.fitness,
       plaintext: vigenere(text, candidate.key, "decrypt"),

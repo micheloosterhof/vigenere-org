@@ -154,6 +154,18 @@ describe("autosolve", () => {
     );
   });
 
+  // Four letters per key column: the bigram vote misses one key letter and
+  // the quadgram polish puts it right.
+  it("polishes a short Vigenère key with quadgrams", () => {
+    const result = autosolve("aozpbfptemjrxdpgwmjgsynl", TABLE, {
+      rng: mulberry32(5),
+      words: WORDS,
+    });
+    expect(result.best.cipher).toBe("Vigenère");
+    expect(result.best.keyLabel).toBe("PALFFY");
+    expect(result.best.plaintext).toBe("lookwhatthetidebroughtin");
+  });
+
   it("identifies Beaufort ciphertext and recovers the key", () => {
     const result = autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),

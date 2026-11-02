@@ -163,7 +163,8 @@ export function autosolve(
   // so they run whatever the period estimate says: on short text the index
   // of coincidence can call a Vigenère monoalphabetic. A key of length 1 ties
   // with Caesar on fitness and loses to it on simplicity.
-  const [vigenereBest] = breakPeriodic(text, vigenereDecrypt);
+  const periodic = { quadgrams: table };
+  const [vigenereBest] = breakPeriodic(text, vigenereDecrypt, periodic);
   const vigenerePlain = vigenere(text, vigenereBest.key, "decrypt");
   attempts.push({
     cipher: "Vigenère",
@@ -172,7 +173,7 @@ export function autosolve(
     plaintext: vigenerePlain,
     href: "/vigenere",
   });
-  const [beaufortBest] = breakPeriodic(text, beaufortDecrypt);
+  const [beaufortBest] = breakPeriodic(text, beaufortDecrypt, periodic);
   const beaufortPlain = beaufort(text, beaufortBest.key);
   attempts.push({
     cipher: "Beaufort",

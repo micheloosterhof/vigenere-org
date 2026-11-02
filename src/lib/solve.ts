@@ -1,8 +1,9 @@
 // ABOUTME: Breaks periodic polyalphabetic ciphers (Vigenere, Beaufort, Caesar) without the key.
-// ABOUTME: Greedy adjacent-key-pair search with English bigram scoring, over all candidate key lengths.
+// ABOUTME: Greedy adjacent-key-pair search with English bigram scoring over all key lengths; the best key is polished with quadgrams.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { ENGLISH_BIGRAM_LOGPROBS } from "./data/english-bigrams";
+import { quadgramFitness } from "./quadgrams";
 
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
@@ -140,8 +141,63 @@ function bestKeyForLength(
       return pair.fitness >= preceding.fitness ? pair.first : preceding.second;
     });
   }
-  const plaintext = ciphertext.map((c, i) => decrypt(c, key[i % keyLength]));
+  const plaintext = decryptWithKey(ciphertext, decrypt, key);
   return { key, fitness: averageBigramLogProb(plaintext) };
+}
+
+function decryptWithKey(
+  ciphertext: number[],
+  decrypt: Decrypt,
+  key: number[],
+): number[] {
+  return ciphertext.map((c, i) => decrypt(c, key[i % key.length]));
+}
+
+/**
+ * Coordinate descent on the key: each position in turn takes the letter that
+ * gives the whole decryption the best quadgram fitness, until a full pass
+ * changes nothing. The bigram vote that picks the key sees only a few letters
+ * per column on short text and can misjudge one of them; quadgrams see the
+ * words those letters land in.
+ */
+function refineKey(
+  ciphertext: number[],
+  decrypt: Decrypt,
+  key: number[],
+  table: Uint8Array,
+): number[] {
+  const refined = [...key];
+  const score = (): number =>
+    quadgramFitness(decryptWithKey(ciphertext, decrypt, refined), table);
+  let best = score();
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let position = 0; position < refined.length; position += 1) {
+      let bestLetter = refined[position];
+      for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
+        refined[position] = letter;
+        const fitness = score();
+        if (fitness > best) {
+          best = fitness;
+          bestLetter = letter;
+          improved = true;
+        }
+      }
+      refined[position] = bestLetter;
+    }
+  }
+  return refined;
+}
+
+function keyString(key: number[]): string {
+  return key.map((k) => String.fromCharCode(CODE_A + k)).join("");
+}
+
+export interface BreakOptions {
+  maxKeyLength?: number;
+  /** Quantized English quadgram table; when given, the best key is polished letter by letter against it. */
+  quadgrams?: Uint8Array;
 }
 
 /**
@@ -152,8 +208,9 @@ function bestKeyForLength(
 export function breakPeriodic(
   text: string,
   decrypt: Decrypt,
-  maxKeyLength = 30,
+  options: BreakOptions = {},
 ): KeyCandidate[] {
+  const { maxKeyLength = 30, quadgrams } = options;
   const ciphertext = toLetterValues(text);
   if (ciphertext.length < 4) {
     throw new Error("text must contain at least four letters");
@@ -165,14 +222,10 @@ export function breakPeriodic(
   const candidates: KeyCandidate[] = [];
   for (let keyLength = 1; keyLength <= longest; keyLength += 1) {
     const { key, fitness } = bestKeyForLength(ciphertext, decrypt, keyLength);
-    candidates.push({
-      key: key.map((k) => String.fromCharCode(CODE_A + k)).join(""),
-      keyLength,
-      fitness,
-    });
+    candidates.push({ key: keyString(key), keyLength, fitness });
   }
   const top = Math.max(...candidates.map((c) => c.fitness));
-  return candidates.sort((a, b) => {
+  const ranked = candidates.sort((a, b) => {
     const aNearTop = a.fitness >= top - FITNESS_EPSILON;
     const bNearTop = b.fitness >= top - FITNESS_EPSILON;
     if (aNearTop && bNearTop) {
@@ -183,6 +236,20 @@ export function breakPeriodic(
     }
     return b.fitness - a.fitness;
   });
+  if (quadgrams !== undefined) {
+    const best = ranked[0];
+    const key = refineKey(
+      ciphertext,
+      decrypt,
+      toLetterValues(best.key),
+      quadgrams,
+    );
+    best.key = keyString(key);
+    best.fitness = averageBigramLogProb(
+      decryptWithKey(ciphertext, decrypt, key),
+    );
+  }
+  return ranked;
 }
 
 /** Ranks all 26 Caesar shifts by how English-like the decrypted text is. */
