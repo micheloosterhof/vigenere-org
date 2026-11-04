@@ -18,11 +18,13 @@ const FREQUENCY_ORDER = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
 // The climb scores at most this many letters; more adds cost without accuracy.
 const SAMPLE_LIMIT = 3000;
 
-const RESTARTS = 10;
+export const RESTARTS = 10;
 
-// Average quadgram log10 probability at which a decryption reads as English;
-// once a restart reaches it, further restarts cannot meaningfully improve.
-const EARLY_EXIT_FITNESS = -3.6;
+/**
+ * Average quadgram log10 probability at which a decryption reads as English;
+ * once a restart reaches it, further restarts cannot meaningfully improve.
+ */
+export const EARLY_EXIT_FITNESS = -3.6;
 
 export interface PolyalphabeticResult {
   period: number;
@@ -39,13 +41,32 @@ export interface PolyalphabeticProgress {
   fitness: number;
 }
 
-interface Options {
+export interface PolyalphabeticOptions {
   period?: number;
   maxPeriod?: number;
   restarts?: number;
-  rng?: () => number;
+  /**
+   * Whether the first restart starts from the letter-frequency seed (the
+   * default) rather than a random key. Off for restarts that run alongside
+   * another run which already has the seed.
+   */
+  seedFromFrequency?: boolean;
   onProgress?: (progress: PolyalphabeticProgress) => void;
 }
+
+interface Options extends PolyalphabeticOptions {
+  rng?: () => number;
+}
+
+/**
+ * Breaks a polyalphabetic cipher, possibly off-thread: the sequential solver
+ * wrapped in a promise, or a pool of workers sharing the restarts.
+ */
+export type PolyalphabeticSolver = (
+  text: string,
+  table: Uint8Array,
+  options: PolyalphabeticOptions,
+) => Promise<PolyalphabeticResult>;
 
 /** Suggests the key period; throws on text too short to analyze. */
 export function detectPeriod(text: string, maxPeriod = MAX_PERIOD): number {
@@ -101,6 +122,7 @@ export function breakPolyalphabetic(
   }
   const rng = options.rng ?? Math.random;
   const restarts = options.restarts ?? RESTARTS;
+  const seedFromFrequency = options.seedFromFrequency ?? true;
   const period = options.period ?? detectPeriod(text, options.maxPeriod);
   const sample = values.slice(0, SAMPLE_LIMIT);
 
@@ -108,7 +130,9 @@ export function breakPolyalphabetic(
   let bestScore = -Infinity;
   for (let restart = 0; restart < restarts; restart += 1) {
     const mappings = Array.from({ length: period }, (_, column) =>
-      restart === 0 ? frequencySeed(sample, period, column) : shuffled(rng),
+      restart === 0 && seedFromFrequency
+        ? frequencySeed(sample, period, column)
+        : shuffled(rng),
     );
     const score = climbMappings(sample, mappings, table);
     if (score > bestScore) {

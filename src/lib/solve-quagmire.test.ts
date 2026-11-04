@@ -46,27 +46,33 @@ const PLAIN =
   "the caption beneath it ran.";
 
 describe("breakQuagmire", () => {
-  it("breaks and identifies a Quagmire III cipher", { timeout: 120000 }, () => {
-    const config = {
-      variant: 3,
-      keyword: "KRYPTOS",
-      key: "TALE",
-      indicator: "K",
-    } as const;
-    const ciphertext = quagmire(PLAIN, config, "encrypt");
-    const result = breakQuagmire(ciphertext, TABLE, { rng: mulberry32(1) });
-    expect(result.isQuagmire).toBe(true);
-    expect(result.period).toBe(4);
-    expect(result.plaintext).toBe(PLAIN);
-    expect(result.alphabet).toBe("KRYPTOSABCDEFGHIJLMNQUVWXZ");
-    expect(result.key).toBe("TALE");
-    expect(result.indicator).toBe("K");
-  });
+  it(
+    "breaks and identifies a Quagmire III cipher",
+    { timeout: 120000 },
+    async () => {
+      const config = {
+        variant: 3,
+        keyword: "KRYPTOS",
+        key: "TALE",
+        indicator: "K",
+      } as const;
+      const ciphertext = quagmire(PLAIN, config, "encrypt");
+      const result = await breakQuagmire(ciphertext, TABLE, {
+        rng: mulberry32(1),
+      });
+      expect(result.isQuagmire).toBe(true);
+      expect(result.period).toBe(4);
+      expect(result.plaintext).toBe(PLAIN);
+      expect(result.alphabet).toBe("KRYPTOSABCDEFGHIJLMNQUVWXZ");
+      expect(result.key).toBe("TALE");
+      expect(result.indicator).toBe("K");
+    },
+  );
 
   it(
     "recovers a Quagmire III with a different keyword and key",
     { timeout: 120000 },
-    () => {
+    async () => {
       const config = {
         variant: 3,
         keyword: "PALIMPSEST",
@@ -74,7 +80,9 @@ describe("breakQuagmire", () => {
         indicator: "P",
       } as const;
       const ciphertext = quagmire(PLAIN, config, "encrypt");
-      const result = breakQuagmire(ciphertext, TABLE, { rng: mulberry32(2) });
+      const result = await breakQuagmire(ciphertext, TABLE, {
+        rng: mulberry32(2),
+      });
       expect(result.isQuagmire).toBe(true);
       expect(result.plaintext).toBe(PLAIN);
     },

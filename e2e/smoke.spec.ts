@@ -337,6 +337,49 @@ test("the polyalphabetic breaker carries its key length in the URL", async ({
   await expect(breaker.locator("[data-period]")).toHaveValue("6");
 });
 
+// The unit tests' "Nineteen Eighty-Four" passage under three independent
+// random alphabets: only the general polyalphabetic solver can break it.
+const RANDOM_ALPHABETS_CIPHERTEXT =
+  "WLGMDQHFDUVVCGTJAQATSMNBWKQTAVQMIXGIIDGKFERLBWODTBVQTBYMETXDTDVFIXZTVQVDRJKWISBZ" +
+  "RXMJWIVFVDRQBKCXYTSMIEVYNSLVFMXCCZKLKKUDXMGWIJRKDONEJSWWJLXRVQFNBBKYVEUKQRDJFGBR" +
+  "GMLTIYGBAHQTDDFIXYVNBBKTGVDEDCOTAMSFECQLNOFELMSYCXETBXGMUFDYLAJEXYYBFHETLESTSUCT" +
+  "FICETVQVDZLKKVQXKGMRXZMTYGMHGDXMJCCOHCCKCSJGTJFQUHQYDQYGSKMSJGMWLQCGTFEBKAZFDVKF" +
+  "VFGTMFCKYNSTSJGNSADRNTMRKMAOKMSYCIIMJYGVQMGMKTWLJKNDCLEJDDZNTACSKINSHNBDMMJEZGBK" +
+  "LKMIQZMVSMGWAEYVEVCIKGMMHQTGMMQNBLMFFVAYDLMGWLKMVEMUAHKQCOPFEXYCIQMQTABBBCKATAVQ" +
+  "TAXFHEVMQYEBKD";
+
+test("the polyalphabetic breaker solves random alphabets across its worker pool", async ({
+  page,
+}) => {
+  await page.goto("/polyalphabetic/");
+  const breaker = page.locator("[data-poly]");
+  await breaker.locator("[data-input]").fill(RANDOM_ALPHABETS_CIPHERTEXT);
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Key length 3",
+    { timeout: 60_000 },
+  );
+  await expect(breaker.locator("[data-output]")).toHaveValue(
+    /^ITWASABRIGHTCOLDDAYINAPRIL/,
+  );
+});
+
+test("the home page solver reaches the polyalphabetic fallback from inside its worker", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const solver = page.locator("[data-lucky]");
+  await solver.locator("[data-input]").fill(RANDOM_ALPHABETS_CIPHERTEXT);
+  await solver.locator("[data-solve]").click();
+  await expect(solver.locator("[data-summary]")).toContainText(
+    "Polyalphabetic cipher (period 3)",
+    { timeout: 90_000 },
+  );
+  await expect(solver.locator("[data-output]")).toHaveValue(
+    /^ITWASABRIGHTCOLDDAYINAPRIL/,
+  );
+});
+
 test("the copy link button puts the current deep link on the clipboard", async ({
   page,
   context,

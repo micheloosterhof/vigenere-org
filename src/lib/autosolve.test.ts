@@ -16,6 +16,7 @@ import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
 import { quagmire } from "./quagmire";
 import { autosolve } from "./autosolve";
+import { breakPolyalphabetic } from "./solve-polyalphabetic";
 
 const WORDS = readFileSync(
   new URL("../../public/data/english-words.txt", import.meta.url),
@@ -52,8 +53,10 @@ const PLAIN =
   "and ruggedly handsome features.";
 
 describe("autosolve", () => {
-  it("identifies Caesar ciphertext without running the substitution climb", () => {
-    const result = autosolve(caesar(PLAIN, 7), TABLE, { rng: mulberry32(1) });
+  it("identifies Caesar ciphertext without running the substitution climb", async () => {
+    const result = await autosolve(caesar(PLAIN, 7), TABLE, {
+      rng: mulberry32(1),
+    });
     expect(result.best.cipher).toBe("Caesar");
     expect(result.best.keyLabel).toBe("shift 7");
     expect(result.best.plaintext).toBe(PLAIN);
@@ -62,8 +65,10 @@ describe("autosolve", () => {
     );
   });
 
-  it("identifies Atbash ciphertext without running the substitution climb", () => {
-    const result = autosolve(atbash(PLAIN), TABLE, { rng: mulberry32(9) });
+  it("identifies Atbash ciphertext without running the substitution climb", async () => {
+    const result = await autosolve(atbash(PLAIN), TABLE, {
+      rng: mulberry32(9),
+    });
     expect(result.best.cipher).toBe("Atbash");
     expect(result.best.plaintext).toBe(PLAIN);
     expect(result.attempts.some((a) => a.cipher === "Substitution")).toBe(
@@ -71,8 +76,8 @@ describe("autosolve", () => {
     );
   });
 
-  it("identifies rail fence ciphertext without running the substitution climb", () => {
-    const result = autosolve(railFence(PLAIN, 5, "encrypt"), TABLE, {
+  it("identifies rail fence ciphertext without running the substitution climb", async () => {
+    const result = await autosolve(railFence(PLAIN, 5, "encrypt"), TABLE, {
       rng: mulberry32(10),
     });
     expect(result.best.cipher).toBe("Rail fence");
@@ -83,9 +88,9 @@ describe("autosolve", () => {
     );
   });
 
-  it("identifies columnar transposition ciphertext", () => {
+  it("identifies columnar transposition ciphertext", async () => {
     const letters = PLAIN.toUpperCase().replace(/[^A-Z]/g, "");
-    const result = autosolve(
+    const result = await autosolve(
       columnarTransposition(letters, "SECRET", "encrypt"),
       TABLE,
       { rng: mulberry32(11) },
@@ -100,13 +105,13 @@ describe("autosolve", () => {
   it(
     "identifies a Quagmire III cipher through the keyword dictionary",
     { timeout: 60000 },
-    () => {
+    async () => {
       const ciphertext = quagmire(
         PLAIN,
         { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
         "encrypt",
       );
-      const result = autosolve(ciphertext, TABLE, {
+      const result = await autosolve(ciphertext, TABLE, {
         rng: mulberry32(12),
         words: WORDS,
       });
@@ -119,15 +124,15 @@ describe("autosolve", () => {
     },
   );
 
-  it("identifies a keyword substitution cipher", () => {
+  it("identifies a keyword substitution cipher", async () => {
     const ciphertext = substitution(PLAIN, "zebras", "encrypt");
-    const result = autosolve(ciphertext, TABLE, { rng: mulberry32(2) });
+    const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(2) });
     expect(result.best.cipher).toBe("Substitution");
     expect(result.best.plaintext).toBe(PLAIN);
   });
 
-  it("identifies Vigenère ciphertext and recovers the key", () => {
-    const result = autosolve(vigenere(PLAIN, "LEMON", "encrypt"), TABLE, {
+  it("identifies Vigenère ciphertext and recovers the key", async () => {
+    const result = await autosolve(vigenere(PLAIN, "LEMON", "encrypt"), TABLE, {
       rng: mulberry32(3),
     });
     expect(result.best.cipher).toBe("Vigenère");
@@ -141,11 +146,14 @@ describe("autosolve", () => {
   // 80 letters under a 6-letter key: the raw IoC drifts above the
   // monoalphabetic threshold by noise and the period scan is too short to
   // score period 6, so the routing statistics alone would never try Vigenère.
-  it("breaks a short Vigenère whose statistics look monoalphabetic", () => {
+  it("breaks a short Vigenère whose statistics look monoalphabetic", async () => {
     const text =
       "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ " +
       "HZZKQ NAEDF OJOYT KHKEO NJXKA CFKUT YAWZW KCLYF";
-    const result = autosolve(text, TABLE, { rng: mulberry32(9), words: WORDS });
+    const result = await autosolve(text, TABLE, {
+      rng: mulberry32(9),
+      words: WORDS,
+    });
     expect(result.best.cipher).toBe("Vigenère");
     expect(result.best.keyLabel).toBe("FRUGAL");
     expect(result.best.plaintext).toBe(
@@ -156,8 +164,8 @@ describe("autosolve", () => {
 
   // Four letters per key column: the bigram vote misses one key letter and
   // the quadgram polish puts it right.
-  it("polishes a short Vigenère key with quadgrams", () => {
-    const result = autosolve("aozpbfptemjrxdpgwmjgsynl", TABLE, {
+  it("polishes a short Vigenère key with quadgrams", async () => {
+    const result = await autosolve("aozpbfptemjrxdpgwmjgsynl", TABLE, {
       rng: mulberry32(5),
       words: WORDS,
     });
@@ -169,7 +177,7 @@ describe("autosolve", () => {
   // The links use the same query parameters the tool pages read back, so each
   // one opens its tool with the ciphertext and recovered key already filled in.
   const attemptNamed = (
-    result: ReturnType<typeof autosolve>,
+    result: Awaited<ReturnType<typeof autosolve>>,
     cipher: string,
   ): { href: string; keyLabel: string } => {
     const attempt = result.attempts.find((a) => a.cipher === cipher);
@@ -181,9 +189,12 @@ describe("autosolve", () => {
   const urlText = (text: string): string =>
     encodeURIComponent(text).replace(/%20/g, "+");
 
-  it("links every attempt to its tool page with the text and key filled in", () => {
+  it("links every attempt to its tool page with the text and key filled in", async () => {
     const text = "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ";
-    const result = autosolve(text, TABLE, { rng: mulberry32(9), words: WORDS });
+    const result = await autosolve(text, TABLE, {
+      rng: mulberry32(9),
+      words: WORDS,
+    });
     const encoded = urlText(text);
     const vig = attemptNamed(result, "Vigenère");
     expect(vig.href).toBe(
@@ -204,7 +215,7 @@ describe("autosolve", () => {
     // The substitution climb only runs once nothing cheaper reads as English.
     const substituted = substitution(PLAIN, "zebras", "encrypt");
     const sub = attemptNamed(
-      autosolve(substituted, TABLE, { rng: mulberry32(2) }),
+      await autosolve(substituted, TABLE, { rng: mulberry32(2) }),
       "Substitution",
     );
     expect(sub.href).toBe(
@@ -215,14 +226,14 @@ describe("autosolve", () => {
   it(
     "links transposition, Quagmire and autokey attempts with their keys",
     { timeout: 60000 },
-    () => {
+    async () => {
       const letters = PLAIN.toUpperCase().replace(/[^A-Z]/g, "");
       const transposedText = columnarTransposition(
         letters,
         "SECRET",
         "encrypt",
       );
-      const transposed = autosolve(transposedText, TABLE, {
+      const transposed = await autosolve(transposedText, TABLE, {
         rng: mulberry32(11),
       });
       const columnar = attemptNamed(transposed, "Columnar transposition");
@@ -239,7 +250,7 @@ describe("autosolve", () => {
         { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
         "encrypt",
       );
-      const quag = autosolve(quagmireText, TABLE, {
+      const quag = await autosolve(quagmireText, TABLE, {
         rng: mulberry32(12),
         words: WORDS,
       });
@@ -248,15 +259,15 @@ describe("autosolve", () => {
       );
 
       const autokeyText = autokey(PLAIN, "QUEEN", "ciphertext", "encrypt");
-      const auto = autosolve(autokeyText, TABLE, { rng: mulberry32(5) });
+      const auto = await autosolve(autokeyText, TABLE, { rng: mulberry32(5) });
       expect(attemptNamed(auto, "Ciphertext autokey").href).toBe(
         `/autokey/?text=${urlText(autokeyText)}&mode=break`,
       );
     },
   );
 
-  it("identifies Beaufort ciphertext and recovers the key", () => {
-    const result = autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
+  it("identifies Beaufort ciphertext and recovers the key", async () => {
+    const result = await autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),
     });
     expect(result.best.cipher).toBe("Beaufort");
@@ -264,9 +275,9 @@ describe("autosolve", () => {
     expect(result.best.plaintext).toBe(PLAIN);
   });
 
-  it("identifies and breaks ciphertext autokey", () => {
+  it("identifies and breaks ciphertext autokey", async () => {
     const ciphertext = autokey(PLAIN, "TYPEWRITER", "ciphertext", "encrypt");
-    const result = autosolve(ciphertext, TABLE, { rng: mulberry32(8) });
+    const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(8) });
     expect(result.best.cipher).toBe("Ciphertext autokey");
     expect(result.diagnostics.likelyFamily).toBe("ciphertext-autokey");
     let matches = 0;
@@ -278,45 +289,71 @@ describe("autosolve", () => {
     expect(matches / PLAIN.length).toBeGreaterThan(0.95);
   });
 
-  it("identifies and breaks plaintext autokey", { timeout: 60000 }, () => {
-    const ciphertext = autokey(PLAIN, "SECRET", "plaintext", "encrypt");
-    const result = autosolve(ciphertext, TABLE, { rng: mulberry32(9) });
-    expect(result.best.cipher).toBe("Plaintext autokey");
-    expect(result.best.plaintext).toBe(PLAIN);
+  it(
+    "identifies and breaks plaintext autokey",
+    { timeout: 60000 },
+    async () => {
+      const ciphertext = autokey(PLAIN, "SECRET", "plaintext", "encrypt");
+      const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(9) });
+      expect(result.best.cipher).toBe("Plaintext autokey");
+      expect(result.best.plaintext).toBe(PLAIN);
+    },
+  );
+
+  it("recognizes text that is already readable English", async () => {
+    const result = await autosolve(PLAIN, TABLE, { rng: mulberry32(5) });
+    expect(result.alreadyEnglish).toBe(true);
   });
 
-  it("recognizes text that is already readable English", () => {
-    const result = autosolve(PLAIN, TABLE, { rng: mulberry32(5) });
-    expect(result.alreadyEnglish).toBe(true);
+  /** PLAIN under three independent random alphabets, drawn from `rng`. */
+  const randomPolyalphabetic = (rng: () => number): string => {
+    const alphabets = Array.from({ length: 3 }, () => {
+      const a = Array.from({ length: 26 }, (_, i) => i);
+      for (let i = 25; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    });
+    let column = 0;
+    return [...PLAIN]
+      .map((char) => {
+        const upper = char.toUpperCase();
+        if (upper < "A" || upper > "Z") {
+          return char;
+        }
+        const value = alphabets[column % 3][upper.charCodeAt(0) - 65];
+        column += 1;
+        const output = String.fromCharCode(65 + value);
+        return char === upper ? output : output.toLowerCase();
+      })
+      .join("");
+  };
+
+  it("runs the polyalphabetic fallback through the solver it is given", async () => {
+    const ciphertext = randomPolyalphabetic(mulberry32(6));
+    const periods: (number | undefined)[] = [];
+    const result = await autosolve(ciphertext, TABLE, {
+      solvePolyalphabetic: async (text, table, options) => {
+        periods.push(options.period);
+        return breakPolyalphabetic(text, table, {
+          ...options,
+          rng: mulberry32(1),
+        });
+      },
+    });
+    expect(periods).toEqual([3]);
+    expect(result.best.cipher).toBe("Polyalphabetic");
+    expect(result.best.plaintext.startsWith("It was a bright")).toBe(true);
   });
 
   it(
     "falls back to the general polyalphabetic solver",
     { timeout: 120000 },
-    () => {
+    async () => {
       const rng = mulberry32(6);
-      const alphabets = Array.from({ length: 3 }, () => {
-        const a = Array.from({ length: 26 }, (_, i) => i);
-        for (let i = 25; i > 0; i -= 1) {
-          const j = Math.floor(rng() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-        }
-        return a;
-      });
-      let column = 0;
-      const ciphertext = [...PLAIN]
-        .map((char) => {
-          const upper = char.toUpperCase();
-          if (upper < "A" || upper > "Z") {
-            return char;
-          }
-          const value = alphabets[column % 3][upper.charCodeAt(0) - 65];
-          column += 1;
-          const output = String.fromCharCode(65 + value);
-          return char === upper ? output : output.toLowerCase();
-        })
-        .join("");
-      const result = autosolve(ciphertext, TABLE, { rng, restarts: 3 });
+      const ciphertext = randomPolyalphabetic(rng);
+      const result = await autosolve(ciphertext, TABLE, { rng, restarts: 3 });
       expect(result.best.cipher).toBe("Polyalphabetic");
       expect(result.best.href).toBe(
         `/polyalphabetic/?text=${encodeURIComponent(ciphertext).replace(/%20/g, "+")}&period=3&mode=break`,
@@ -331,8 +368,8 @@ describe("autosolve", () => {
     },
   );
 
-  it("cracks a Caesar shorter than one alphabet", () => {
-    const result = autosolve("FRQILGHQWLDO UHSRUW", TABLE, {
+  it("cracks a Caesar shorter than one alphabet", async () => {
+    const result = await autosolve("FRQILGHQWLDO UHSRUW", TABLE, {
       rng: mulberry32(7),
     });
     expect(result.best.cipher).toBe("Caesar");
@@ -340,8 +377,8 @@ describe("autosolve", () => {
     expect(result.best.plaintext).toBe("CONFIDENTIAL REPORT");
   });
 
-  it("reports its best guess for short text instead of crashing", () => {
-    const result = autosolve("PJLWRJYQIVDJACQSYWMSD", TABLE, {
+  it("reports its best guess for short text instead of crashing", async () => {
+    const result = await autosolve("PJLWRJYQIVDJACQSYWMSD", TABLE, {
       rng: mulberry32(9),
     });
     expect(result.attempts.length).toBeGreaterThan(0);
@@ -350,7 +387,9 @@ describe("autosolve", () => {
     ).toBe(false);
   });
 
-  it("throws when the text has too few letters", () => {
-    expect(() => autosolve("abc", TABLE, { rng: mulberry32(8) })).toThrow();
+  it("throws when the text has too few letters", async () => {
+    await expect(
+      autosolve("abc", TABLE, { rng: mulberry32(8) }),
+    ).rejects.toThrow();
   });
 });

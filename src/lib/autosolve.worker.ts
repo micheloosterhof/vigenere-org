@@ -3,6 +3,10 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { autosolve } from "./autosolve";
+import {
+  breakPolyalphabeticParallel,
+  canSpawnWorkers,
+} from "./polyalphabetic-pool";
 
 interface Request {
   text: string;
@@ -12,16 +16,20 @@ interface Request {
 
 const scope = self as unknown as {
   postMessage(message: unknown): void;
-  onmessage: ((event: MessageEvent<Request>) => void) | null;
+  onmessage: ((event: MessageEvent<Request>) => Promise<void>) | null;
 };
 
-scope.onmessage = (event) => {
+scope.onmessage = async (event) => {
   const { text, table, words } = event.data;
   try {
-    const result = autosolve(text, new Uint8Array(table), {
+    const result = await autosolve(text, new Uint8Array(table), {
       words,
       onProgress: (progress) =>
         scope.postMessage({ type: "progress", ...progress }),
+      // The slow fallback fans out to nested workers where the browser allows it.
+      solvePolyalphabetic: canSpawnWorkers()
+        ? breakPolyalphabeticParallel
+        : undefined,
     });
     scope.postMessage({ type: "result", result });
   } catch (cause) {

@@ -4,6 +4,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { breakQuagmire } from "./solve-quagmire";
 import { breakQuagmireDictionary } from "./solve-quagmire-dictionary";
+import {
+  breakPolyalphabeticParallel,
+  canSpawnWorkers,
+} from "./polyalphabetic-pool";
 
 interface Request {
   text: string;
@@ -14,10 +18,10 @@ interface Request {
 
 const scope = self as unknown as {
   postMessage(message: unknown): void;
-  onmessage: ((event: MessageEvent<Request>) => void) | null;
+  onmessage: ((event: MessageEvent<Request>) => Promise<void>) | null;
 };
 
-scope.onmessage = (event) => {
+scope.onmessage = async (event) => {
   const { text, table, words, period } = event.data;
   const bytes = new Uint8Array(table);
   try {
@@ -35,10 +39,14 @@ scope.onmessage = (event) => {
       scope.postMessage({ type: "result", method: "dictionary", dictionary });
       return;
     }
-    const result = breakQuagmire(text, bytes, {
+    const result = await breakQuagmire(text, bytes, {
       period,
       onProgress: (progress) =>
         scope.postMessage({ type: "progress", phase: "general", ...progress }),
+      // The general solve fans out to nested workers where the browser allows it.
+      solvePolyalphabetic: canSpawnWorkers()
+        ? breakPolyalphabeticParallel
+        : undefined,
     });
     scope.postMessage({ type: "result", method: "general", result });
   } catch (cause) {

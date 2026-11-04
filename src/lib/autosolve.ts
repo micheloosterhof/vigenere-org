@@ -21,6 +21,7 @@ import { breakSubstitution } from "./solve-substitution";
 import {
   breakPolyalphabetic,
   type PolyalphabeticProgress,
+  type PolyalphabeticSolver,
 } from "./solve-polyalphabetic";
 import {
   AUTOKEY_MIN_LENGTH,
@@ -89,6 +90,8 @@ interface Options {
   /** Keyword list enabling the Quagmire dictionary attack. */
   words?: string[];
   onProgress?: (progress: PolyalphabeticProgress) => void;
+  /** Runs the polyalphabetic fallback; defaults to the sequential solver on this thread. */
+  solvePolyalphabetic?: PolyalphabeticSolver;
 }
 
 const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
@@ -104,11 +107,11 @@ const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
  * when nothing reads as English: the substitution climb for monoalphabetic
  * text, the general polyalphabetic attack for periodic text.
  */
-export function autosolve(
+export async function autosolve(
   text: string,
   table: Uint8Array,
   options: Options = {},
-): AutosolveResult {
+): Promise<AutosolveResult> {
   const diagnostics = analyze(text);
   const period = diagnostics.period;
   const attempts: Attempt[] = [];
@@ -259,10 +262,13 @@ export function autosolve(
   }
 
   if (period > 1 && !readable()) {
-    const recovered = breakPolyalphabetic(text, table, {
+    const solve: PolyalphabeticSolver =
+      options.solvePolyalphabetic ??
+      (async (t, tb, o) =>
+        breakPolyalphabetic(t, tb, { ...o, rng: options.rng }));
+    const recovered = await solve(text, table, {
       period,
       restarts: options.restarts,
-      rng: options.rng,
       onProgress: options.onProgress,
     });
     attempts.push({

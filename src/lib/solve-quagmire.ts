@@ -7,6 +7,7 @@ import { toLetterValues } from "./solve";
 import {
   breakPolyalphabetic,
   type PolyalphabeticProgress,
+  type PolyalphabeticSolver,
 } from "./solve-polyalphabetic";
 import { reconcileSharedAlphabet } from "./reconcile-quagmire";
 import {
@@ -37,6 +38,8 @@ interface Options {
   period?: number;
   rng?: () => number;
   onProgress?: (progress: PolyalphabeticProgress) => void;
+  /** Runs the general solve; defaults to the sequential solver on this thread. */
+  solvePolyalphabetic?: PolyalphabeticSolver;
 }
 
 /**
@@ -47,14 +50,17 @@ interface Options {
  * data served at QUADGRAM_TABLE_URL. Needs enough text for the general solver
  * (roughly two hundred letters per column).
  */
-export function breakQuagmire(
+export async function breakQuagmire(
   text: string,
   table: Uint8Array,
   options: Options = {},
-): QuagmireSolveResult {
-  const general = breakPolyalphabetic(text, table, {
+): Promise<QuagmireSolveResult> {
+  const solve: PolyalphabeticSolver =
+    options.solvePolyalphabetic ??
+    (async (t, tb, o) =>
+      breakPolyalphabetic(t, tb, { ...o, rng: options.rng }));
+  const general = await solve(text, table, {
     period: options.period,
-    rng: options.rng,
     onProgress: options.onProgress,
   });
   const cipherValues = toLetterValues(text);

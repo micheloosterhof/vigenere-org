@@ -75,16 +75,8 @@ import ShareLink from "./ShareLink.astro";
 
 <script>
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { breakPolyalphabeticParallel } from "../lib/polyalphabetic-pool";
   import { breakerShareUrl } from "./live-url";
-  import type {
-    PolyalphabeticProgress,
-    PolyalphabeticResult,
-  } from "../lib/solve-polyalphabetic";
-
-  type WorkerMessage =
-    | ({ type: "progress" } & PolyalphabeticProgress)
-    | { type: "result"; result: PolyalphabeticResult }
-    | { type: "error"; message: string };
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-poly]")) {
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
@@ -137,44 +129,26 @@ import ShareLink from "./ShareLink.astro";
       try {
         const table = await loadQuadgramTable();
         const period = Number.parseInt(periodInput.value, 10);
-        const worker = new Worker(
-          new URL("../lib/polyalphabetic.worker.ts", import.meta.url),
-          { type: "module" },
-        );
-        worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-          const message = event.data;
-          if (message.type === "progress") {
+        setProgress("Solving…");
+        const solved = await breakPolyalphabeticParallel(input.value, table, {
+          period: Number.isNaN(period) ? undefined : period,
+          onProgress: (message) =>
             setProgress(
               `Solving… attempt ${message.restart} of ${message.restarts}`,
               message.restart / message.restarts,
-            );
-          } else if (message.type === "result") {
-            worker.terminate();
-            const solved = message.result;
-            summary.textContent = `Key length ${solved.period}, fitness ${solved.fitness.toFixed(2)}. Rare letters may be wrong; the alphabets below can be corrected by hand.`;
-            output.value = solved.plaintext;
-            alphabets.textContent = solved.alphabets
-              .map((alphabet, i) => `${String(i + 1).padStart(2)}: ${alphabet}`)
-              .join("\n");
-            result.hidden = false;
-            finish();
-          } else {
-            worker.terminate();
-            error.textContent = message.message;
-            error.hidden = false;
-            finish();
-          }
-        };
-        worker.postMessage({
-          text: input.value,
-          table: table.buffer,
-          period: Number.isNaN(period) ? undefined : period,
+            ),
         });
-        setProgress("Solving…");
+        summary.textContent = `Key length ${solved.period}, fitness ${solved.fitness.toFixed(2)}. Rare letters may be wrong; the alphabets below can be corrected by hand.`;
+        output.value = solved.plaintext;
+        alphabets.textContent = solved.alphabets
+          .map((alphabet, i) => `${String(i + 1).padStart(2)}: ${alphabet}`)
+          .join("\n");
+        result.hidden = false;
       } catch (cause) {
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;
+      } finally {
         finish();
       }
     });

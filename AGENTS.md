@@ -45,6 +45,10 @@ lint, and tests.
 - `e2e/` — Playwright smoke tests (`make e2e`): every page renders, the
   tools compute, and the documented deep links auto-run against the
   production build.
+- `src/lib/polyalphabetic-pool.ts` — spreads the polyalphabetic solver's
+  restarts over a pool of workers; the auto-solver and Quagmire workers
+  take it as an injected `solvePolyalphabetic`, and run it as nested
+  workers where the browser allows, sequentially otherwise.
 - `src/components/` — shared UI; forms wire lib functions to the DOM.
 - `src/layouts/Base.astro` — head metadata, JSON-LD, nav, footer.
 

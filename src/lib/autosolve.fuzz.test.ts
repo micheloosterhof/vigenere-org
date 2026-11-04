@@ -53,17 +53,17 @@ function accuracy(recovered: string, expected: string): number {
 }
 
 /** Runs the auto-solver on `samples` random-key encryptions and returns the mean accuracy. */
-function meanRecovery(
+async function meanRecovery(
   seed: number,
   keyLength: (rng: () => number) => number,
   encrypt: (key: string) => string,
   expectFamily?: string,
-): number {
+): Promise<number> {
   const keyRng = mulberry32(seed);
   let total = 0;
   for (let i = 0; i < SAMPLES; i += 1) {
     const key = randomKey(keyRng, keyLength(keyRng));
-    const result = autosolve(encrypt(key), TABLE, {
+    const result = await autosolve(encrypt(key), TABLE, {
       rng: mulberry32(seed + 1000 + i),
     });
     if (expectFamily !== undefined) {
@@ -75,8 +75,8 @@ function meanRecovery(
 }
 
 describe("autosolve fuzz over random keys", () => {
-  it("recovers Vigenère for random keys", { timeout: 120000 }, () => {
-    const mean = meanRecovery(
+  it("recovers Vigenère for random keys", { timeout: 120000 }, async () => {
+    const mean = await meanRecovery(
       1,
       (rng) => 4 + Math.floor(rng() * 4),
       (k) => vigenere(PLAIN, k, "encrypt"),
@@ -84,8 +84,8 @@ describe("autosolve fuzz over random keys", () => {
     expect(mean).toBeGreaterThan(0.98);
   });
 
-  it("recovers Beaufort for random keys", { timeout: 120000 }, () => {
-    const mean = meanRecovery(
+  it("recovers Beaufort for random keys", { timeout: 120000 }, async () => {
+    const mean = await meanRecovery(
       2,
       (rng) => 4 + Math.floor(rng() * 4),
       (k) => beaufort(PLAIN, k),
@@ -93,8 +93,8 @@ describe("autosolve fuzz over random keys", () => {
     expect(mean).toBeGreaterThan(0.85);
   });
 
-  it("recovers substitution for random keys", { timeout: 120000 }, () => {
-    const mean = meanRecovery(
+  it("recovers substitution for random keys", { timeout: 120000 }, async () => {
+    const mean = await meanRecovery(
       3,
       (rng) => 5 + Math.floor(rng() * 4),
       (k) => substitution(PLAIN, k, "encrypt"),
@@ -105,8 +105,8 @@ describe("autosolve fuzz over random keys", () => {
   it(
     "recovers plaintext autokey exactly for random primers",
     { timeout: 120000 },
-    () => {
-      const mean = meanRecovery(
+    async () => {
+      const mean = await meanRecovery(
         4,
         (rng) => 3 + Math.floor(rng() * 4),
         (k) => autokey(PLAIN, k, "plaintext", "encrypt"),
@@ -119,8 +119,8 @@ describe("autosolve fuzz over random keys", () => {
   it(
     "recovers ciphertext autokey past the primer for random primers",
     { timeout: 120000 },
-    () => {
-      const mean = meanRecovery(
+    async () => {
+      const mean = await meanRecovery(
         5,
         (rng) => 3 + Math.floor(rng() * 4),
         (k) => autokey(PLAIN, k, "ciphertext", "encrypt"),

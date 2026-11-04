@@ -170,6 +170,42 @@ describe("breakPolyalphabetic", () => {
     expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
   });
 
+  // Workers sharing the restarts must not all begin from the same frequency
+  // seed; with it off, every restart draws its start from the rng.
+  it("starts from a random key instead of the frequency seed when asked", () => {
+    const ciphertext = quagmire(
+      PLAIN,
+      { variant: 3, keyword: "PAULBRANDT", key: "TALE", indicator: "P" },
+      "encrypt",
+    );
+    const countingRng = (): { rng: () => number; calls: () => number } => {
+      const inner = mulberry32(5);
+      let calls = 0;
+      return {
+        rng: () => {
+          calls += 1;
+          return inner();
+        },
+        calls: () => calls,
+      };
+    };
+    const seeded = countingRng();
+    breakPolyalphabetic(ciphertext, TABLE, {
+      period: 4,
+      restarts: 1,
+      rng: seeded.rng,
+    });
+    expect(seeded.calls()).toBe(0);
+    const random = countingRng();
+    breakPolyalphabetic(ciphertext, TABLE, {
+      period: 4,
+      restarts: 1,
+      rng: random.rng,
+      seedFromFrequency: false,
+    });
+    expect(random.calls()).toBeGreaterThan(0);
+  });
+
   it("throws when the text has too few letters", () => {
     expect(() =>
       breakPolyalphabetic("abc", TABLE, { rng: mulberry32(4) }),
