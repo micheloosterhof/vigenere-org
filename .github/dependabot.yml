@@ -1,12 +1,25 @@
----
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# ABOUTME: Dependabot version updates for the GitHub Actions and npm dependencies.
+# ABOUTME: Weekly; npm minor and patch bumps arrive grouped, majors one PR each.
+# SPDX-FileCopyrightText: 2026 Michel Oosterhof
+# SPDX-License-Identifier: CC0-1.0
 
 version: 2
 updates:
-  - package-ecosystem: "github-actions"  # See documentation for possible values
-    directory: "/"  # Location of package manifests
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # typescript-eslint does not load under TypeScript 7 yet.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
