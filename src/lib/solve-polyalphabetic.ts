@@ -5,8 +5,8 @@
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
-  QUADGRAM_TABLE_SIZE,
 } from "./data/english-quadgrams-meta";
+import { climbMappings } from "./quadgram-climb";
 import { toLetterValues } from "./solve";
 import { substituteLetters } from "./cipher";
 import { iocPerPeriod, MAX_PERIOD } from "./period";
@@ -56,26 +56,6 @@ export function detectPeriod(text: string, maxPeriod = MAX_PERIOD): number {
   return iocPerPeriod(values, maxPeriod).period;
 }
 
-/** Sum of quantized quadgram scores for the sample decrypted through the per-column mappings. */
-function rawScore(
-  sample: number[],
-  mappings: number[][],
-  period: number,
-  table: Uint8Array,
-): number {
-  let sum = 0;
-  let index = 0;
-  for (let i = 0; i < sample.length; i += 1) {
-    index =
-      (index * ALPHABET_SIZE + mappings[i % period][sample[i]]) %
-      QUADGRAM_TABLE_SIZE;
-    if (i >= 3) {
-      sum += table[index];
-    }
-  }
-  return sum;
-}
-
 /** Seeds one column's mapping by pairing its frequency ranks with English frequency ranks. */
 function frequencySeed(
   sample: number[],
@@ -106,54 +86,6 @@ function shuffled(rng: () => number): number[] {
 }
 
 /**
- * Steepest-ascent hill climb over the whole key: each step evaluates every
- * letter-pair swap in every column and applies the single best, so no column
- * converges against the others prematurely.
- */
-function climb(
-  sample: number[],
-  mappings: number[][],
-  period: number,
-  table: Uint8Array,
-): number {
-  let best = rawScore(sample, mappings, period, table);
-  let improved = true;
-  while (improved) {
-    improved = false;
-    let bestColumn = -1;
-    let bestFirst = -1;
-    let bestSecond = -1;
-    let bestScore = best;
-    for (let column = 0; column < period; column += 1) {
-      const mapping = mappings[column];
-      for (let first = 0; first < ALPHABET_SIZE - 1; first += 1) {
-        for (let second = first + 1; second < ALPHABET_SIZE; second += 1) {
-          [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
-          const score = rawScore(sample, mappings, period, table);
-          [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
-          if (score > bestScore) {
-            bestScore = score;
-            bestColumn = column;
-            bestFirst = first;
-            bestSecond = second;
-          }
-        }
-      }
-    }
-    if (bestColumn >= 0) {
-      const mapping = mappings[bestColumn];
-      [mapping[bestFirst], mapping[bestSecond]] = [
-        mapping[bestSecond],
-        mapping[bestFirst],
-      ];
-      best = bestScore;
-      improved = true;
-    }
-  }
-  return best;
-}
-
-/**
  * Recovers a general periodic polyalphabetic cipher from ciphertext alone.
  * Needs roughly a hundred letters per key position; the table is the
  * quantized quadgram data served at QUADGRAM_TABLE_URL.
@@ -178,7 +110,7 @@ export function breakPolyalphabetic(
     const mappings = Array.from({ length: period }, (_, column) =>
       restart === 0 ? frequencySeed(sample, period, column) : shuffled(rng),
     );
-    const score = climb(sample, mappings, period, table);
+    const score = climbMappings(sample, mappings, table);
     if (score > bestScore) {
       bestScore = score;
       bestMappings = mappings;

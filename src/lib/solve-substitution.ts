@@ -5,8 +5,8 @@
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
-  QUADGRAM_TABLE_SIZE,
 } from "./data/english-quadgrams-meta";
+import { climbMappings, rawScore } from "./quadgram-climb";
 import { toLetterValues } from "./solve";
 
 const ALPHABET_SIZE = 26;
@@ -33,23 +33,6 @@ interface Options {
   rng?: () => number;
 }
 
-/** Sum of quantized quadgram scores for the sample decrypted through the mapping. */
-function rawScore(
-  sample: number[],
-  mapping: number[],
-  table: Uint8Array,
-): number {
-  let sum = 0;
-  let index = 0;
-  for (let i = 0; i < sample.length; i += 1) {
-    index = (index * ALPHABET_SIZE + mapping[sample[i]]) % QUADGRAM_TABLE_SIZE;
-    if (i >= 3) {
-      sum += table[index];
-    }
-  }
-  return sum;
-}
-
 /** Average quadgram log10 probability of the text's letters; higher is more English-like. */
 export function quadgramScore(text: string, table: Uint8Array): number {
   const values = toLetterValues(text);
@@ -60,7 +43,7 @@ export function quadgramScore(text: string, table: Uint8Array): number {
   const quadgrams = values.length - 3;
   return (
     QUADGRAM_MIN_LOG10 +
-    (rawScore(values, identity, table) / quadgrams) * QUADGRAM_LOG10_SCALE
+    (rawScore(values, [identity], table) / quadgrams) * QUADGRAM_LOG10_SCALE
   );
 }
 
@@ -89,39 +72,6 @@ function shuffled(rng: () => number): number[] {
   return mapping;
 }
 
-/** Steepest-ascent hill climb: apply the best of all letter-pair swaps until none improves. */
-function climb(sample: number[], mapping: number[], table: Uint8Array): number {
-  let best = rawScore(sample, mapping, table);
-  let improved = true;
-  while (improved) {
-    improved = false;
-    let bestFirst = -1;
-    let bestSecond = -1;
-    let bestScore = best;
-    for (let first = 0; first < ALPHABET_SIZE - 1; first += 1) {
-      for (let second = first + 1; second < ALPHABET_SIZE; second += 1) {
-        [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
-        const score = rawScore(sample, mapping, table);
-        [mapping[first], mapping[second]] = [mapping[second], mapping[first]];
-        if (score > bestScore) {
-          bestScore = score;
-          bestFirst = first;
-          bestSecond = second;
-        }
-      }
-    }
-    if (bestFirst >= 0) {
-      [mapping[bestFirst], mapping[bestSecond]] = [
-        mapping[bestSecond],
-        mapping[bestFirst],
-      ];
-      best = bestScore;
-      improved = true;
-    }
-  }
-  return best;
-}
-
 /**
  * Recovers the alphabet of a simple substitution cipher from ciphertext alone.
  * The table is the quantized quadgram data served at QUADGRAM_TABLE_URL.
@@ -143,7 +93,7 @@ export function breakSubstitution(
   let bestScore = -Infinity;
   for (let restart = 0; restart < restarts; restart += 1) {
     const mapping = restart === 0 ? frequencySeed(sample) : shuffled(rng);
-    const score = climb(sample, mapping, table);
+    const score = climbMappings(sample, [mapping], table);
     if (score > bestScore) {
       bestScore = score;
       bestMapping = mapping;
