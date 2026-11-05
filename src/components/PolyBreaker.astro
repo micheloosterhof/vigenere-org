@@ -14,7 +14,8 @@ import ShareLink from "./ShareLink.astro";
       data-input
       rows="8"
       class={fieldClass}
-      placeholder="Paste periodic polyalphabetic ciphertext"></textarea>
+      placeholder="Paste periodic polyalphabetic ciphertext"
+    ></textarea>
   </label>
 
   <label class="flex flex-col gap-1">
@@ -30,7 +31,9 @@ import ShareLink from "./ShareLink.astro";
 
   <div class="flex flex-col gap-3">
     <div class="flex items-center gap-3">
-      <button data-solve type="button" class={buttonClass}>Break cipher</button>
+      <button data-solve type="button" class={buttonClass}>
+        Break cipher
+      </button>
       <ShareLink />
     </div>
     <div
@@ -43,15 +46,13 @@ import ShareLink from "./ShareLink.astro";
     >
       <span
         data-progress-text
-        class="text-sm text-slate-500 dark:text-slate-400"></span>
-      <div
-        class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950"
-      >
+        class="text-sm text-slate-500 dark:text-slate-400"
+      ></span>
+      <div class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950">
         <div
           data-progress-bar
           class="h-full w-0 rounded-full bg-orange-600 transition-all duration-300 dark:bg-orange-400"
-        >
-        </div>
+        ></div>
       </div>
     </div>
   </div>
@@ -65,9 +66,9 @@ import ShareLink from "./ShareLink.astro";
       <textarea data-output rows="8" readonly class={fieldClass}></textarea>
     </label>
     <div>
-      <span class="text-sm font-medium"
-        >Recovered alphabets (one per key position)</span
-      >
+      <span class="text-sm font-medium">
+        Recovered alphabets (one per key position)
+      </span>
       <pre data-alphabets class="mt-1 overflow-x-auto font-mono text-sm"></pre>
     </div>
   </div>

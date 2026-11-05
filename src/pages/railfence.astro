@@ -32,9 +32,7 @@ import Breaker from "../components/Breaker.astro";
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the rail fence cipher
   </h2>
-  <div
-    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
-  >
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
     <p>
       Write the message diagonally downwards, bounce off the bottom rail, climb
       back to the top, and repeat: the path traces the pickets of a fence. With
@@ -44,14 +42,17 @@ import Breaker from "../components/Breaker.astro";
     </p>
     <p>
       Because it only rearranges letters, the ciphertext keeps the exact letter
-      frequencies of English — the <a
+      frequencies of English — the{" "}
+      <a
         href="/analyze"
         class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-        >cipher identifier</a
-      > flags that combination as a transposition. And since the key is a single small
-      number, trying every rail count breaks it instantly, as the solver above shows.
-      Militaries used it only for low-value traffic, often adding a second transposition
-      on top.
+      >
+        cipher identifier
+      </a>{" "}
+      flags that combination as a transposition. And since the key is a single
+      small number, trying every rail count breaks it instantly, as the solver
+      above shows. Militaries used it only for low-value traffic, often adding a
+      second transposition on top.
     </p>
   </div>
 </Base>

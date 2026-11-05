@@ -27,22 +27,21 @@ const { cipher } = Astro.props;
       data-input
       rows="6"
       class={fieldClass}
-      placeholder="Paste ciphertext with an unknown key"></textarea>
+      placeholder="Paste ciphertext with an unknown key"
+    ></textarea>
   </label>
 
   <div class="flex items-center gap-3">
     <button data-solve type="button" class={buttonClass}>
-      {
-        cipher === "caesar"
-          ? "Try all 26 shifts"
-          : cipher === "substitution"
-            ? "Recover alphabet"
-            : cipher === "railfence"
-              ? "Find rail count"
-              : cipher === "columnar"
-                ? "Recover column order"
-                : "Recover key"
-      }
+      {cipher === "caesar"
+        ? "Try all 26 shifts"
+        : cipher === "substitution"
+          ? "Recover alphabet"
+          : cipher === "railfence"
+            ? "Find rail count"
+            : cipher === "columnar"
+              ? "Recover column order"
+              : "Recover key"}
     </button>
     <ShareLink />
   </div>
@@ -61,15 +60,13 @@ const { cipher } = Astro.props;
         <table class="mt-1 w-full text-left text-sm">
           <thead>
             <tr class="border-b border-slate-300 dark:border-slate-700">
-              <th class="py-1 pr-4 font-medium"
-                >{
-                  cipher === "caesar"
-                    ? "Shift"
-                    : cipher === "railfence"
-                      ? "Rails"
-                      : "Key"
-                }</th
-              >
+              <th class="py-1 pr-4 font-medium">
+                {cipher === "caesar"
+                  ? "Shift"
+                  : cipher === "railfence"
+                    ? "Rails"
+                    : "Key"}
+              </th>
               <th class="py-1 pr-4 font-medium">Fitness</th>
               <th class="py-1 font-medium">Preview</th>
             </tr>

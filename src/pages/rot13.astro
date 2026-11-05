@@ -19,18 +19,19 @@ import CipherTool from "../components/CipherTool.astro";
   <CipherTool cipher="rot13" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">About ROT13</h2>
-  <div
-    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
-  >
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
     <p>
-      ROT13 is the <a
+      ROT13 is the{" "}
+      <a
         href="/caesar"
         class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-        >Caesar cipher</a
-      > with a shift of 13 — the one shift that is its own inverse, because 13 doubled
-      wraps the 26-letter alphabet exactly. That symmetry made it the standard way
-      to hide spoilers, puzzle answers, and punchlines on Usenet in the 1980s, a role
-      it still plays in forums and geocaching hints today.
+      >
+        Caesar cipher
+      </a>{" "}
+      with a shift of 13 — the one shift that is its own inverse, because 13
+      doubled wraps the 26-letter alphabet exactly. That symmetry made it the
+      standard way to hide spoilers, puzzle answers, and punchlines on Usenet in
+      the 1980s, a role it still plays in forums and geocaching hints today.
     </p>
     <p>
       It was never meant to keep secrets: everyone knows the shift, so decoding

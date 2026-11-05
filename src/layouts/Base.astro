@@ -89,56 +89,44 @@ const tools = [
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL("/og.png", Astro.site)} />
     <title>{title}</title>
-    {
-      jsonLdBlocks.map((block) => (
-        <script type="application/ld+json" set:html={JSON.stringify(block)} />
-      ))
-    }
-    {
-      beaconToken && (
-        <script
-          is:inline
-          defer
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon={`{"token": "${beaconToken}"}`}
-        />
-      )
-    }
-    {
-      ads && adsenseClient && (
-        <script
-          is:inline
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-          crossorigin="anonymous"
-        />
-      )
-    }
+    {jsonLdBlocks.map((block) => (
+      <script type="application/ld+json" set:html={JSON.stringify(block)} />
+    ))}
+    {beaconToken && (
+      <script
+        is:inline
+        defer
+        src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon={`{"token": "${beaconToken}"}`}
+      />
+    )}
+    {ads && adsenseClient && (
+      <script
+        is:inline
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+        crossorigin="anonymous"
+      />
+    )}
   </head>
-  <body
-    class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100"
-  >
+  <body class="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
     <header class="bg-orange-600 dark:bg-orange-700">
-      <nav
-        class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3"
-      >
-        <a href="/" class="font-bold tracking-tight text-white">vigenere.org</a>
-        {
-          tools.map((tool) => (
-            <a
-              href={tool.href}
-              class="text-sm font-medium text-orange-100 hover:text-white"
-            >
-              {tool.label}
-            </a>
-          ))
-        }
+      <nav class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
+        <a href="/" class="font-bold tracking-tight text-white">
+          vigenere.org
+        </a>
+        {tools.map((tool) => (
+          <a
+            href={tool.href}
+            class="text-sm font-medium text-orange-100 hover:text-white"
+          >
+            {tool.label}
+          </a>
+        ))}
       </nav>
     </header>
     <noscript>
-      <div
-        class="mx-auto max-w-3xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300"
-      >
+      <div class="mx-auto max-w-3xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
         The cipher tools on vigenere.org run entirely in your browser with
         JavaScript, so no ciphertext is ever sent to a server. Enable JavaScript
         to encrypt, decrypt, and break ciphers. Fetching a tool URL without a
@@ -149,17 +137,16 @@ const tools = [
     <main class="mx-auto w-full max-w-3xl grow px-4 py-8">
       <slot />
     </main>
-    <footer
-      class="border-t border-orange-200 py-4 text-center text-sm text-slate-500 dark:border-orange-900 dark:text-slate-400"
-    >
-      <span
-        >All ciphers run in your browser; your messages never leave the page.</span
-      >
+    <footer class="border-t border-orange-200 py-4 text-center text-sm text-slate-500 dark:border-orange-900 dark:text-slate-400">
+      <span>
+        All ciphers run in your browser; your messages never leave the page.
+      </span>
       <a
         href="/privacy"
         class="ml-2 underline-offset-2 hover:text-orange-700 hover:underline dark:hover:text-orange-400"
-        >Privacy</a
       >
+        Privacy
+      </a>
     </footer>
     <ClipboardButtons />
   </body>

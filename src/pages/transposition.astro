@@ -37,9 +37,7 @@ import Breaker from "../components/Breaker.astro";
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the columnar transposition cipher
   </h2>
-  <div
-    class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400"
-  >
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
     <p>
       Transposition is the other half of classical cryptography: where
       substitution ciphers disguise the letters, transposition ciphers leave
@@ -56,9 +54,12 @@ import Breaker from "../components/Breaker.astro";
       <a
         href="/analyze"
         class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-        >cipher identifier</a
-      > looks for. Short keys fall to trying every order, as the solver above does;
-      longer keys fall to anagramming columns whose bigrams glue together well.
+      >
+        cipher identifier
+      </a>{" "}
+      looks for. Short keys fall to trying every order, as the solver above
+      does; longer keys fall to anagramming columns whose bigrams glue together
+      well.
     </p>
   </div>
 </Base>

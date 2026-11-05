@@ -13,8 +13,9 @@ import ShareLink from "./ShareLink.astro";
     <select data-variant class={`${fieldClass} max-w-88`}>
       <option value="1">Quagmire I — keyed plaintext alphabet</option>
       <option value="2">Quagmire II — keyed ciphertext alphabet</option>
-      <option value="3" selected>Quagmire III — both keyed, same keyword</option
-      >
+      <option value="3" selected>
+        Quagmire III — both keyed, same keyword
+      </option>
       <option value="4">Quagmire IV — both keyed, different keywords</option>
     </select>
   </label>
@@ -25,7 +26,8 @@ import ShareLink from "./ShareLink.astro";
       data-input
       rows="6"
       class={fieldClass}
-      placeholder="Enter plaintext or ciphertext"></textarea>
+      placeholder="Enter plaintext or ciphertext"
+    ></textarea>
   </label>
 
   <div class="grid gap-4 sm:grid-cols-2">
@@ -69,8 +71,12 @@ import ShareLink from "./ShareLink.astro";
   </div>
 
   <div class="flex gap-3">
-    <button data-encrypt type="button" class={buttonClass}>Encrypt</button>
-    <button data-decrypt type="button" class={buttonClass}>Decrypt</button>
+    <button data-encrypt type="button" class={buttonClass}>
+      Encrypt
+    </button>
+    <button data-decrypt type="button" class={buttonClass}>
+      Decrypt
+    </button>
     <ShareLink />
   </div>
 

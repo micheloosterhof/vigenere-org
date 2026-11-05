@@ -85,9 +85,8 @@ const tools = [
 >
   <div class="py-8 text-center">
     <h1 class="mb-3 text-4xl font-bold tracking-tight">
-      Got a <span class="text-orange-600 dark:text-orange-400"
-        >secret message</span
-      >?
+      Got a{" "}
+      <span class="text-orange-600 dark:text-orange-400">secret message</span>?
     </h1>
     <p class="mb-8 text-slate-600 dark:text-slate-400">
       Paste it below and we'll figure out the cipher and the key, right here in
@@ -98,20 +97,18 @@ const tools = [
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">All tools</h2>
   <ul class="grid gap-4 sm:grid-cols-2">
-    {
-      tools.map((tool) => (
-        <li class="rounded-lg border border-orange-200 p-4 hover:border-orange-400 dark:border-orange-900 dark:hover:border-orange-600">
-          <a
-            href={tool.href}
-            class="font-semibold text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
-          >
-            {tool.name}
-          </a>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {tool.blurb}
-          </p>
-        </li>
-      ))
-    }
+    {tools.map((tool) => (
+      <li class="rounded-lg border border-orange-200 p-4 hover:border-orange-400 dark:border-orange-900 dark:hover:border-orange-600">
+        <a
+          href={tool.href}
+          class="font-semibold text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+        >
+          {tool.name}
+        </a>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {tool.blurb}
+        </p>
+      </li>
+    ))}
   </ul>
 </Base>
