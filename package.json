@@ -15,19 +15,19 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@astrojs/sitemap": "^3.7.4",
-    "@playwright/test": "^1.64.1",
-    "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.4.4",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/vite": "^4.3.4",
+    "astro": "^7.4.7",
     "eslint": "^10.14.0",
     "eslint-plugin-astro": "^3.2.1",
     "fast-check": "^4.10.2",
-    "oxlint": "^1.90.0",
+    "oxlint": "^1.91.0",
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
