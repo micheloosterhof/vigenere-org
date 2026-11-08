@@ -1,12 +1,22 @@
 // ABOUTME: Identifies and breaks pasted ciphertext automatically for the homepage.
-// ABOUTME: Routes by index of coincidence, escalating from Caesar to the general polyalphabetic attack.
+// ABOUTME: Routes by index of coincidence, escalating from Caesar and affine to the general polyalphabetic attack.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { atbash, beaufort, caesar, substitution, vigenere } from "./cipher";
+import {
+  atbash,
+  beaufort,
+  caesar,
+  porta,
+  substitution,
+  vigenere,
+} from "./cipher";
+import { breakAffine } from "./affine";
+import { breakRoute, routeCipher } from "./route";
 import {
   beaufortDecrypt,
   breakPeriodic,
   caesarCandidates,
+  breakPorta,
   READABLE_BIGRAM,
   scoreText,
   vigenereDecrypt,
@@ -37,9 +47,12 @@ const SIMPLER_EPSILON = 0.05;
 const COMPLEXITY: Record<string, number> = {
   Atbash: 0,
   Caesar: 0,
+  Affine: 1,
   "Rail fence": 1,
+  Route: 1,
   Vigenère: 1,
   Beaufort: 1,
+  Porta: 1,
   "Columnar transposition": 2,
   Substitution: 2,
   "Quagmire I": 2,
@@ -152,6 +165,38 @@ export async function autosolve(
         "decrypt",
       ),
     });
+    // A prime letter count fits no grid, so the route attack has nothing to try.
+    const letterCount = text.toUpperCase().replace(/[^A-Z]/g, "").length;
+    const fitsGrid = Array.from(
+      { length: Math.max(0, Math.floor(letterCount / 2) - 1) },
+      (_, i) => i + 2,
+    ).some((columns) => letterCount % columns === 0);
+    if (fitsGrid) {
+      const [route] = breakRoute(text);
+      const routePlain = routeCipher(
+        text,
+        route.columns,
+        route.fill,
+        route.route,
+        "decrypt",
+      );
+      attempts.push({
+        cipher: "Route",
+        keyLabel: `${route.columns} columns, ${route.fill}, ${route.route}`,
+        fitness: scoreText(routePlain),
+        plaintext: routePlain,
+        href: deepLink(
+          "route",
+          text,
+          [
+            ["columns", String(route.columns)],
+            ["fill", route.fill],
+            ["route", route.route],
+          ],
+          "decrypt",
+        ),
+      });
+    }
     const [columnar] = breakColumnar(text);
     attempts.push({
       cipher: "Columnar transposition",
@@ -177,6 +222,28 @@ export async function autosolve(
         "decrypt",
       ),
     });
+    // Affine keys with a = 1 are Caesar shifts and a = b = 25 is Atbash; those
+    // are already covered by the simpler attempts.
+    const [affineBest] = breakAffine(text);
+    const isCaesar = affineBest.a === 1;
+    const isAtbash = affineBest.a === 25 && affineBest.b === 25;
+    if (!isCaesar && !isAtbash) {
+      attempts.push({
+        cipher: "Affine",
+        keyLabel: `a = ${affineBest.a}, b = ${affineBest.b}`,
+        fitness: scoreText(affineBest.plaintext),
+        plaintext: affineBest.plaintext,
+        href: deepLink(
+          "affine",
+          text,
+          [
+            ["a", String(affineBest.a)],
+            ["b", String(affineBest.b)],
+          ],
+          "decrypt",
+        ),
+      });
+    }
     const atbashPlain = atbash(text);
     attempts.push({
       cipher: "Atbash",
@@ -209,6 +276,16 @@ export async function autosolve(
     fitness: scoreText(beaufortPlain),
     plaintext: beaufortPlain,
     href: deepLink("beaufort", text, [["key", beaufortBest.key]], "decrypt"),
+  });
+
+  const [portaBest] = breakPorta(text, periodic);
+  const portaPlain = porta(text, portaBest.key);
+  attempts.push({
+    cipher: "Porta",
+    keyLabel: portaBest.key,
+    fitness: scoreText(portaPlain),
+    plaintext: portaPlain,
+    href: deepLink("porta", text, [["key", portaBest.key]], "decrypt"),
   });
 
   if (period === 1 && !readable()) {

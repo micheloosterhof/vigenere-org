@@ -1,5 +1,5 @@
 // ABOUTME: Playfair cipher: digraph substitution over a keyword-mixed 5x5 square with I and J merged.
-// ABOUTME: Encryption strips the text to letters, splits doubles with a filler, and pads odd length.
+// ABOUTME: Encryption strips to letters, splits doubles, and pads odd length; Bifid shares the square helpers.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { normalizeKey, type Mode } from "./cipher";
@@ -17,7 +17,10 @@ function condense(value: number): number {
 }
 
 /** The keyword-mixed 5x5 square as letter values, plus each letter's position in it. */
-function buildSquare(key: string): { square: number[]; position: number[] } {
+export function buildSquare(key: string): {
+  square: number[];
+  position: number[];
+} {
   const seen = new Set<number>();
   for (const value of normalizeKey(key)) {
     seen.add(condense(value));
@@ -34,7 +37,7 @@ function buildSquare(key: string): { square: number[]; position: number[] } {
 }
 
 /** Letters of the text as square-alphabet values, uppercased, J merged into I. */
-function toSquareValues(text: string): number[] {
+export function toSquareValues(text: string): number[] {
   const values: number[] = [];
   for (const char of text.toUpperCase()) {
     const code = char.charCodeAt(0) - CODE_A;
@@ -108,6 +111,6 @@ export function playfair(text: string, key: string, mode: Mode): string {
 }
 
 /** The square-alphabet value as an uppercase letter (I and beyond skip J). */
-function letter(value: number): string {
+export function letter(value: number): string {
   return String.fromCharCode(CODE_A + (value > J - 1 ? value + 1 : value));
 }

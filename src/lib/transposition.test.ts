@@ -3,7 +3,11 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
-import { breakColumnar, columnarTransposition } from "./transposition";
+import {
+  breakColumnar,
+  columnarTransposition,
+  doubleTransposition,
+} from "./transposition";
 
 const PLAIN =
   "It was a bright cold day in April, and the clocks were striking thirteen. " +
@@ -37,6 +41,43 @@ describe("columnarTransposition", () => {
 
   it("throws on a key with no letters", () => {
     expect(() => columnarTransposition("ABC", "", "encrypt")).toThrow();
+  });
+});
+
+describe("doubleTransposition", () => {
+  // Wikipedia's "Transposition cipher" double transposition example: ZEBRAS, then STRIPE.
+  it("encrypts the Wikipedia ZEBRAS/STRIPE test vector", () => {
+    expect(
+      doubleTransposition(
+        "WEAREDISCOVEREDFLEEATONCE",
+        "ZEBRAS",
+        "STRIPE",
+        "encrypt",
+      ),
+    ).toBe("CAEENSOIAEDRLEFWEDREEVTOC");
+  });
+
+  it("decrypts the Wikipedia ZEBRAS/STRIPE test vector", () => {
+    expect(
+      doubleTransposition(
+        "CAEENSOIAEDRLEFWEDREEVTOC",
+        "ZEBRAS",
+        "STRIPE",
+        "decrypt",
+      ),
+    ).toBe("WEAREDISCOVEREDFLEEATONCE");
+  });
+
+  it("round-trips text with punctuation", () => {
+    const ciphertext = doubleTransposition(
+      PLAIN,
+      "BANANA",
+      "SECRET",
+      "encrypt",
+    );
+    expect(doubleTransposition(ciphertext, "BANANA", "SECRET", "decrypt")).toBe(
+      PLAIN,
+    );
   });
 });
 

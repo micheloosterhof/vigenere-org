@@ -1,5 +1,5 @@
 // ABOUTME: Unit tests for the cipher core: Vigenere, Beaufort, and Caesar.
-// ABOUTME: Uses externally validated test vectors from Wikipedia and practicalcryptography.com.
+// ABOUTME: Uses externally validated test vectors from Wikipedia, practicalcryptography.com, and pycipher.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { describe, expect, it } from "vitest";
@@ -8,6 +8,8 @@ import {
   autokey,
   beaufort,
   caesar,
+  gronsfeld,
+  porta,
   substitution,
   vigenere,
 } from "./cipher";
@@ -179,5 +181,58 @@ describe("autokey", () => {
 
   it("throws on a primer with no letters", () => {
     expect(() => autokey("ABC", "", "plaintext", "encrypt")).toThrow();
+  });
+});
+
+describe("gronsfeld", () => {
+  // Vectors from pycipher 0.5.2, tests/test_gronsfeld.py.
+  const plain = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+  const vectors: [string, string][] = [
+    ["2781393", "cikehojjprlovqqwysvcxxdfzcjeekmgjqllrtnqxssyauxezzfh"],
+    ["27810393", "cikeeipkkqsmmqxssyauuyfaagiccgniioqkkovqqwysswdyyega"],
+  ];
+
+  it("matches pycipher's vectors", () => {
+    for (const [key, ciphertext] of vectors) {
+      expect(gronsfeld(plain, key, "encrypt")).toBe(ciphertext);
+      expect(gronsfeld(ciphertext, key, "decrypt")).toBe(plain);
+    }
+  });
+
+  it("equals Vigenère with the digits read as letters A-J", () => {
+    const text = "Attack at dawn!";
+    expect(gronsfeld(text, "31415", "encrypt")).toBe(
+      vigenere(text, "DBEBF", "encrypt"),
+    );
+  });
+
+  it("ignores separators in the key and throws without digits", () => {
+    expect(gronsfeld("HELLO", "3-1-4", "encrypt")).toBe(
+      gronsfeld("HELLO", "314", "encrypt"),
+    );
+    expect(() => gronsfeld("HELLO", "KEY", "encrypt")).toThrow();
+  });
+});
+
+describe("porta", () => {
+  // Vectors from pycipher 0.5.2, tests/test_porta.py.
+  const plain = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  it("matches pycipher's vectors", () => {
+    expect(porta(plain, "HELLO").toUpperCase()).toBe(
+      "QQUVYVVZNQNNRIHMBMAMEGEFEJPTUXUUYZPZZQRGLALMLDFDEDIK",
+    );
+    expect(porta(plain, "FORTIFICATION").toUpperCase()).toBe(
+      "PVXZVUXVVSOSSLHHHADCGIAGEGPVXZVUXVVSOSSLHHHADCGIAGEG",
+    );
+  });
+
+  it("is its own inverse and keeps case and punctuation", () => {
+    const text = "Defend the east wall of the castle!";
+    expect(porta(porta(text, "FORTIFICATION"), "FORTIFICATION")).toBe(text);
+  });
+
+  it("treats paired key letters alike", () => {
+    expect(porta("HELLO", "ACE")).toBe(porta("HELLO", "BDF"));
   });
 });

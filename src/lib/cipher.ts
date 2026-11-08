@@ -1,4 +1,4 @@
-// ABOUTME: Pure cipher core implementing Vigenere, Beaufort, and Caesar on A-Z.
+// ABOUTME: Pure cipher core on A-Z: Vigenere, Beaufort, Gronsfeld, Porta, Caesar, Atbash, substitution, autokey.
 // ABOUTME: Letters keep their case, non-letters pass through and do not advance the key.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
@@ -88,6 +88,44 @@ export function beaufort(text: string, key: string): string {
     normalizeKey(key),
     (letter, keyValue) => keyValue - letter,
   );
+}
+
+/** Digits of a Gronsfeld key as shifts 0-9; everything else is dropped. */
+export function normalizeDigitKey(key: string): number[] {
+  const digits = key.replace(/[^0-9]/g, "");
+  if (digits.length === 0) {
+    throw new Error("key must contain at least one digit");
+  }
+  return [...digits].map(Number);
+}
+
+/** Gronsfeld cipher: Vigenere with a numeric key, each digit a shift of 0-9. */
+export function gronsfeld(text: string, key: string, mode: Mode): string {
+  const sign = mode === "encrypt" ? 1 : -1;
+  return substituteLetters(
+    text,
+    normalizeDigitKey(key),
+    (letter, keyValue) => letter + sign * keyValue,
+  );
+}
+
+const HALF = ALPHABET_SIZE / 2;
+
+/**
+ * One Porta tableau lookup. Key letters pair up (AB, CD, ... YZ) into 13
+ * tableaux; tableau k swaps the alphabet halves, shifting A-M by k into N-Z
+ * and back, so each one is its own inverse.
+ */
+export function portaLetter(letter: number, keyLetter: number): number {
+  const k = Math.floor(keyLetter / 2);
+  return letter < HALF
+    ? HALF + ((letter + k) % HALF)
+    : (letter - HALF - k + HALF) % HALF;
+}
+
+/** Porta cipher: 13 reciprocal tableaux chosen by a repeating keyword, so it has no mode. */
+export function porta(text: string, key: string): string {
+  return substituteLetters(text, normalizeKey(key), portaLetter);
 }
 
 export type AutokeyVariant = "plaintext" | "ciphertext";

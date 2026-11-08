@@ -4,11 +4,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { beaufort, vigenere, caesar } from "./cipher";
+import { beaufort, gronsfeld, porta, vigenere, caesar } from "./cipher";
 import {
   beaufortDecrypt,
   breakPeriodic,
   caesarCandidates,
+  breakPorta,
+  portaDecrypt,
   scoreText,
   vigenereDecrypt,
 } from "./solve";
@@ -88,6 +90,34 @@ describe("breakPeriodic", () => {
       quadgrams: TABLE,
     });
     expect(best.key).toBe("PALFFY");
+  });
+
+  // Porta pairs key letters (AB, CD, ...), so only the tableau, not the exact
+  // letter, can be recovered; the breaker names the first letter of each pair.
+  it("recovers a Porta key up to its letter pairs", () => {
+    const ciphertext = porta(PLAIN, "FORTIFICATION");
+    const [best] = breakPeriodic(ciphertext, portaDecrypt, {
+      quadgrams: TABLE,
+    });
+    expect(best.key).toBe("EOQSIEICASIOM");
+    expect(porta(ciphertext, best.key)).toBe(PLAIN);
+  });
+
+  it("recovers a short Porta key from a short text without overfitting a longer one", () => {
+    const short =
+      "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
+      "THIRTEEN WINSTON SMITH SLIPPED QUICKLY THROUGH THE GLASS DOORS";
+    const [best] = breakPorta(porta(short, "SECRET"), { quadgrams: TABLE });
+    expect(best.key).toBe("SECQES");
+  });
+
+  it("recovers a Gronsfeld key when limited to ten key values", () => {
+    const ciphertext = gronsfeld(PLAIN, "31415", "encrypt");
+    const [best] = breakPeriodic(ciphertext, vigenereDecrypt, {
+      quadgrams: TABLE,
+      keySpace: 10,
+    });
+    expect(best.key).toBe("DBEBF");
   });
 
   it("throws when the text has too few letters", () => {

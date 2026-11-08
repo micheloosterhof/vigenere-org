@@ -9,9 +9,12 @@ import {
   autokey,
   beaufort,
   caesar,
+  porta,
   substitution,
   vigenere,
 } from "./cipher";
+import { affine } from "./affine";
+import { routeCipher } from "./route";
 import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
 import { quagmire } from "./quagmire";
@@ -53,6 +56,44 @@ const PLAIN =
   "and ruggedly handsome features.";
 
 describe("autosolve", () => {
+  it("identifies affine ciphertext and links to the affine tool", async () => {
+    const result = await autosolve(affine(PLAIN, 7, 3, "encrypt"), TABLE, {
+      rng: mulberry32(1),
+    });
+    expect(result.best.cipher).toBe("Affine");
+    expect(result.best.keyLabel).toBe("a = 7, b = 3");
+    expect(result.best.plaintext).toBe(PLAIN);
+    expect(result.best.href).toContain("/affine/");
+  });
+
+  it("does not offer affine as a duplicate of Caesar", async () => {
+    const result = await autosolve(caesar(PLAIN, 7), TABLE, {
+      rng: mulberry32(1),
+    });
+    expect(result.attempts.map((a) => a.cipher)).not.toContain("Affine");
+  });
+
+  it("identifies Porta ciphertext", async () => {
+    const result = await autosolve(porta(PLAIN, "FORTIFICATION"), TABLE, {
+      rng: mulberry32(1),
+    });
+    expect(result.best.cipher).toBe("Porta");
+    expect(result.best.plaintext).toBe(PLAIN);
+  });
+
+  it("identifies a route cipher", async () => {
+    const letters = PLAIN.toUpperCase()
+      .replace(/[^A-Z]/g, "")
+      .slice(0, 300);
+    const result = await autosolve(
+      routeCipher(letters, 12, "rows", "spiral-cw-tl", "encrypt"),
+      TABLE,
+      { rng: mulberry32(1) },
+    );
+    expect(result.best.cipher).toBe("Route");
+    expect(result.best.plaintext).toBe(letters);
+  });
+
   it("identifies Caesar ciphertext without running the substitution climb", async () => {
     const result = await autosolve(caesar(PLAIN, 7), TABLE, {
       rng: mulberry32(1),

@@ -1,8 +1,9 @@
-// ABOUTME: Breaks periodic polyalphabetic ciphers (Vigenere, Beaufort, Caesar) without the key.
+// ABOUTME: Breaks periodic polyalphabetic ciphers (Vigenere, Beaufort, Gronsfeld, Porta, Caesar) without the key.
 // ABOUTME: Greedy adjacent-key-pair search with English bigram scoring over all key lengths; the best key is polished with quadgrams.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { ENGLISH_BIGRAM_LOGPROBS } from "./data/english-bigrams";
+import { portaLetter } from "./cipher";
 import { quadgramFitness } from "./quadgrams";
 
 const ALPHABET_SIZE = 26;
@@ -26,6 +27,8 @@ export const vigenereDecrypt: Decrypt = (cipher, key) =>
 
 export const beaufortDecrypt: Decrypt = (cipher, key) =>
   (key - cipher + ALPHABET_SIZE) % ALPHABET_SIZE;
+
+export const portaDecrypt: Decrypt = portaLetter;
 
 export interface KeyCandidate {
   key: string;
@@ -80,17 +83,18 @@ interface KeyPair {
 
 /**
  * Finds the best key letters for adjacent columns (column, column+1 mod keyLength)
- * by trying all 676 letter pairs against the bigrams they decrypt.
+ * by trying every pair of key values against the bigrams they decrypt.
  */
 function bestPairForColumn(
   ciphertext: number[],
   decrypt: Decrypt,
   keyLength: number,
   column: number,
+  keySpace: number,
 ): KeyPair {
   const best: KeyPair = { first: 0, second: 0, fitness: -Infinity };
-  for (let first = 0; first < ALPHABET_SIZE; first += 1) {
-    for (let second = 0; second < ALPHABET_SIZE; second += 1) {
+  for (let first = 0; first < keySpace; first += 1) {
+    for (let second = 0; second < keySpace; second += 1) {
       let sum = 0;
       let count = 0;
       for (let i = column; i + 1 < ciphertext.length; i += keyLength) {
@@ -114,12 +118,13 @@ function bestKeyForLength(
   ciphertext: number[],
   decrypt: Decrypt,
   keyLength: number,
+  keySpace: number,
 ): { key: number[]; fitness: number } {
   let key: number[];
   if (keyLength === 1) {
     let bestKey = 0;
     let bestFitness = -Infinity;
-    for (let k = 0; k < ALPHABET_SIZE; k += 1) {
+    for (let k = 0; k < keySpace; k += 1) {
       const fitness = averageBigramLogProb(
         ciphertext.map((c) => decrypt(c, k)),
       );
@@ -131,7 +136,7 @@ function bestKeyForLength(
     key = [bestKey];
   } else {
     const pairs = Array.from({ length: keyLength }, (_, column) =>
-      bestPairForColumn(ciphertext, decrypt, keyLength, column),
+      bestPairForColumn(ciphertext, decrypt, keyLength, column, keySpace),
     );
     // Each key position is voted on twice: as the first letter of its own
     // column's best pair and as the second letter of the preceding column's.
@@ -165,6 +170,7 @@ function refineKey(
   decrypt: Decrypt,
   key: number[],
   table: Uint8Array,
+  keySpace: number,
 ): number[] {
   const refined = [...key];
   const score = (): number =>
@@ -175,7 +181,7 @@ function refineKey(
     improved = false;
     for (let position = 0; position < refined.length; position += 1) {
       let bestLetter = refined[position];
-      for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
+      for (let letter = 0; letter < keySpace; letter += 1) {
         refined[position] = letter;
         const fitness = score();
         if (fitness > best) {
@@ -198,6 +204,8 @@ export interface BreakOptions {
   maxKeyLength?: number;
   /** Quantized English quadgram table; when given, the best key is polished letter by letter against it. */
   quadgrams?: Uint8Array;
+  /** Key values tried per position, from 0 (A); 10 limits a Gronsfeld key to A-J, its digits 0-9. */
+  keySpace?: number;
 }
 
 /**
@@ -210,7 +218,7 @@ export function breakPeriodic(
   decrypt: Decrypt,
   options: BreakOptions = {},
 ): KeyCandidate[] {
-  const { maxKeyLength = 30, quadgrams } = options;
+  const { maxKeyLength = 30, quadgrams, keySpace = ALPHABET_SIZE } = options;
   const ciphertext = toLetterValues(text);
   if (ciphertext.length < 4) {
     throw new Error("text must contain at least four letters");
@@ -221,7 +229,12 @@ export function breakPeriodic(
   );
   const candidates: KeyCandidate[] = [];
   for (let keyLength = 1; keyLength <= longest; keyLength += 1) {
-    const { key, fitness } = bestKeyForLength(ciphertext, decrypt, keyLength);
+    const { key, fitness } = bestKeyForLength(
+      ciphertext,
+      decrypt,
+      keyLength,
+      keySpace,
+    );
     candidates.push({ key: keyString(key), keyLength, fitness });
   }
   const top = Math.max(...candidates.map((c) => c.fitness));
@@ -243,6 +256,7 @@ export function breakPeriodic(
       decrypt,
       toLetterValues(best.key),
       quadgrams,
+      keySpace,
     );
     best.key = keyString(key);
     best.fitness = averageBigramLogProb(
@@ -250,6 +264,29 @@ export function breakPeriodic(
     );
   }
   return ranked;
+}
+
+// Porta's reciprocal alphabets let a long key fit noise more readily than
+// Vigenère's shifts, so its key length is capped at one per eight letters
+// rather than four.
+const PORTA_LETTERS_PER_KEY = 8;
+
+/**
+ * Breaks a Porta cipher. Paired key letters (AB, CD, ...) are
+ * indistinguishable, so the key names the first letter of each pair.
+ */
+export function breakPorta(
+  text: string,
+  options: BreakOptions = {},
+): KeyCandidate[] {
+  const letters = toLetterValues(text).length;
+  return breakPeriodic(text, portaDecrypt, {
+    ...options,
+    maxKeyLength: Math.min(
+      options.maxKeyLength ?? 30,
+      Math.max(1, Math.floor(letters / PORTA_LETTERS_PER_KEY)),
+    ),
+  });
 }
 
 /** Ranks all 26 Caesar shifts by how English-like the decrypted text is. */
