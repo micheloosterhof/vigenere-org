@@ -1,0 +1,76 @@
+---
+// ABOUTME: Affine cipher tool page with encrypt/decrypt form and exhaustive key breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Affine cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the affine cipher online: choose a and b, or let the solver try all 312 keys. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Affine cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The affine cipher maps each letter x to (a·x + b) mod 26, numbering A as 0.
+    The multiplier a must share no factor with 26, so it is one of 1, 3, 5, 7,
+    9, 11, 15, 17, 19, 21, 23, or 25; the shift b is any number from 0 to 25.
+    Letters keep their case; spaces and punctuation are left unchanged.
+  </p>
+  <CipherTool cipher="affine" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste affine ciphertext and the solver tries all 312 combinations of a and
+    b, ranking each decryption by how much it looks like English. A sentence or
+    two is enough.
+  </p>
+  <Breaker cipher="affine" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the affine cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      The affine cipher generalizes two older ciphers. With a = 1 it is the
+      Caesar cipher, a pure shift; with a = 25 and b = 25 it is Atbash, the
+      mirror alphabet. Every other choice of a scrambles the alphabet by
+      multiplication, so neighbouring plaintext letters no longer land next to
+      each other, but the result is still one fixed substitution alphabet.
+    </p>
+    <p>
+      That makes it a monoalphabetic cipher with a very small key space: 12
+      multipliers times 26 shifts gives 312 keys, one of which (a = 1, b = 0)
+      leaves the text unchanged. Frequency analysis breaks it by hand: if E and
+      T are the commonest ciphertext letters, two linear equations modulo 26
+      give a and b. The solver above simply tries them all. Decryption uses the
+      multiplicative inverse of a modulo 26, which is why a must be coprime to
+      26: for even values or 13, two plaintext letters would collide on the same
+      ciphertext letter.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the affine cipher work?",
+        answer:
+          "Each letter, numbered A = 0 to Z = 25, becomes (a·x + b) mod 26. Decryption multiplies by the inverse of a modulo 26 after subtracting b.",
+      },
+      {
+        question: "Why can a only take 12 values?",
+        answer:
+          "Decryption needs a multiplicative inverse of a modulo 26, which exists only when a shares no factor with 26: 1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, and 25. Any other value would map two plaintext letters to the same ciphertext letter.",
+      },
+      {
+        question: "How do I break an affine cipher?",
+        answer:
+          "Try all 312 keys (12 values of a times 26 values of b), as the breaker on this page does. By hand, matching the two commonest ciphertext letters to E and T gives two equations modulo 26 that solve for a and b.",
+      },
+    ]}
+  />
+</Base>

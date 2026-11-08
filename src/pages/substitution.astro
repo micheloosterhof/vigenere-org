@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -50,4 +51,24 @@ import Breaker from "../components/Breaker.astro";
       substitution, no matter how scrambled the alphabet.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "How many keys does a simple substitution cipher have?",
+        answer:
+          "Any arrangement of the 26 letters is a key, which gives 26! ≈ 4 × 10^26 alphabets. That is far too many to try, but the cipher still falls to statistics.",
+      },
+      {
+        question: "How do I break a substitution cipher?",
+        answer:
+          "Paste it into the breaker on this page. It hill-climbs over alphabets, scoring each candidate decryption with English four-letter statistics, and works best with a hundred letters or more.",
+      },
+      {
+        question: "What is a keyword alphabet?",
+        answer:
+          "A keyword alphabet writes a keyword without repeated letters first, followed by the rest of the alphabet in order. ZEBRAS gives ZEBRASCDFGHIJKLMNOPQTUVWXY. It makes the key easy to remember but easier to reconstruct.",
+      },
+    ]}
+  />
 </Base>

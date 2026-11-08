@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 ---
 
 <div data-poly class="flex flex-col gap-4">
@@ -57,7 +58,12 @@ import ShareLink from "./ShareLink.astro";
     </div>
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-sm font-medium"></p>
@@ -65,6 +71,7 @@ import ShareLink from "./ShareLink.astro";
       <span class="text-sm font-medium">Decrypted text</span>
       <textarea data-output rows="8" readonly class={fieldClass}></textarea>
     </label>
+    <WordSplitToggle />
     <div>
       <span class="text-sm font-medium">
         Recovered alphabets (one per key position)
@@ -78,6 +85,8 @@ import ShareLink from "./ShareLink.astro";
   import { loadQuadgramTable } from "../lib/quadgrams";
   import { breakPolyalphabeticParallel } from "../lib/polyalphabetic-pool";
   import { breakerShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
+  import { wordSplitOutput } from "./word-split";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-poly]")) {
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
@@ -108,6 +117,8 @@ import ShareLink from "./ShareLink.astro";
     ) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     const setProgress = (label: string, fraction?: number): void => {
       progressText.textContent = label;
@@ -140,7 +151,8 @@ import ShareLink from "./ShareLink.astro";
             ),
         });
         summary.textContent = `Key length ${solved.period}, fitness ${solved.fitness.toFixed(2)}. Rare letters may be wrong; the alphabets below can be corrected by hand.`;
-        output.value = solved.plaintext;
+        setOutput(solved.plaintext);
+        announce(`${summary.textContent} ${solved.plaintext}`);
         alphabets.textContent = solved.alphabets
           .map((alphabet, i) => `${String(i + 1).padStart(2)}: ${alphabet}`)
           .join("\n");

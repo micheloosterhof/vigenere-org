@@ -1,0 +1,41 @@
+---
+// ABOUTME: Frequently asked questions section with matching schema.org FAQPage JSON-LD.
+// ABOUTME: Visible text and structured data come from the same list, so they cannot drift apart.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+interface Props {
+  items: FaqItem[];
+}
+
+const { items } = Astro.props;
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: items.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
+---
+
+<section data-faq>
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Frequently asked questions
+  </h2>
+  <div class="flex max-w-prose flex-col gap-6">
+    {items.map((item) => (
+      <div>
+        <h3 class="mb-1 font-semibold">{item.question}</h3>
+        <p class="text-slate-600 dark:text-slate-400">{item.answer}</p>
+      </div>
+    ))}
+  </div>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</section>

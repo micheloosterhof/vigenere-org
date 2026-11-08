@@ -1,31 +1,152 @@
 ---
 // ABOUTME: Interactive encrypt/decrypt form shared by all cipher tool pages.
-// ABOUTME: The cipher prop selects which cipher the client-side script applies.
+// ABOUTME: The cipher prop selects the key fields and which cipher the client-side script applies.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 
+export type ToolCipher =
+  | "vigenere"
+  | "beaufort"
+  | "gronsfeld"
+  | "porta"
+  | "caesar"
+  | "affine"
+  | "substitution"
+  | "atbash"
+  | "rot13"
+  | "railfence"
+  | "columnar"
+  | "double"
+  | "route"
+  | "playfair"
+  | "bifid"
+  | "trifid";
+
 interface Props {
-  cipher:
-    | "vigenere"
-    | "beaufort"
-    | "caesar"
-    | "substitution"
-    | "atbash"
-    | "rot13"
-    | "railfence"
-    | "columnar"
-    | "playfair";
+  cipher: ToolCipher;
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
+import { AFFINE_MULTIPLIERS } from "../lib/affine";
+import { FILLS, ROUTES } from "../lib/route";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
+
+/** One key field; `name` is also its deep-link parameter. */
+interface Field {
+  name: string;
+  label: string;
+  type: "text" | "number" | "select";
+  value?: string;
+  min?: number;
+  max?: number;
+  placeholder?: string;
+  hint?: string;
+  options?: ReadonlyArray<[value: string, label: string]>;
+}
+
+const keyField: Field = {
+  name: "key",
+  label: "Key",
+  type: "text",
+  placeholder: "Enter key",
+};
+const periodField: Field = {
+  name: "period",
+  label: "Period",
+  type: "number",
+  value: "5",
+  min: 0,
+  max: 99,
+  hint: "0 uses the whole message as one block",
+};
+
+const FIELDS: Record<ToolCipher, Field[]> = {
+  vigenere: [keyField],
+  beaufort: [keyField],
+  gronsfeld: [
+    { ...keyField, label: "Key (digits)", placeholder: "For example 31415" },
+  ],
+  porta: [keyField],
+  caesar: [
+    {
+      name: "shift",
+      label: "Shift",
+      type: "number",
+      value: "3",
+      min: 0,
+      max: 25,
+    },
+  ],
+  affine: [
+    {
+      name: "a",
+      label: "a (multiplier)",
+      type: "select",
+      value: "5",
+      options: AFFINE_MULTIPLIERS.map((a) => [String(a), String(a)]),
+    },
+    {
+      name: "b",
+      label: "b (shift)",
+      type: "number",
+      value: "8",
+      min: 0,
+      max: 25,
+    },
+  ],
+  substitution: [keyField],
+  atbash: [],
+  rot13: [],
+  railfence: [
+    {
+      name: "rails",
+      label: "Rails",
+      type: "number",
+      value: "3",
+      min: 1,
+      max: 20,
+    },
+  ],
+  columnar: [keyField],
+  double: [
+    { ...keyField, label: "First key" },
+    { ...keyField, name: "key2", label: "Second key" },
+  ],
+  route: [
+    {
+      name: "columns",
+      label: "Columns",
+      type: "number",
+      value: "5",
+      min: 1,
+      max: 99,
+    },
+    {
+      name: "fill",
+      label: "Write the message",
+      type: "select",
+      value: "rows",
+      options: Object.entries(FILLS),
+    },
+    {
+      name: "route",
+      label: "Read it off",
+      type: "select",
+      value: "spiral-cw-tl",
+      options: Object.entries(ROUTES),
+    },
+  ],
+  playfair: [keyField],
+  bifid: [keyField, periodField],
+  trifid: [keyField, periodField],
+};
 
 const { cipher } = Astro.props;
-const usesShift = cipher === "caesar";
-const usesRails = cipher === "railfence";
-const keyless = cipher === "atbash" || cipher === "rot13";
-const reciprocal = cipher === "beaufort" || keyless;
-const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
+const fields = FIELDS[cipher];
+const reciprocal = ["beaufort", "porta", "atbash", "rot13"].includes(cipher);
+const compact = (field: Field): string =>
+  field.type === "text" ? fieldClass : `${fieldClass} max-w-xs`;
 ---
 
 <div data-cipher={cipher} class="flex flex-col gap-4">
@@ -39,27 +160,45 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
     ></textarea>
   </label>
 
-  {!keyless && (
-    <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium">{keyLabel}</span>
-      {usesShift || usesRails ? (
-        <input
-          data-key
-          type="number"
-          min={usesRails ? "1" : "0"}
-          max={usesRails ? "20" : "25"}
-          value="3"
-          class={`${fieldClass} max-w-32`}
-        />
-      ) : (
-        <input
-          data-key
-          type="text"
-          class={fieldClass}
-          placeholder="Enter key"
-        />
-      )}
-    </label>
+  {fields.length > 0 && (
+    <div class="flex flex-wrap gap-4">
+      {fields.map((field, index) => (
+        <label
+          class={`flex flex-col gap-1 ${field.type === "text" ? "min-w-48 grow" : ""}`}
+        >
+          <span class="text-sm font-medium">{field.label}</span>
+          {field.type === "select" ? (
+            <select
+              data-field={field.name}
+              data-key={index === 0 ? "" : undefined}
+              class={compact(field)}
+            >
+              {field.options?.map(([value, label]) => (
+                <option value={value} selected={value === field.value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              data-field={field.name}
+              data-key={index === 0 ? "" : undefined}
+              type={field.type}
+              min={field.min}
+              max={field.max}
+              value={field.value}
+              placeholder={field.placeholder}
+              class={compact(field)}
+            />
+          )}
+          {field.hint && (
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              {field.hint}
+            </span>
+          )}
+        </label>
+      ))}
+    </div>
   )}
 
   <div class="flex gap-3">
@@ -80,12 +219,18 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <label class="flex flex-col gap-1">
     <span class="text-sm font-medium">Result</span>
     <textarea data-output rows="6" readonly class={fieldClass}></textarea>
   </label>
+  <WordSplitToggle />
 </div>
 
 <script>
@@ -93,83 +238,155 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
     atbash,
     beaufort,
     caesar,
+    gronsfeld,
+    porta,
     substitution,
     vigenere,
     type Mode,
   } from "../lib/cipher";
+  import { affine } from "../lib/affine";
+  import { bifid } from "../lib/bifid";
+  import { trifid } from "../lib/trifid";
   import { railFence } from "../lib/railfence";
-  import { columnarTransposition } from "../lib/transposition";
+  import {
+    columnarTransposition,
+    doubleTransposition,
+  } from "../lib/transposition";
+  import { routeCipher, type Fill, type Route } from "../lib/route";
   import { playfair } from "../lib/playfair";
+  import { liveRegion } from "./announce";
   import { deepLink, liveShareUrl } from "./live-url";
+  import { wordSplitOutput } from "./word-split";
+
+  function whole(
+    value: string,
+    name: string,
+    min: number,
+    max: number,
+  ): number {
+    const number = Number(value);
+    if (
+      value.trim() === "" ||
+      !Number.isInteger(number) ||
+      number < min ||
+      number > max
+    ) {
+      throw new Error(`${name} must be a whole number from ${min} to ${max}`);
+    }
+    return number;
+  }
+
+  function apply(
+    cipher: string,
+    text: string,
+    field: (name: string) => string,
+    mode: Mode,
+  ): string {
+    switch (cipher) {
+      case "atbash":
+        return atbash(text);
+      case "rot13":
+        return caesar(text, 13);
+      case "beaufort":
+        return beaufort(text, field("key"));
+      case "porta":
+        return porta(text, field("key"));
+      case "gronsfeld":
+        return gronsfeld(text, field("key"), mode);
+      case "substitution":
+        return substitution(text, field("key"), mode);
+      case "caesar": {
+        const shift = whole(field("shift"), "shift", 0, 25);
+        return caesar(text, mode === "encrypt" ? shift : -shift);
+      }
+      case "affine":
+        return affine(
+          text,
+          whole(field("a"), "a", 1, 25),
+          whole(field("b"), "b", 0, 25),
+          mode,
+        );
+      case "columnar":
+        return columnarTransposition(text, field("key"), mode);
+      case "double":
+        return doubleTransposition(text, field("key"), field("key2"), mode);
+      case "route":
+        return routeCipher(
+          text,
+          whole(field("columns"), "columns", 1, 99),
+          field("fill") as Fill,
+          field("route") as Route,
+          mode,
+        );
+      case "playfair":
+        return playfair(text, field("key"), mode);
+      case "bifid":
+        return bifid(
+          text,
+          field("key"),
+          whole(field("period"), "period", 0, 99),
+          mode,
+        );
+      case "trifid":
+        return trifid(
+          text,
+          field("key"),
+          whole(field("period"), "period", 0, 99),
+          mode,
+        );
+      case "railfence":
+        return railFence(text, whole(field("rails"), "rails", 1, 20), mode);
+      default:
+        return vigenere(text, field("key"), mode);
+    }
+  }
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-cipher]")) {
     const cipher = root.dataset.cipher;
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
-    const key = root.querySelector<HTMLInputElement>("[data-key]");
     const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
     if (!cipher || !input || !output || !error) {
       continue;
     }
+    const fields = [
+      ...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+        "[data-field]",
+      ),
+    ];
+    const field = (name: string): string =>
+      fields.find((f) => f.dataset.field === name)?.value ?? "";
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
-    const keyValue = (): string => key?.value ?? "";
-
-    const apply = (text: string, mode: Mode): string => {
-      switch (cipher) {
-        case "atbash":
-          return atbash(text);
-        case "rot13":
-          return caesar(text, 13);
-        case "beaufort":
-          return beaufort(text, keyValue());
-        case "substitution":
-          return substitution(text, keyValue(), mode);
-        case "caesar": {
-          const shift = Number.parseInt(keyValue(), 10);
-          if (Number.isNaN(shift)) {
-            throw new Error("shift must be a number between 0 and 25");
-          }
-          return caesar(text, mode === "encrypt" ? shift : -shift);
-        }
-        case "columnar":
-          return columnarTransposition(text, keyValue(), mode);
-        case "playfair":
-          return playfair(text, keyValue(), mode);
-        case "railfence": {
-          const rails = Number.parseInt(keyValue(), 10);
-          if (Number.isNaN(rails)) {
-            throw new Error("rails must be a number between 1 and 20");
-          }
-          return railFence(text, rails, mode);
-        }
-        default:
-          return vigenere(text, keyValue(), mode);
-      }
-    };
-
-    const keyParam =
-      cipher === "caesar" ? "shift" : cipher === "railfence" ? "rails" : "key";
     let lastMode: Mode = "encrypt";
     const syncUrl = liveShareUrl(() =>
       input.value === ""
         ? null
         : [
             ["text", input.value],
-            [keyParam, keyValue()],
+            ...fields.map((f): [string, string] => [
+              f.dataset.field ?? "",
+              f.value,
+            ]),
             ["mode", lastMode === "decrypt" ? "decrypt" : ""],
           ],
     );
     input.addEventListener("input", syncUrl);
-    key?.addEventListener("input", syncUrl);
+    for (const f of fields) {
+      f.addEventListener("input", syncUrl);
+    }
 
     const run = (mode: Mode): void => {
       lastMode = mode;
       syncUrl();
       error.hidden = true;
       try {
-        output.value = apply(input.value, mode);
+        const result = apply(cipher, input.value, field, mode);
+        setOutput(result);
+        announce(`Result: ${result}`);
       } catch (cause) {
-        output.value = "";
+        setOutput("");
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;
@@ -183,18 +400,16 @@ const keyLabel = usesShift ? "Shift" : usesRails ? "Rails" : "Key";
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
 
-    // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt (rails for rail fence, key for the rest)
+    // Deep link: /caesar?text=Khoor&shift=3&mode=decrypt; each key field reads
+    // the parameter of its own name (key, shift, rails, a, b, period, ...).
     const params = deepLink("tool");
     if (params) {
       input.value = params.get("text") ?? "";
-      const linkedKey =
-        cipher === "caesar"
-          ? params.get("shift")
-          : cipher === "railfence"
-            ? params.get("rails")
-            : params.get("key");
-      if (key && linkedKey !== null) {
-        key.value = linkedKey;
+      for (const f of fields) {
+        const linked = params.get(f.dataset.field ?? "");
+        if (linked !== null) {
+          f.value = linked;
+        }
       }
       run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
     }

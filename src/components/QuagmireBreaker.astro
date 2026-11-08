@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 ---
 
 <div data-quagmire-breaker class="flex flex-col gap-4">
@@ -57,7 +58,12 @@ import ShareLink from "./ShareLink.astro";
     </div>
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-sm font-medium"></p>
@@ -65,6 +71,7 @@ import ShareLink from "./ShareLink.astro";
       <span class="text-sm font-medium">Decrypted text</span>
       <textarea data-output rows="8" readonly class={fieldClass}></textarea>
     </label>
+    <WordSplitToggle />
     <div data-alphabet-row hidden>
       <span class="text-sm font-medium">Recovered mixed alphabet</span>
       <pre data-alphabet class="mt-1 overflow-x-auto font-mono text-sm"></pre>
@@ -76,6 +83,8 @@ import ShareLink from "./ShareLink.astro";
   import { loadQuadgramTable } from "../lib/quadgrams";
   import { loadWordlist } from "../lib/wordlist";
   import { breakerShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
+  import { wordSplitOutput } from "./word-split";
   import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
   import type { QuagmireSolveResult } from "../lib/solve-quagmire";
   import type { QuagmireDictionaryResult } from "../lib/solve-quagmire-dictionary";
@@ -124,6 +133,8 @@ import ShareLink from "./ShareLink.astro";
     ) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     const setProgress = (label: string, fraction?: number): void => {
       progressText.textContent = label;
@@ -173,7 +184,8 @@ import ShareLink from "./ShareLink.astro";
               const solved = message.dictionary;
               const name = { 1: "I", 2: "II", 3: "III" }[solved.variant];
               summary.textContent = `Quagmire ${name}: keyword ${solved.keyword} found in the dictionary; key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
-              output.value = solved.plaintext;
+              setOutput(solved.plaintext);
+              announce(`${summary.textContent} ${solved.plaintext}`);
               alphabet.textContent = solved.alphabet;
               alphabetRow.hidden = false;
               result.hidden = false;
@@ -184,7 +196,8 @@ import ShareLink from "./ShareLink.astro";
             summary.textContent = solved.isQuagmire
               ? `Quagmire III confirmed: key ${solved.key} with indicator ${solved.indicator}; one shared alphabet explains all ${solved.period} key positions.`
               : `No shared alphabet found at key length ${solved.period}; showing the general polyalphabetic decryption. Rare letters may be wrong.`;
-            output.value = solved.plaintext;
+            setOutput(solved.plaintext);
+            announce(`${summary.textContent} ${solved.plaintext}`);
             alphabet.textContent = solved.alphabet;
             alphabetRow.hidden = !solved.isQuagmire;
             result.hidden = false;

@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -62,4 +63,25 @@ import Breaker from "../components/Breaker.astro";
       well.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the keyword set the column order?",
+        answer:
+          "The columns are read in the alphabetical order of the keyword's letters, with repeated letters taken left to right. ZEBRAS reads column 5 (A) first, then 3 (B), 2 (E), 4 (R), 6 (S), and 1 (Z).",
+      },
+      {
+        question: "How do I break a columnar transposition?",
+        answer:
+          "For short keys, try every column order, as the breaker on this page does for up to seven columns (5,040 orders). Longer keys need anagramming: arranging columns so that their adjacent letters form common English pairs.",
+      },
+      {
+        question:
+          "What is the difference between regular and irregular columnar transposition?",
+        answer:
+          "Regular columnar transposition pads the message to fill the last row; irregular leaves it short. This tool uses the irregular form, without padding.",
+      },
+    ]}
+  />
 </Base>

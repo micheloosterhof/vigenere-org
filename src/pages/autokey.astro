@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import AutokeyTool from "../components/AutokeyTool.astro";
 import AutokeyBreaker from "../components/AutokeyBreaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -51,4 +52,25 @@ import AutokeyBreaker from "../components/AutokeyBreaker.astro";
       is weaker still, since the key beyond the primer is public.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question:
+          "What is the difference between plaintext and ciphertext autokey?",
+        answer:
+          "Both start the key with a short primer. Plaintext autokey then continues the key with the message itself; ciphertext autokey continues it with the ciphertext already produced. In both, the key never repeats, so the cipher has no period.",
+      },
+      {
+        question: "Who invented the autokey cipher?",
+        answer:
+          "Blaise de Vigenère described the autokey cipher in 1586. It is stronger than the repeating-key cipher that now carries his name.",
+      },
+      {
+        question: "How is an autokey cipher broken?",
+        answer:
+          "Ciphertext autokey leaks its key: letters one primer length apart reveal the plaintext once the primer length is guessed. Plaintext autokey has no such shortcut, so the breaker on this page searches for the primer statistically. Both attacks need at least 26 letters, and more is better.",
+      },
+    ]}
+  />
 </Base>

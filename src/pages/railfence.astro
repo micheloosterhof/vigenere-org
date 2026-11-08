@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -55,4 +56,24 @@ import Breaker from "../components/Breaker.astro";
       second transposition on top.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the rail fence cipher work?",
+        answer:
+          "The message is written in a zigzag across a number of rails, down and up again, and the ciphertext is read off one rail at a time.",
+      },
+      {
+        question: "How do I break a rail fence cipher?",
+        answer:
+          "The key is just the number of rails, so the breaker on this page tries every count up to twenty and ranks the results by how English they look.",
+      },
+      {
+        question: "Is the rail fence cipher a substitution cipher?",
+        answer:
+          "No, it is a transposition cipher: every letter stays the same and only its position changes. The ciphertext therefore has the same letter frequencies as English, which is how the cipher identifier recognizes it.",
+      },
+    ]}
+  />
 </Base>

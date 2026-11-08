@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -42,4 +43,24 @@ import CipherTool from "../components/CipherTool.astro";
       , and any monoalphabetic solver breaks it instantly.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "What is the Atbash cipher?",
+        answer:
+          "Atbash reverses the alphabet: A becomes Z, B becomes Y, and so on. The name comes from the Hebrew letters aleph, tav, bet, and shin, the first and last pairs of the substitution.",
+      },
+      {
+        question: "Where does Atbash appear in history?",
+        answer:
+          "It appears in the Hebrew Bible: in the Book of Jeremiah, Sheshach is read as an Atbash encoding of Babel.",
+      },
+      {
+        question: "How is Atbash related to the affine cipher?",
+        answer:
+          "Atbash is the affine cipher with a = 25 and b = 25, since 25·x + 25 ≡ 25 − x (mod 26). Like every affine cipher it is a single substitution alphabet, and it has no key at all.",
+      },
+    ]}
+  />
 </Base>

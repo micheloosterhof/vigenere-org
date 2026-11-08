@@ -10,12 +10,21 @@ lint, and tests.
 
 - `src/lib/` — pure TypeScript cipher and analysis code, unit-tested with
   vitest (`*.test.ts` colocated). No DOM access here.
-  - `cipher.ts` — Vigenère, Beaufort, Caesar, Atbash, substitution, autokey.
+  - `cipher.ts` — Vigenère, Beaufort, Gronsfeld, Porta, Caesar, Atbash,
+    substitution, autokey.
+  - `affine.ts` — affine cipher with an exhaustive 312-key breaker.
+  - `bifid.ts` / `trifid.ts` — Delastelle's fractionating ciphers (5×5
+    square shared with Playfair; 27-symbol cube with "+").
   - `quagmire.ts` — Quagmire I–IV over keyword-mixed alphabets.
   - `playfair.ts` — Playfair digraph cipher over a keyword-mixed 5×5 square.
   - `railfence.ts` / `transposition.ts` — rail fence and columnar
-    transposition, each with an exhaustive breaker.
-  - `solve.ts` — periodic key recovery via bigram fitness (Guballa method).
+    transposition, each with an exhaustive breaker; double transposition.
+  - `route.ts` — route cipher (grid fill plus spiral/snake/column routes)
+    with an exhaustive breaker over grid widths and routes.
+  - `solve.ts` — periodic key recovery via bigram fitness (Guballa method);
+    `keySpace` limits Gronsfeld to digits, `breakPorta` caps key length.
+  - `segment.ts` — word segmentation (Zipf costs over the word list plus
+    inflections and unknown chunks) behind the "Split into words" toggle.
   - `solve-substitution.ts` — quadgram hill climb for one mixed alphabet.
   - `solve-polyalphabetic.ts` — IoC period detection plus per-column climb
     for arbitrary alphabets; parameters tuned by benchmark (10 restarts,
@@ -38,10 +47,12 @@ lint, and tests.
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily
     fetched via `quadgrams.ts`).
 - `src/pages/` — the auto-solver landing page and one page per tool
-  (`/vigenere`, `/beaufort`, `/caesar`, `/rot13`, `/atbash`, `/autokey`,
-  `/quagmire`, `/playfair`, `/substitution`, `/railfence`,
-  `/transposition`, `/polyalphabetic`, `/analyze`, `/kryptos`), each with
-  SEO body text.
+  (`/vigenere`, `/beaufort`, `/gronsfeld`, `/porta`, `/caesar`, `/rot13`,
+  `/atbash`, `/affine`, `/autokey`, `/quagmire`, `/playfair`, `/bifid`,
+  `/trifid`, `/substitution`, `/railfence`, `/transposition`,
+  `/double-transposition`, `/route`, `/polyalphabetic`, `/analyze`,
+  `/kryptos`), each with SEO body text; cipher pages end with a `Faq`
+  section that also emits FAQPage JSON-LD.
 - `e2e/` — Playwright smoke tests (`make e2e`): every page renders, the
   tools compute, and the documented deep links auto-run against the
   production build.
@@ -50,7 +61,13 @@ lint, and tests.
   take it as an injected `solvePolyalphabetic`, and run it as nested
   workers where the browser allows, sequentially otherwise.
 - `src/components/` — shared UI; forms wire lib functions to the DOM.
-- `src/layouts/Base.astro` — head metadata, JSON-LD, nav, footer.
+  `CipherTool` builds its key fields from a per-cipher config (each field's
+  name is its deep-link parameter). Outputs go through `wordSplitOutput`
+  (`word-split.ts`, toggle on by default, remembered in localStorage) and
+  results are announced via `liveRegion` (`announce.ts`); errors carry
+  `role="alert"`. e2e tests turn word splitting off unless testing it.
+- `src/layouts/Base.astro` — head metadata, JSON-LD, nav grouped by cipher
+  family (`<details>` menus), footer.
 
 ## Commands
 

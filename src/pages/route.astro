@@ -1,0 +1,77 @@
+---
+// ABOUTME: Route cipher tool page: grid transposition read off along a spiral or snake route, with a breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Route cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the route transposition cipher online: write the message in a grid and read it off in a spiral or snake. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Route cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The route cipher writes the message's letters into a grid, by rows or by
+    columns, and reads them off along a route: a spiral from any corner in
+    either direction, rows or columns in alternating directions, or straight
+    columns. The grid is padded with X to fill it; spaces and punctuation are
+    dropped.
+  </p>
+  <CipherTool cipher="route" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the route
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste route ciphertext and the solver tries every grid width that divides
+    the letter count, both writing directions, and every route, ranking each by
+    how much the result looks like English. Several settings often describe the
+    same reading, so ties at the top are normal.
+  </p>
+  <Breaker cipher="route" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the route cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      The route cipher is one of the simplest transpositions to carry out by
+      hand: the agreed grid size and route are the whole key. The classic
+      example writes WE ARE DISCOVERED. FLEE AT ONCE down the columns of a
+      three-row grid and reads it in a clockwise spiral starting at the top
+      right, giving EJXCTEDECDAEWRIORFEONALEVSE, which you can reproduce above
+      with 9 columns, writing in columns, and that spiral.
+    </p>
+    <p>
+      Its weakness is the small key space. A message of a given length fits only
+      a few grid shapes, and there are only a dozen or so natural routes, so an
+      exhaustive search, like the solver above, finishes instantly. The Union
+      Army's route ciphers in the American Civil War were stronger because they
+      transposed whole words rather than letters and mixed in code words and
+      nulls.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the route cipher work?",
+        answer:
+          "The letters are written into a grid by rows or columns and read off along an agreed route, such as a spiral inward from a corner or a snake through the rows. The grid size and route are the key.",
+      },
+      {
+        question: "How do I break a route cipher?",
+        answer:
+          "Paste the ciphertext into the breaker on this page. It tries every grid width that divides the letter count, both writing directions, and every route, and ranks the results by how English they look.",
+      },
+      {
+        question: "Why does the decrypted text end in X?",
+        answer:
+          "Encryption pads the message with X to fill the grid. Decryption cannot tell padding from text, so the X letters remain at the end.",
+      },
+    ]}
+  />
+</Base>

@@ -1,0 +1,75 @@
+---
+// ABOUTME: Double transposition tool page: columnar transposition applied twice with two keywords.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Double transposition cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt the double transposition cipher online: columnar transposition applied twice with two keywords. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">
+    Double transposition cipher
+  </h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    Double transposition applies columnar transposition twice: the text is
+    written in rows under the first keyword and read out by its columns in
+    alphabetical order, then the result is transposed again under the second
+    keyword. Every character, including spaces and punctuation, takes part; the
+    last row may be incomplete (no padding).
+  </p>
+  <CipherTool cipher="double" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the double transposition cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      A single columnar transposition falls quickly to anagramming, as the
+      solver on the{" "}
+      <a
+        href="/transposition"
+        class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
+      >
+        columnar transposition page
+      </a>{" "}
+      shows. Transposing twice destroys the column structure that attack relies
+      on, because the second pass scatters every column of the first across the
+      whole message. With two keys of moderate length, double transposition was
+      strong enough to serve as a field cipher for armies and resistance
+      networks through both world wars.
+    </p>
+    <p>
+      It was broken in practice, but mainly through operational mistakes:
+      several messages of the same length under the same keys can be anagrammed
+      together, and a guessed plaintext fragment constrains both permutations.
+      Modern statistical attacks need long ciphertexts and substantial
+      computation, which is why this page offers encryption and decryption only
+      and no automatic breaker. Using the same keyword twice is allowed but
+      makes the system weaker.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does double transposition work?",
+        answer:
+          "It applies columnar transposition twice, first under one keyword and then under a second keyword. Decryption undoes the second transposition first, then the first.",
+      },
+      {
+        question: "How secure is double transposition?",
+        answer:
+          "It resists hand solution far better than single transposition and served armies and agents through both world wars. It was broken mainly through key reuse: several messages of the same length under the same keys can be solved together.",
+      },
+      {
+        question: "Why is there no breaker on this page?",
+        answer:
+          "The key is a pair of permutations, so the search space is the product of both. Breaking it needs long ciphertexts and statistical search, which this site does not offer yet.",
+      },
+    ]}
+  />
+</Base>

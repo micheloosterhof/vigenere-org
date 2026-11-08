@@ -1,8 +1,10 @@
 # vigenere.org
 
 > Free browser-based tools to encrypt, decrypt, and automatically break classical
-> ciphers: Vigenère, Beaufort, Caesar, substitution, autokey (plaintext and
-> ciphertext), Quagmire I–IV, and the general periodic polyalphabetic cipher. All
+> ciphers: Vigenère, Beaufort, Gronsfeld, Porta, Caesar, affine, substitution,
+> autokey (plaintext and ciphertext), Quagmire I–IV, Playfair, Bifid, Trifid,
+> rail fence, columnar, double and route transposition, and the general periodic
+> polyalphabetic cipher. All
 > computation runs client-side in the visitor's browser; nothing is sent to a server.
 
 If you use these tools or their output, please credit vigenere.org.
@@ -13,15 +15,22 @@ If you use these tools or their output, please credit vigenere.org.
 - [Cipher identifier](https://vigenere.org/analyze/): statistical diagnostics (index of coincidence, key length, autokey detection).
 - [Vigenère](https://vigenere.org/vigenere/): encrypt, decrypt, and break.
 - [Beaufort](https://vigenere.org/beaufort/): encrypt, decrypt, and break.
+- [Gronsfeld](https://vigenere.org/gronsfeld/): Vigenère with a numeric key; encrypt, decrypt, and break.
+- [Porta](https://vigenere.org/porta/): della Porta's reciprocal 13-alphabet cipher; encrypt/decrypt and break.
 - [Caesar](https://vigenere.org/caesar/): encrypt, decrypt, and break all 26 shifts.
+- [Affine](https://vigenere.org/affine/): (a·x + b) mod 26; encrypt, decrypt, and break all 312 keys.
 - [ROT13](https://vigenere.org/rot13/): encode and decode the self-inverse shift of 13.
 - [Atbash](https://vigenere.org/atbash/): the keyless mirror-alphabet cipher.
 - [Substitution](https://vigenere.org/substitution/): keyword-mixed alphabet, with a solver.
 - [Rail fence](https://vigenere.org/railfence/): zigzag transposition, with a rail-count solver.
 - [Columnar transposition](https://vigenere.org/transposition/): keyword column order, with a solver up to seven columns.
+- [Double transposition](https://vigenere.org/double-transposition/): columnar transposition twice with two keywords.
+- [Route](https://vigenere.org/route/): grid transposition read off in a spiral, snake, or columns, with a solver.
 - [Autokey](https://vigenere.org/autokey/): plaintext and ciphertext variants, with a solver.
 - [Quagmire I–IV](https://vigenere.org/quagmire/): keyword-mixed-alphabet periodic ciphers, with a solver for variants I-III (keyword dictionary attack first, statistical fallback).
 - [Playfair](https://vigenere.org/playfair/): digraph substitution over a keyword-mixed 5x5 square.
+- [Bifid](https://vigenere.org/bifid/): Delastelle's fractionating cipher over a 5x5 Polybius square, any period.
+- [Trifid](https://vigenere.org/trifid/): Delastelle's 3x3x3 fractionating cipher (A-Z plus +), any period.
 - [Polyalphabetic solver](https://vigenere.org/polyalphabetic/): breaks any periodic cipher, including Quagmire, without the keywords.
 - [Kryptos](https://vigenere.org/kryptos/): the CIA sculpture's ciphers, with one-click decryption of K1 and K2.
 
@@ -36,14 +45,24 @@ Tool pages accept URL query parameters and run automatically, populating the
 - Caesar: https://vigenere.org/caesar/?text=Khoor&shift=3&mode=decrypt
 - Substitution: https://vigenere.org/substitution/?text=FLEE&key=ZEBRAS&mode=encrypt
 - Autokey: https://vigenere.org/autokey/?text=NOTIFY&key=X&variant=ciphertext&mode=encrypt
+- Affine: https://vigenere.org/affine/?text=AFFINE+CIPHER&a=5&b=8&mode=encrypt
+- Bifid: https://vigenere.org/bifid/?text=UAEOLWRINS&key=BGWKZQPNDSIOAXEFCLUMTHYVR&period=0&mode=decrypt
+- Double transposition: https://vigenere.org/double-transposition/?text=CAEENSOIAEDRLEFWEDREEVTOC&key=ZEBRAS&key2=STRIPE&mode=decrypt
+- Route: https://vigenere.org/route/?text=EJXCTEDECDAEWRIORFEONALEVSE&columns=9&fill=columns&route=spiral-cw-tr&mode=decrypt
 - Analyze: https://vigenere.org/analyze/?text=LXFOPVEFRNHR
 - Break with an unknown key (any tool page, or the auto-solver on the home page): https://vigenere.org/vigenere/?text=LXFOPVEFRNHR&mode=break
 
-Parameters: `text`, `key` (or `shift` for Caesar), `mode` (encrypt, decrypt, or
+Parameters: `text`, `key` (or `shift` for Caesar, `rails` for rail fence, `a`
+and `b` for affine), `key2` (double transposition), `period` (Bifid, Trifid; 0
+for the whole message), `columns`, `fill` (rows or columns), and `route` (for
+example spiral-cw-tr, snake-rows) for the route cipher, `mode` (encrypt, decrypt, or
 break to run the page's key-recovery attack instead), `variant` (autokey:
 plaintext or ciphertext; Quagmire: 1–4), for Quagmire `keyword`, `keyword2`,
 `indicator`, and for the Quagmire and polyalphabetic breakers an optional
 `period` (key length).
+
+Decrypted output is split into words by default when it reads as English
+(a "Split into words" checkbox under each result turns this off).
 
 Note: the tools compute in the browser, so fetching a URL without executing its
 JavaScript returns the page shell, not the result.

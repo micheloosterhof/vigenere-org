@@ -1,0 +1,19 @@
+---
+// ABOUTME: Checkbox under an output field that turns word splitting of decrypted text on or off.
+// ABOUTME: Behaviour lives in word-split.ts; the form's script wires it to its output.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+---
+
+<label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+  <input
+    data-word-split
+    type="checkbox"
+    checked
+    class="h-4 w-4 accent-orange-600"
+  />
+  Split into words
+  <span class="text-slate-400 dark:text-slate-500">
+    (adds spaces when the result reads as English)
+  </span>
+</label>

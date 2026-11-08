@@ -1,6 +1,6 @@
 ---
 // ABOUTME: Key-recovery form: finds the key for ciphertext without knowing it.
-// ABOUTME: Vigenere and Beaufort recover a keyword; Caesar ranks all 26 shifts.
+// ABOUTME: Periodic ciphers recover a keyword; Caesar, affine, rail fence, and route rank every key.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,16 +8,35 @@ interface Props {
   cipher:
     | "vigenere"
     | "beaufort"
+    | "gronsfeld"
+    | "porta"
     | "caesar"
+    | "affine"
     | "substitution"
     | "railfence"
-    | "columnar";
+    | "columnar"
+    | "route";
 }
 
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 
 const { cipher } = Astro.props;
+
+const SOLVE_LABEL: Partial<Record<Props["cipher"], string>> = {
+  caesar: "Try all 26 shifts",
+  affine: "Try all 312 keys",
+  substitution: "Recover alphabet",
+  railfence: "Find rail count",
+  columnar: "Recover column order",
+  route: "Find grid and route",
+};
+const KEY_HEADING: Partial<Record<Props["cipher"], string>> = {
+  caesar: "Shift",
+  railfence: "Rails",
+  route: "Grid and route",
+};
 ---
 
 <div data-breaker={cipher} class="flex flex-col gap-4">
@@ -33,20 +52,17 @@ const { cipher } = Astro.props;
 
   <div class="flex items-center gap-3">
     <button data-solve type="button" class={buttonClass}>
-      {cipher === "caesar"
-        ? "Try all 26 shifts"
-        : cipher === "substitution"
-          ? "Recover alphabet"
-          : cipher === "railfence"
-            ? "Find rail count"
-            : cipher === "columnar"
-              ? "Recover column order"
-              : "Recover key"}
+      {SOLVE_LABEL[cipher] ?? "Recover key"}
     </button>
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-sm font-medium"></p>
@@ -54,6 +70,7 @@ const { cipher } = Astro.props;
       <span class="text-sm font-medium">Decrypted text</span>
       <textarea data-output rows="6" readonly class={fieldClass}></textarea>
     </label>
+    <WordSplitToggle />
     <div>
       <span class="text-sm font-medium">Other candidates</span>
       <div class="overflow-x-auto">
@@ -61,11 +78,7 @@ const { cipher } = Astro.props;
           <thead>
             <tr class="border-b border-slate-300 dark:border-slate-700">
               <th class="py-1 pr-4 font-medium">
-                {cipher === "caesar"
-                  ? "Shift"
-                  : cipher === "railfence"
-                    ? "Rails"
-                    : "Key"}
+                {KEY_HEADING[cipher] ?? "Key"}
               </th>
               <th class="py-1 pr-4 font-medium">Fitness</th>
               <th class="py-1 font-medium">Preview</th>
@@ -79,18 +92,30 @@ const { cipher } = Astro.props;
 </div>
 
 <script>
-  import { beaufort, caesar, substitution, vigenere } from "../lib/cipher";
+  import {
+    beaufort,
+    caesar,
+    gronsfeld,
+    porta,
+    substitution,
+    vigenere,
+  } from "../lib/cipher";
   import {
     beaufortDecrypt,
     breakPeriodic,
     caesarCandidates,
+    breakPorta,
     vigenereDecrypt,
   } from "../lib/solve";
+  import { breakAffine } from "../lib/affine";
+  import { breakRoute, FILLS, ROUTES } from "../lib/route";
   import { breakSubstitution } from "../lib/solve-substitution";
   import { breakRailFence } from "../lib/railfence";
   import { breakColumnar } from "../lib/transposition";
   import { loadQuadgramTable } from "../lib/quadgrams";
+  import { liveRegion } from "./announce";
   import { breakerShareUrl } from "./live-url";
+  import { wordSplitOutput } from "./word-split";
 
   const CANDIDATE_ROWS = 5;
   const PREVIEW_LENGTH = 40;
@@ -130,6 +155,25 @@ const { cipher } = Astro.props;
         summary: `Best rail count: ${candidate.rails}`,
       }));
     }
+    if (cipher === "affine") {
+      return breakAffine(text).map((candidate) => ({
+        label: `a=${candidate.a}, b=${candidate.b}`,
+        fitness: candidate.fitness,
+        plaintext: candidate.plaintext,
+        summary: `Best key: a = ${candidate.a}, b = ${candidate.b}`,
+      }));
+    }
+    if (cipher === "route") {
+      return breakRoute(text).map((candidate) => {
+        const setting = `${candidate.columns} columns, ${FILLS[candidate.fill].toLowerCase()}, ${ROUTES[candidate.route].toLowerCase()}`;
+        return {
+          label: setting,
+          fitness: candidate.fitness,
+          plaintext: candidate.plaintext,
+          summary: `Best grid and route: ${setting}`,
+        };
+      });
+    }
     if (cipher === "caesar") {
       return caesarCandidates(text).map((candidate) => ({
         label: String(candidate.shift),
@@ -148,6 +192,30 @@ const { cipher } = Astro.props;
           summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength})`,
         }),
       );
+    }
+    if (cipher === "porta") {
+      return breakPorta(text, periodic).map((candidate) => ({
+        label: candidate.key,
+        fitness: candidate.fitness,
+        plaintext: porta(text, candidate.key),
+        summary: `Recovered key: ${candidate.key} (length ${candidate.keyLength}). Porta pairs key letters (AB, CD, …), so each letter could equally be its partner.`,
+      }));
+    }
+    if (cipher === "gronsfeld") {
+      return breakPeriodic(text, vigenereDecrypt, {
+        ...periodic,
+        keySpace: 10,
+      }).map((candidate) => {
+        const digits = [...candidate.key]
+          .map((letter) => letter.charCodeAt(0) - 65)
+          .join("");
+        return {
+          label: digits,
+          fitness: candidate.fitness,
+          plaintext: gronsfeld(text, digits, "decrypt"),
+          summary: `Recovered key: ${digits} (length ${candidate.keyLength})`,
+        };
+      });
     }
     return breakPeriodic(text, vigenereDecrypt, periodic).map((candidate) => ({
       label: candidate.key,
@@ -179,6 +247,8 @@ const { cipher } = Astro.props;
     ) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     solve.addEventListener("click", async () => {
       error.hidden = true;
@@ -189,7 +259,8 @@ const { cipher } = Astro.props;
         const ranked = await rank(cipher, input.value);
         const best = ranked[0];
         summary.textContent = best.summary;
-        output.value = best.plaintext;
+        setOutput(best.plaintext);
+        announce(`${best.summary}. ${best.plaintext}`);
         for (const candidate of ranked.slice(1, 1 + CANDIDATE_ROWS)) {
           const row = document.createElement("tr");
           for (const text of [

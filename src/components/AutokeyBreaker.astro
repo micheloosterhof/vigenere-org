@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 ---
 
 <div data-autokey-breaker class="flex flex-col gap-4">
@@ -25,7 +26,12 @@ import ShareLink from "./ShareLink.astro";
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-sm font-medium"></p>
@@ -33,6 +39,7 @@ import ShareLink from "./ShareLink.astro";
       <span class="text-sm font-medium">Decrypted text</span>
       <textarea data-output rows="6" readonly class={fieldClass}></textarea>
     </label>
+    <WordSplitToggle />
   </div>
 </div>
 
@@ -43,6 +50,8 @@ import ShareLink from "./ShareLink.astro";
   } from "../lib/solve-autokey";
   import { loadQuadgramTable } from "../lib/quadgrams";
   import { breakerShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
+  import { wordSplitOutput } from "./word-split";
 
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-autokey-breaker]",
@@ -56,6 +65,8 @@ import ShareLink from "./ShareLink.astro";
     if (!input || !solve || !error || !result || !summary || !output) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     solve.addEventListener("click", async () => {
       error.hidden = true;
@@ -71,7 +82,8 @@ import ShareLink from "./ShareLink.astro";
         summary.textContent = plaintextWins
           ? `Plaintext autokey, primer length ${best.primerLength}.`
           : `Ciphertext autokey, primer length ${best.primerLength}; the first ~${best.primerLength} letters are reconstructed from context and may be off.`;
-        output.value = best.plaintext;
+        setOutput(best.plaintext);
+        announce(`${summary.textContent} ${best.plaintext}`);
         result.hidden = false;
       } catch (cause) {
         error.textContent =

@@ -22,6 +22,12 @@ const tools = [
     blurb: "Shift every letter by a fixed amount, or try all 26.",
   },
   {
+    href: "/affine",
+    name: "Affine cipher",
+    blurb:
+      "Multiply and shift: (a·x + b) mod 26, broken by trying all 312 keys.",
+  },
+  {
     href: "/rot13",
     name: "ROT13",
     blurb: "The self-inverse shift of 13 that hides spoilers.",
@@ -32,6 +38,16 @@ const tools = [
     blurb: "The ancient mirror alphabet: A becomes Z, B becomes Y.",
   },
   {
+    href: "/gronsfeld",
+    name: "Gronsfeld cipher",
+    blurb: "Vigenère with a numeric key: each digit is a shift.",
+  },
+  {
+    href: "/porta",
+    name: "Porta cipher",
+    blurb: "Della Porta's 13 reciprocal alphabets, with a key breaker.",
+  },
+  {
     href: "/autokey",
     name: "Autokey cipher",
     blurb: "The key never repeats: the message itself extends it.",
@@ -40,6 +56,16 @@ const tools = [
     href: "/playfair",
     name: "Playfair cipher",
     blurb: "Digraph substitution over a keyword-mixed 5×5 square.",
+  },
+  {
+    href: "/bifid",
+    name: "Bifid cipher",
+    blurb: "Delastelle's fractionation over a 5×5 Polybius square.",
+  },
+  {
+    href: "/trifid",
+    name: "Trifid cipher",
+    blurb: "Bifid in three dimensions: a 3×3×3 cube of 27 symbols.",
   },
   {
     href: "/quagmire",
@@ -60,6 +86,16 @@ const tools = [
     href: "/transposition",
     name: "Columnar transposition",
     blurb: "Keyword-ordered columns, with a column-order solver.",
+  },
+  {
+    href: "/double-transposition",
+    name: "Double transposition",
+    blurb: "Columnar transposition twice, with two keywords.",
+  },
+  {
+    href: "/route",
+    name: "Route cipher",
+    blurb: "Grid written in, read out in a spiral or snake; with a solver.",
   },
   {
     href: "/polyalphabetic",

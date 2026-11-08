@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -40,4 +41,24 @@ import CipherTool from "../components/CipherTool.astro";
       least a key — and, for real protection, modern cryptography.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "Why is ROT13 its own inverse?",
+        answer:
+          "Shifting by 13 twice shifts by 26, a full turn of the alphabet, so applying ROT13 a second time restores the original text.",
+      },
+      {
+        question: "Is ROT13 encryption?",
+        answer:
+          "Not in any meaningful sense: it has no key, so anyone can reverse it. It is used to hide spoilers, puzzle answers, and punchlines from accidental reading, a custom that began on Usenet in the 1980s.",
+      },
+      {
+        question: "Does ROT13 change digits or punctuation?",
+        answer:
+          "No. ROT13 rotates only the letters A to Z; digits, spaces, and punctuation pass through unchanged. Related schemes such as ROT5 (digits) and ROT47 (printable ASCII) rotate other characters.",
+      },
+    ]}
+  />
 </Base>

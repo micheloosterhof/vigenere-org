@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 ---
 
 <div data-autokey class="flex flex-col gap-4">
@@ -50,17 +51,25 @@ import ShareLink from "./ShareLink.astro";
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <label class="flex flex-col gap-1">
     <span class="text-sm font-medium">Result</span>
     <textarea data-output rows="6" readonly class={fieldClass}></textarea>
   </label>
+  <WordSplitToggle />
 </div>
 
 <script>
   import { autokey, type AutokeyVariant, type Mode } from "../lib/cipher";
   import { deepLink, liveShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
+  import { wordSplitOutput } from "./word-split";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-autokey]")) {
     const variant = root.querySelector<HTMLSelectElement>("[data-variant]");
@@ -71,6 +80,8 @@ import ShareLink from "./ShareLink.astro";
     if (!variant || !input || !key || !output || !error) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     let lastMode: Mode = "encrypt";
     const syncUrl = liveShareUrl(() =>
@@ -92,14 +103,16 @@ import ShareLink from "./ShareLink.astro";
       syncUrl();
       error.hidden = true;
       try {
-        output.value = autokey(
+        const result = autokey(
           input.value,
           key.value,
           variant.value as AutokeyVariant,
           mode,
         );
+        setOutput(result);
+        announce(`Result: ${result}`);
       } catch (cause) {
-        output.value = "";
+        setOutput("");
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;

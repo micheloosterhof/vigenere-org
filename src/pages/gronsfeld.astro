@@ -1,0 +1,75 @@
+---
+// ABOUTME: Gronsfeld cipher tool page: Vigenère with a numeric key, with encrypt/decrypt form and breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Gronsfeld cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the Gronsfeld cipher online, the Vigenère variant with a numeric key. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Gronsfeld cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Gronsfeld cipher is the Vigenère cipher with a number as its key: each
+    digit, 0 to 9, shifts the corresponding letter, and the digits repeat for
+    the whole message. Key 31415 shifts the first letter by 3, the second by 1,
+    and so on. Letters keep their case; spaces and punctuation are left
+    unchanged.
+  </p>
+  <CipherTool cipher="gronsfeld" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Gronsfeld ciphertext and the solver tries every key length, choosing
+    the best digit for each position by English letter-pair statistics. It needs
+    roughly four times as much text as the key is long.
+  </p>
+  <Breaker cipher="gronsfeld" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Gronsfeld cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      A Gronsfeld key of digits is the same as a Vigenère key restricted to the
+      letters A to J: the key 31415 is exactly the Vigenère key DBEBF. The
+      cipher is traditionally named after a seventeenth-century Count Gronsfeld,
+      and its appeal was practical: a number is easy to remember and to agree
+      on.
+    </p>
+    <p>
+      With only ten possible shifts per key position, it is weaker than
+      Vigenère, and every attack on Vigenère applies. The repeating key leaves
+      the periodic fingerprint that Kasiski examination and the index of
+      coincidence detect, and once the key length is known each column is a
+      Caesar cipher with only ten candidates. The solver above uses the Vigenère
+      method with its search limited to those ten digits.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "What is the Gronsfeld cipher?",
+        answer:
+          "It is a Vigenère cipher whose key is a number: each digit from 0 to 9 shifts the corresponding letter, and the digits repeat. The key 31415 is equivalent to the Vigenère key DBEBF.",
+      },
+      {
+        question: "Is the Gronsfeld cipher weaker than Vigenère?",
+        answer:
+          "Yes. Each key position allows only 10 shifts instead of 26, and the repeating key gives the same periodic weakness, so every Vigenère attack applies with a smaller search.",
+      },
+      {
+        question: "How do I break a Gronsfeld cipher?",
+        answer:
+          "Paste the ciphertext into the breaker on this page. It finds the key length and the best digit for each position from English letter statistics, and needs roughly four letters of ciphertext per key digit.",
+      },
+    ]}
+  />
+</Base>

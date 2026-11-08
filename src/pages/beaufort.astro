@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -50,4 +51,25 @@ import Breaker from "../components/Breaker.astro";
       attacks recover the key once enough ciphertext is available.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question:
+          "Why does the same operation encrypt and decrypt a Beaufort cipher?",
+        answer:
+          "Beaufort computes ciphertext = key − plaintext (mod 26). Applying it again gives key − (key − plaintext) = plaintext, so the cipher is its own inverse.",
+      },
+      {
+        question: "Is the Beaufort cipher the same as the variant Beaufort?",
+        answer:
+          "No. Variant Beaufort computes plaintext − key, which is the same as Vigenère decryption. The true Beaufort, key − plaintext, is a different, reciprocal cipher. Both fall to the same statistical attack as Vigenère.",
+      },
+      {
+        question: "Where was the Beaufort cipher used?",
+        answer:
+          "It is named after Sir Francis Beaufort, known for the Beaufort wind scale. The Hagelin M-209 cipher machine, used by the US Army in the Second World War, performed a Beaufort-type substitution with a very long, machine-generated key.",
+      },
+    ]}
+  />
 </Base>

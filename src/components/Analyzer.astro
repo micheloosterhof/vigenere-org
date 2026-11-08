@@ -25,7 +25,12 @@ import ShareLink from "./ShareLink.astro";
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <div data-result hidden class="flex flex-col gap-4">
     <p data-summary class="text-base font-medium"></p>
@@ -65,6 +70,7 @@ import ShareLink from "./ShareLink.astro";
   } from "../lib/diagnostics";
   import { toLetterValues } from "../lib/solve";
   import { liveShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -148,6 +154,7 @@ import ShareLink from "./ShareLink.astro";
     ) {
       continue;
     }
+    const announce = liveRegion(root);
 
     analyzeButton.addEventListener("click", () => {
       error.hidden = true;
@@ -156,6 +163,7 @@ import ShareLink from "./ShareLink.astro";
       try {
         const d = analyze(input.value);
         summary.textContent = FAMILY_TEXT[d.likelyFamily];
+        announce(summary.textContent);
         drawChart(chart, toLetterValues(input.value));
         const entries: [string, string, string][] = [
           ["Letters", String(d.length), "Length of the analyzed text."],

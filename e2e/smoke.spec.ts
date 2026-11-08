@@ -1,9 +1,20 @@
 // ABOUTME: End-to-end smoke tests: every page renders, the tools compute, and deep links auto-run.
-// ABOUTME: Deep-link vectors match the unit-test vectors (Kryptos K1, Vigenère LEMON).
+// ABOUTME: Deep-link vectors match the unit-test vectors; word splitting is off except where a test turns it on.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+
+// Most tests compare exact plaintexts, so they run with the word splitter off;
+// the tests of the splitter itself clear this before loading the page.
+const SPLIT_KEY = "vigenere.org:split-words";
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((key) => {
+    if (!sessionStorage.getItem("keep-split")) {
+      localStorage.setItem(key, "off");
+    }
+  }, SPLIT_KEY);
+});
 
 const pages: [string, string][] = [
   ["/", "secret message"],
@@ -19,6 +30,13 @@ const pages: [string, string][] = [
   ["/railfence/", "Rail fence cipher"],
   ["/transposition/", "Columnar transposition cipher"],
   ["/polyalphabetic/", "Polyalphabetic cipher solver"],
+  ["/affine/", "Affine cipher"],
+  ["/gronsfeld/", "Gronsfeld cipher"],
+  ["/porta/", "Porta cipher"],
+  ["/bifid/", "Bifid cipher"],
+  ["/trifid/", "Trifid cipher"],
+  ["/double-transposition/", "Double transposition cipher"],
+  ["/route/", "Route cipher"],
   ["/analyze/", "What cipher is this?"],
   ["/kryptos/", "The Kryptos sculpture"],
   ["/privacy/", "Privacy policy"],
@@ -455,4 +473,148 @@ test("deep link analyzes text on the analyze page", async ({ page }) => {
   await expect(page.locator("[data-analyzer] [data-chart] rect")).toHaveCount(
     26,
   );
+});
+
+test("decrypted text is split into words by default, and the toggle turns it off", async ({
+  page,
+}) => {
+  await page.addInitScript((key) => {
+    sessionStorage.setItem("keep-split", "1");
+    if (!localStorage.getItem("seeded")) {
+      localStorage.removeItem(key);
+      localStorage.setItem("seeded", "1");
+    }
+  }, SPLIT_KEY);
+  await page.goto("/vigenere/?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt");
+  const tool = page.locator("[data-cipher=vigenere]");
+  await expect(tool.locator("[data-output]")).toHaveValue("ATTACK AT DAWN");
+  await tool.locator("[data-word-split]").uncheck();
+  await expect(tool.locator("[data-output]")).toHaveValue("ATTACKATDAWN");
+
+  // The choice is remembered and applies to every output.
+  await page.goto("/vigenere/?text=LXFOPVEFRNHR&key=LEMON&mode=decrypt");
+  await expect(tool.locator("[data-word-split]")).not.toBeChecked();
+  await expect(tool.locator("[data-output]")).toHaveValue("ATTACKATDAWN");
+});
+
+test("results are announced to screen readers and errors are alerts", async ({
+  page,
+}) => {
+  await page.goto("/caesar/?text=Khoor&shift=3&mode=decrypt");
+  const tool = page.locator("[data-cipher=caesar]");
+  await expect(tool.getByRole("status")).toHaveText("Result: Hello");
+  await tool.locator("[data-key]").fill("99");
+  await tool.locator("[data-decrypt]").click();
+  await expect(tool.getByRole("alert")).toContainText("shift must be");
+});
+
+const newToolLinks: [string, string, string][] = [
+  [
+    "affine",
+    "/affine/?text=AFFINE%20CIPHER&a=5&b=8&mode=encrypt",
+    "IHHWVC SWFRCP",
+  ],
+  [
+    "gronsfeld",
+    "/gronsfeld/?text=Attack%20at%20dawn&key=31415&mode=encrypt",
+    "Duxbhn bx efzo",
+  ],
+  [
+    "porta",
+    "/porta/?text=abcdefghijklmnopqrstuvwxyz&key=HELLO",
+    "qquvyvvznqnnrihmbmamegefej",
+  ],
+  [
+    "bifid",
+    "/bifid/?text=UAEOLWRINS&key=BGWKZQPNDSIOAXEFCLUMTHYVR&period=0&mode=decrypt",
+    "FLEEATONCE",
+  ],
+  [
+    "trifid",
+    "/trifid/?text=FMJFVOISSUFTFPUFEQQC&key=FELIX%20MARIE%20DELASTELLE&period=5&mode=decrypt",
+    "AIDETOILECIELTAIDERA",
+  ],
+  [
+    "double",
+    "/double-transposition/?text=CAEENSOIAEDRLEFWEDREEVTOC&key=ZEBRAS&key2=STRIPE&mode=decrypt",
+    "WEAREDISCOVEREDFLEEATONCE",
+  ],
+  [
+    "route",
+    "/route/?text=EJXCTEDECDAEWRIORFEONALEVSE&columns=9&fill=columns&route=spiral-cw-tr&mode=decrypt",
+    "WEAREDISCOVEREDFLEEATONCEJX",
+  ],
+];
+
+for (const [cipher, link, expected] of newToolLinks) {
+  test(`deep link runs the ${cipher} tool`, async ({ page }) => {
+    await page.goto(link);
+    await expect(
+      page.locator(`[data-cipher=${cipher}] [data-output]`),
+    ).toHaveValue(expected);
+  });
+}
+
+const ENGLISH =
+  "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
+  "THIRTEEN WINSTON SMITH SLIPPED QUICKLY THROUGH THE GLASS DOORS";
+
+for (const [cipher, path, keyQuery, expected] of [
+  ["affine", "/affine/", "a=5&b=8&mode=encrypt", "Best key: a = 5, b = 8"],
+  // Porta pairs key letters, so SUN comes back as SUM (M and N share a tableau).
+  ["porta", "/porta/", "key=SUN", "Recovered key: SUM"],
+  [
+    "route",
+    "/route/",
+    "columns=10&fill=rows&route=spiral-ccw-br&mode=encrypt",
+    "Best grid and route",
+  ],
+] as const) {
+  test(`the ${cipher} breaker recovers the plaintext`, async ({ page }) => {
+    await page.goto(`${path}?text=${encodeURIComponent(ENGLISH)}&${keyQuery}`);
+    const ciphertext = await page
+      .locator(`[data-cipher=${cipher}] [data-output]`)
+      .inputValue();
+    expect(ciphertext).not.toBe("");
+    const breaker = page.locator(`[data-breaker=${cipher}]`);
+    await breaker.locator("[data-input]").fill(ciphertext);
+    await breaker.locator("[data-solve]").click();
+    await expect(breaker.locator("[data-summary]")).toContainText(expected, {
+      timeout: 30_000,
+    });
+    const recovered = await breaker.locator("[data-output]").inputValue();
+    expect(recovered.replace(/[^A-Z]/g, "")).toContain(
+      ENGLISH.replace(/[^A-Z]/g, ""),
+    );
+  });
+}
+
+test("cipher pages carry a visible FAQ and matching FAQPage JSON-LD", async ({
+  page,
+}) => {
+  await page.goto("/porta/");
+  const faq = page.locator("[data-faq]");
+  await expect(faq.locator("h2")).toHaveText("Frequently asked questions");
+  const data = JSON.parse(
+    (await faq.locator('script[type="application/ld+json"]').textContent()) ??
+      "{}",
+  );
+  expect(data["@type"]).toBe("FAQPage");
+  const firstQuestion = await faq.locator("h3").first().textContent();
+  expect(data.mainEntity[0].name).toBe(firstQuestion?.trim());
+});
+
+test("the grouped navigation opens a family menu", async ({ page }) => {
+  await page.goto("/");
+  const route = page.getByRole("link", { name: "Route", exact: true });
+  await expect(route).toBeHidden();
+  await page.getByText("Transposition ▾").click();
+  await expect(route).toBeVisible();
+  await expect(route).toHaveAttribute("href", "/route");
+  // Opening another family closes the first.
+  await page.getByText("Polygraphic ▾").click();
+  await expect(route).toBeHidden();
+  await expect(
+    page.getByRole("link", { name: "Bifid", exact: true }),
+  ).toBeVisible();
 });

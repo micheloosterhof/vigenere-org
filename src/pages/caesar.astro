@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -49,4 +50,24 @@ import Breaker from "../components/Breaker.astro";
       position.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "How many keys does the Caesar cipher have?",
+        answer:
+          "There are 26 shifts, one of which (shift 0) leaves the text unchanged, so 25 real keys. The breaker on this page tries all of them and ranks the results by how English they look.",
+      },
+      {
+        question: "Why is it called the Caesar cipher?",
+        answer:
+          "The Roman historian Suetonius reports that Julius Caesar wrote confidential letters with each letter replaced by the one three places further along the alphabet.",
+      },
+      {
+        question: "How is the Caesar cipher related to ROT13 and Vigenère?",
+        answer:
+          "ROT13 is the Caesar cipher with a shift of 13. A Vigenère cipher with a one-letter key is a Caesar cipher, and a Vigenère cipher with a longer key is a sequence of interleaved Caesar ciphers.",
+      },
+    ]}
+  />
 </Base>

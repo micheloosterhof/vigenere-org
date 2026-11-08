@@ -1,0 +1,63 @@
+---
+// ABOUTME: Trifid cipher tool page with keyword cube, period, and encrypt/decrypt form.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Trifid cipher — encrypt and decrypt online"
+  description="Encrypt and decrypt the Trifid cipher online, Delastelle's three-dimensional fractionating cipher, with any keyword and period. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Trifid cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Trifid cipher places 27 symbols, the letters A to Z and a plus sign, in
+    a 3×3×3 cube built from a keyword. Each symbol becomes three digits (layer,
+    row, column); within each block of symbols (the period) the three lines of
+    digits are read in turn and regrouped into triples. The output is uppercase
+    letters and +; other characters are dropped.
+  </p>
+  <CipherTool cipher="trifid" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Trifid cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      Félix Delastelle published the Trifid cipher in his Traité élémentaire de
+      cryptographie in 1902, as the three-dimensional extension of his Bifid
+      cipher. Splitting each symbol into three coordinates instead of two
+      spreads it further: each ciphertext symbol can depend on three plaintext
+      symbols, which is the property later formalized as diffusion.
+    </p>
+    <p>
+      The 27th cell needs a symbol beyond the alphabet; this tool uses +, other
+      sources use a full stop or #, so check which one a puzzle expects. The
+      default period of 5 matches common worked examples, including the FELIX
+      MARIE DELASTELLE example. Like Bifid, Trifid resists frequency counting
+      but falls to statistical hill climbing over keys once the period is known.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the Trifid cipher work?",
+        answer:
+          "Each of 27 symbols has a layer, row, and column in a 3 × 3 × 3 cube built from a keyword. Within each block of symbols, the three lines of digits are read in turn and regrouped into triples, each of which names a ciphertext symbol.",
+      },
+      {
+        question: "What is the 27th symbol in the Trifid cipher?",
+        answer:
+          "The cube has 27 cells and the alphabet 26 letters, so one extra symbol is needed. This tool uses +; other sources use a full stop or #.",
+      },
+      {
+        question: "How is Trifid different from Bifid?",
+        answer:
+          "Bifid splits each letter into two coordinates in a 5 × 5 square, Trifid into three in a 3 × 3 × 3 cube. Each Trifid ciphertext symbol can depend on three plaintext symbols, which spreads the message's statistics further.",
+      },
+    ]}
+  />
+</Base>

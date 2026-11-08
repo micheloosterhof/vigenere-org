@@ -5,6 +5,7 @@
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
 import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -60,4 +61,29 @@ import Breaker from "../components/Breaker.astro";
       from ciphertext only four times as long as the key itself.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "How do I decrypt a Vigenère cipher without the key?",
+        answer:
+          "Paste the ciphertext into the breaker on this page. It tries every key length up to 30, picks the most English-like key for each length from letter-pair statistics, and polishes the best key with four-letter statistics. It needs roughly four letters of ciphertext per key letter.",
+      },
+      {
+        question: "Who invented the Vigenère cipher?",
+        answer:
+          "Giovan Battista Bellaso described it in 1553. It was later misattributed to Blaise de Vigenère, who in 1586 published a stronger autokey cipher, and the name stuck.",
+      },
+      {
+        question: "Is the Vigenère cipher secure?",
+        answer:
+          "No. Friedrich Kasiski published a general attack in 1863, and modern statistical solvers recover the key from a few hundred letters or fewer. It is suited to puzzles and teaching, not to protecting secrets.",
+      },
+      {
+        question: "What is the difference between Vigenère and Beaufort?",
+        answer:
+          "Vigenère adds the key letter to the plaintext letter; Beaufort subtracts the plaintext letter from the key letter. Beaufort is therefore its own inverse, so one operation encrypts and decrypts, while Vigenère has separate encrypt and decrypt directions.",
+      },
+    ]}
+  />
 </Base>

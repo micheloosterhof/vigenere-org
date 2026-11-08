@@ -1,0 +1,82 @@
+---
+// ABOUTME: Porta cipher tool page with reciprocal encrypt/decrypt form and periodic key breaker.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import Base from "../layouts/Base.astro";
+import CipherTool from "../components/CipherTool.astro";
+import Breaker from "../components/Breaker.astro";
+import Faq from "../components/Faq.astro";
+---
+
+<Base
+  title="Porta cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the Porta cipher online, della Porta's reciprocal 13-alphabet polyalphabetic cipher. Runs in your browser."
+>
+  <h1 class="mb-4 text-3xl font-bold tracking-tight">Porta cipher</h1>
+  <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
+    The Porta cipher uses thirteen alphabets, one for each pair of key letters
+    (AB, CD, … YZ). Each alphabet swaps the first half of the alphabet with the
+    second, shifted by the pair's position, so one operation both encrypts and
+    decrypts. Letters keep their case; spaces and punctuation are left
+    unchanged.
+  </p>
+  <CipherTool cipher="porta" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Porta ciphertext and the solver tries every key length, choosing the
+    best alphabet for each position by English letter-pair statistics. Because A
+    and B select the same alphabet, the recovered key names one letter of each
+    pair; either letter decrypts the same.
+  </p>
+  <Breaker cipher="porta" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    About the Porta cipher
+  </h2>
+  <div class="flex max-w-prose flex-col gap-4 text-slate-600 dark:text-slate-400">
+    <p>
+      Giovanni Battista della Porta described the cipher in De Furtivis
+      Literarum Notis in 1563, one of the earliest printed treatments of
+      polyalphabetic encryption. His tableau has thirteen rows instead of
+      Vigenère's twenty-six, labelled by letter pairs, and every row is
+      reciprocal: if A becomes N under a row, N becomes A under the same row. A
+      correspondent therefore needs no separate decryption table.
+    </p>
+    <p>
+      The reciprocal design has a cost. A letter from A to M always encrypts to
+      a letter from N to Z and vice versa, so no letter ever encrypts to itself
+      or to anything in its own half, which leaks information. The repeating key
+      also gives Porta the same periodic weakness as Vigenère, which is why the
+      same family of solvers, period detection followed by per-column
+      statistics, breaks it.
+    </p>
+  </div>
+
+  <Faq
+    items={[
+      {
+        question: "How does the Porta cipher work?",
+        answer:
+          "Pairs of key letters (AB, CD, … YZ) select one of 13 alphabets. Each alphabet maps the letters A–M onto N–Z, shifted by the pair's position, and back again, so encrypting twice with the same key returns the plaintext.",
+      },
+      {
+        question: "Who invented the Porta cipher?",
+        answer:
+          "Giovanni Battista della Porta described it in De Furtivis Literarum Notis, published in 1563.",
+      },
+      {
+        question: "Why does the breaker give a key that differs from mine?",
+        answer:
+          "A and B select the same alphabet, as do C and D, and so on. The ciphertext cannot reveal which letter of a pair was used, so the breaker names one letter of each pair; that key decrypts the message exactly as the original does.",
+      },
+      {
+        question: "What is the weakness of the Porta cipher?",
+        answer:
+          "Besides its repeating key, a letter from A to M always encrypts to a letter from N to Z and vice versa. No letter ever encrypts to itself, which gives a cryptanalyst extra constraints.",
+      },
+    ]}
+  />
+</Base>

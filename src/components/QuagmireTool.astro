@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
 import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
 ---
 
 <div data-quagmire class="flex flex-col gap-4">
@@ -80,18 +81,26 @@ import ShareLink from "./ShareLink.astro";
     <ShareLink />
   </div>
 
-  <p data-error hidden class="text-sm text-red-600 dark:text-red-400"></p>
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
 
   <label class="flex flex-col gap-1">
     <span class="text-sm font-medium">Result</span>
     <textarea data-output rows="6" readonly class={fieldClass}></textarea>
   </label>
+  <WordSplitToggle />
 </div>
 
 <script>
   import type { Mode } from "../lib/cipher";
   import { quagmire, type QuagmireVariant } from "../lib/quagmire";
   import { deepLink, liveShareUrl } from "./live-url";
+  import { liveRegion } from "./announce";
+  import { wordSplitOutput } from "./word-split";
 
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-quagmire]",
@@ -118,6 +127,8 @@ import ShareLink from "./ShareLink.astro";
     ) {
       continue;
     }
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
 
     const syncVariant = (): void => {
       keyword2Row.hidden = variant.value !== "4";
@@ -149,7 +160,7 @@ import ShareLink from "./ShareLink.astro";
       syncUrl();
       error.hidden = true;
       try {
-        output.value = quagmire(
+        const result = quagmire(
           input.value,
           {
             variant: Number(variant.value) as QuagmireVariant,
@@ -160,8 +171,10 @@ import ShareLink from "./ShareLink.astro";
           },
           mode,
         );
+        setOutput(result);
+        announce(`Result: ${result}`);
       } catch (cause) {
-        output.value = "";
+        setOutput("");
         error.textContent =
           cause instanceof Error ? cause.message : String(cause);
         error.hidden = false;

@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -43,4 +44,24 @@ import CipherTool from "../components/CipherTool.astro";
       a solver is on this site's roadmap.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "Why are I and J merged in the Playfair cipher?",
+        answer:
+          "The square has 5 × 5 = 25 cells, one short of the alphabet, so two letters share a cell. Merging J into I is the usual convention, because J is rare and reads naturally as I.",
+      },
+      {
+        question: "Who invented the Playfair cipher?",
+        answer:
+          "Charles Wheatstone invented it in 1854. It carries the name of Lord Lyon Playfair, who promoted its use by the British government.",
+      },
+      {
+        question: "Why does decrypted Playfair text contain extra X letters?",
+        answer:
+          "Before encrypting, doubled letters in the same pair are split with a filler (X, or Q when the letter is X) and an odd-length message is padded. Decryption returns those fillers; remove them by reading the text.",
+      },
+    ]}
+  />
 </Base>

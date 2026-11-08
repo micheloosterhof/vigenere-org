@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import PolyBreaker from "../components/PolyBreaker.astro";
+import Faq from "../components/Faq.astro";
 ---
 
 <Base
@@ -44,4 +45,24 @@ import PolyBreaker from "../components/PolyBreaker.astro";
       stragglers by hand.
     </p>
   </div>
+
+  <Faq
+    items={[
+      {
+        question: "Which ciphers can the polyalphabetic solver break?",
+        answer:
+          "Any periodic substitution cipher, where a repeating key cycles through a fixed set of alphabets, including Vigenère, Beaufort, Gronsfeld, Porta, and Quagmire I–IV, even when the alphabets are fully mixed.",
+      },
+      {
+        question: "How much ciphertext does it need?",
+        answer:
+          "Each key position is solved as its own substitution cipher, so it needs about 200 letters or more per key position: roughly 1,200 letters for a key of length 6.",
+      },
+      {
+        question: "How does it find the key length?",
+        answer:
+          "It measures the index of coincidence of every second, third, fourth letter, and so on. At the true key length each column is a single substitution and shows English-like letter repetition.",
+      },
+    ]}
+  />
 </Base>
