@@ -1,9 +1,9 @@
-// ABOUTME: Minimal static file server for the Playwright suite: serves dist/ with the 404 page.
-// ABOUTME: Stays in the foreground so Playwright's webServer can manage its lifetime.
+// ABOUTME: Minimal static file server for the Playwright suite: serves dist/ with the 404 page,
+// ABOUTME: redirecting /page to /page/ for directories as GitHub Pages does.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { extname, join, normalize } from "node:path";
 
@@ -18,11 +18,24 @@ const types = {
   ".txt": "text/plain",
 };
 
+async function isDirectory(file) {
+  try {
+    return (await stat(file)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// Stays in the foreground so Playwright's webServer can manage its lifetime.
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
   let path = normalize(url.pathname).replaceAll("..", "");
   if (path.endsWith("/")) {
     path = join(path, "index.html");
+  } else if (await isDirectory(join(root, path))) {
+    response.writeHead(301, { location: `${path}/${url.search}` });
+    response.end();
+    return;
   }
   try {
     const body = await readFile(join(root, path));

@@ -617,4 +617,14 @@ test("the grouped navigation opens a family menu", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "Bifid", exact: true }),
   ).toBeVisible();
+
+  // Unslashed links work as on GitHub Pages, keeping the query string.
+  await page.getByRole("link", { name: "Bifid", exact: true }).click();
+  await expect(page).toHaveURL(/\/bifid\/$/);
+  await expect(page.locator("h1")).toContainText("Bifid cipher");
+  await page.goto("/caesar?text=Khoor&shift=3&mode=decrypt");
+  await expect(page).toHaveURL(/\/caesar\/\?text=Khoor/);
+  await expect(page.locator("[data-cipher=caesar] [data-output]")).toHaveValue(
+    "Hello",
+  );
 });
