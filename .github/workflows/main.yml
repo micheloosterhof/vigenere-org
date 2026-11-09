@@ -1,10 +1,16 @@
+# ABOUTME: Deploys the site to GitHub Pages once CI has passed on main, building exactly the commit CI tested.
+# ABOUTME: A manual run (workflow_dispatch) deploys the current main without waiting for CI.
+# SPDX-FileCopyrightText: 2026 Michel Oosterhof
+# SPDX-License-Identifier: CC0-1.0
 name: Deploy to GitHub Pages
 
 on:
-  # Trigger the workflow every time you push to the `main` branch
-  # Using a different branch name? Replace `main` with your branch’s name
-  push:
-    branches: [ main ]
+  # Deploy only after the CI workflow finishes for a push to main; the job
+  # condition below skips runs where CI failed or was cancelled.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -21,10 +27,17 @@ concurrency:
 
 jobs:
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v7
+        with:
+          # The commit CI tested, not whatever main points to by now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Install, build, and upload your site
         uses: withastro/action@v6
         env:

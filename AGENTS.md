@@ -2,9 +2,10 @@
 
 Cipher tool website for vigenere.org: encrypt, decrypt, and break classical
 ciphers, in the style of dcode.fr. Static Astro site; all cipher logic runs
-client-side in the browser. Deployed to GitHub Pages by
-`.github/workflows/main.yml` on push to `main`; `ci.yml` runs formatting,
-lint, and tests.
+client-side in the browser. `ci.yml` runs formatting, lint, build, unit
+tests, and e2e on every push and PR; `.github/workflows/main.yml` deploys to
+GitHub Pages only after CI passes for a push to `main` (via `workflow_run`,
+building the commit CI tested), or on a manual run.
 
 ## Structure
 
@@ -55,7 +56,8 @@ lint, and tests.
   section that also emits FAQPage JSON-LD.
 - `e2e/` — Playwright smoke tests (`make e2e`): every page renders, the
   tools compute, and the documented deep links auto-run against the
-  production build.
+  production build, served by `e2e/server.mjs` (redirects `/page` to
+  `/page/` like GitHub Pages).
 - `src/lib/polyalphabetic-pool.ts` — spreads the polyalphabetic solver's
   restarts over a pool of workers; the auto-solver and Quagmire workers
   take it as an injected `solvePolyalphabetic`, and run it as nested
