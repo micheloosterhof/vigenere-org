@@ -1,0 +1,249 @@
+---
+// ABOUTME: Breaker form for Bifid, Trifid, and double transposition; anneals keys across a pool of Web Workers.
+// ABOUTME: Shows progress with a Stop button, then the best decryption and the recovered key.
+// SPDX-FileCopyrightText: 2026 Michel Oosterhof
+// SPDX-License-Identifier: BSD-3-Clause
+import { buttonClass, fieldClass, secondaryButtonClass } from "../styles/form";
+import ShareLink from "./ShareLink.astro";
+import WordSplitToggle from "./WordSplitToggle.astro";
+
+interface Props {
+  cipher: "bifid" | "trifid" | "double";
+}
+
+const { cipher } = Astro.props;
+const fractionation = cipher !== "double";
+---
+
+<div data-anneal-breaker={cipher} class="flex flex-col gap-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Ciphertext</span>
+    <textarea
+      data-input
+      rows="6"
+      class={fieldClass}
+      placeholder="Paste ciphertext with an unknown key"
+    ></textarea>
+  </label>
+
+  {fractionation ? (
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Period (leave empty to detect)</span>
+      <input
+        data-field="period"
+        type="number"
+        min="0"
+        max="99"
+        class={`${fieldClass} max-w-32`}
+      />
+      <span class="text-xs text-slate-500 dark:text-slate-400">
+        0 means the whole message is one block
+      </span>
+    </label>
+  ) : (
+    <div class="flex flex-wrap gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-sm font-medium">First key length</span>
+        <input
+          data-field="length1"
+          type="number"
+          min="2"
+          max="20"
+          class={`${fieldClass} max-w-32`}
+        />
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-sm font-medium">Second key length</span>
+        <input
+          data-field="length2"
+          type="number"
+          min="2"
+          max="20"
+          class={`${fieldClass} max-w-32`}
+        />
+      </label>
+    </div>
+  )}
+
+  <div class="flex flex-col gap-3">
+    <div class="flex items-center gap-3">
+      <button data-solve type="button" class={buttonClass}>
+        Recover key
+      </button>
+      <button data-stop type="button" hidden class={secondaryButtonClass}>
+        Stop
+      </button>
+      <ShareLink />
+    </div>
+    <div
+      data-progress
+      hidden
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      class="flex max-w-sm flex-col gap-1"
+    >
+      <span
+        data-progress-text
+        class="text-sm text-slate-500 dark:text-slate-400"
+      ></span>
+      <div class="h-1.5 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950">
+        <div
+          data-progress-bar
+          class="h-full w-0 rounded-full bg-orange-600 transition-all duration-300 dark:bg-orange-400"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <p
+    data-error
+    hidden
+    role="alert"
+    class="text-sm text-red-600 dark:text-red-400"
+  ></p>
+
+  <div data-result hidden class="flex flex-col gap-4">
+    <p data-summary class="text-sm font-medium"></p>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Decrypted text</span>
+      <textarea data-output rows="6" readonly class={fieldClass}></textarea>
+    </label>
+    <WordSplitToggle />
+  </div>
+</div>
+
+<script>
+  import {
+    planJobs,
+    type AnnealJobResult,
+    type AnnealRequest,
+  } from "../lib/anneal-jobs";
+  import { runAnnealPool, type AnnealPoolRun } from "../lib/anneal-pool";
+  import { loadQuadgramTable } from "../lib/quadgrams";
+  import { liveRegion } from "./announce";
+  import { breakerShareUrl } from "./live-url";
+  import { wordSplitOutput } from "./word-split";
+
+  function describe(result: AnnealJobResult): string {
+    const verdict = result.english
+      ? "Recovered"
+      : "No English decryption found; best attempt";
+    if (result.cipher === "double") {
+      return `${verdict}: first key ${result.firstKey}, second key ${result.secondKey} (canonical keywords that decrypt in the form above).`;
+    }
+    const period =
+      result.period === 0 ? "whole message" : `period ${result.period}`;
+    const grid = result.cipher === "bifid" ? "square" : "cube";
+    return `${verdict}: ${period}, ${grid} ${result.key} (usable as the key above).`;
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-anneal-breaker]",
+  )) {
+    const cipher = root.dataset.annealBreaker as "bifid" | "trifid" | "double";
+    const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
+    const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
+    const stopButton = root.querySelector<HTMLButtonElement>("[data-stop]");
+    const progress = root.querySelector<HTMLElement>("[data-progress]");
+    const progressText = root.querySelector<HTMLElement>(
+      "[data-progress-text]",
+    );
+    const progressBar = root.querySelector<HTMLElement>("[data-progress-bar]");
+    const error = root.querySelector<HTMLParagraphElement>("[data-error]");
+    const result = root.querySelector<HTMLElement>("[data-result]");
+    const summary = root.querySelector<HTMLParagraphElement>("[data-summary]");
+    const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
+    if (
+      !input ||
+      !solve ||
+      !stopButton ||
+      !progress ||
+      !progressText ||
+      !progressBar ||
+      !error ||
+      !result ||
+      !summary ||
+      !output
+    ) {
+      continue;
+    }
+    const fields = [...root.querySelectorAll<HTMLInputElement>("[data-field]")];
+    const field = (name: string): string =>
+      fields.find((f) => f.dataset.field === name)?.value.trim() ?? "";
+    const setOutput = wordSplitOutput(root, output);
+    const announce = liveRegion(root);
+    let run: AnnealPoolRun | null = null;
+
+    const setProgress = (label: string, fraction: number): void => {
+      progressText.textContent = label;
+      const percent = Math.round(fraction * 100);
+      progressBar.style.width = `${Math.max(4, percent)}%`;
+      progress.setAttribute("aria-valuenow", String(percent));
+    };
+
+    const request = (): AnnealRequest => {
+      if (cipher === "double") {
+        const firstLength = Number(field("length1"));
+        const secondLength = Number(field("length2"));
+        if (!field("length1") || !field("length2")) {
+          throw new Error(
+            "enter both key lengths (the number of columns of each key)",
+          );
+        }
+        return { cipher, firstLength, secondLength };
+      }
+      const period = field("period");
+      return period === "" ? { cipher } : { cipher, periods: [Number(period)] };
+    };
+
+    solve.addEventListener("click", async () => {
+      error.hidden = true;
+      result.hidden = true;
+      solve.disabled = true;
+      try {
+        const jobs = planJobs(
+          input.value,
+          request(),
+          Math.floor(Math.random() * 2 ** 31),
+        );
+        setProgress("Loading language data…", 0);
+        progress.hidden = false;
+        const table = await loadQuadgramTable();
+        stopButton.hidden = false;
+        run = runAnnealPool(input.value, table, jobs, (p) =>
+          setProgress(
+            `Annealing… ${p.jobsDone} of ${p.jobs} attempts finished`,
+            p.fraction,
+          ),
+        );
+        const best = await run.result;
+        if (best === null) {
+          throw new Error("stopped before any attempt finished");
+        }
+        summary.textContent = describe(best);
+        setOutput(best.plaintext);
+        announce(`${summary.textContent} ${best.plaintext}`);
+        result.hidden = false;
+      } catch (cause) {
+        error.textContent =
+          cause instanceof Error ? cause.message : String(cause);
+        error.hidden = false;
+      } finally {
+        run = null;
+        solve.disabled = false;
+        stopButton.hidden = true;
+        progress.hidden = true;
+      }
+    });
+
+    stopButton.addEventListener("click", () => run?.stop());
+
+    // Deep link: /bifid?text=...&period=5&mode=break
+    breakerShareUrl(
+      input,
+      solve,
+      fields.map((f): [string, HTMLInputElement] => [f.dataset.field ?? "", f]),
+    );
+  }
+</script>

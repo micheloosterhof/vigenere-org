@@ -24,6 +24,18 @@ building the commit CI tested), or on a manual run.
     with an exhaustive breaker over grid widths and routes.
   - `solve.ts` — periodic key recovery via bigram fitness (Guballa method);
     `keySpace` limits Gronsfeld to digits, `breakPorta` caps key length.
+  - `anneal.ts` — simulated annealing core (linear cooling, early exit at
+    a target score, seeded rng) plus quadgram scoring that skips non-letters.
+  - `solve-fractionation.ts` — Bifid/Trifid breaker: a pair index of
+    coincidence ranks the periods, then the square or cube is annealed.
+    Needs 100+ letters (refused below: random text overfits toward English).
+  - `solve-double-transposition.ts` — anneals both column orders at given
+    key lengths, then tries all cyclic column rotations (a rotated
+    plaintext scores almost as well as the true one).
+  - `anneal-jobs.ts` / `anneal-pool.ts` / `anneal.worker.ts` — the three
+    annealing breakers split into seeded jobs (best period first), run on a
+    pool of workers that stops at the first English decryption or on Stop.
+    Settings (iterations, restarts, temperature) were chosen by benchmark.
   - `segment.ts` — word segmentation (Zipf costs over the word list plus
     inflections and unknown chunks) behind the "Split into words" toggle.
   - `solve-substitution.ts` — quadgram hill climb for one mixed alphabet.

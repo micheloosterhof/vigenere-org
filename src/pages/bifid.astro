@@ -1,15 +1,16 @@
 ---
-// ABOUTME: Bifid cipher tool page with keyword square, period, and encrypt/decrypt form.
+// ABOUTME: Bifid cipher tool page with encrypt/decrypt form and a square-recovering breaker.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import AnnealBreaker from "../components/AnnealBreaker.astro";
 import Faq from "../components/Faq.astro";
 ---
 
 <Base
-  title="Bifid cipher — encrypt and decrypt online"
-  description="Encrypt and decrypt the Bifid cipher online with a keyword-mixed 5x5 Polybius square and any period. Runs in your browser."
+  title="Bifid cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the Bifid cipher online: any keyword square and period, with a solver that recovers the square. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Bifid cipher</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
@@ -20,6 +21,19 @@ import Faq from "../components/Faq.astro";
     spaces and punctuation are dropped.
   </p>
   <CipherTool cipher="bifid" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Bifid ciphertext and the solver finds the period from letter-pair
+    statistics, then searches for the square by simulated annealing, scoring
+    each attempt by how English the decryption reads. Attempts run in parallel
+    on your processor cores and stop as soon as one reads as English. It needs
+    about 200 letters, more for long periods; leave the period empty to detect
+    it.
+  </p>
+  <AnnealBreaker cipher="bifid" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the Bifid cipher
@@ -37,11 +51,11 @@ import Faq from "../components/Faq.astro";
     <p>
       The period controls how far the mixing reaches. With a period of 5,
       coordinates are shuffled only within blocks of five letters; a period of 0
-      here treats the whole message as one block. Bifid is still breakable: with
-      a known or guessed period, a hill climb over candidate squares, scored by
-      English letter statistics, recovers the key from a few hundred letters.
-      The American Cryptogram Association includes it among its standard cipher
-      types.
+      here treats the whole message as one block. Bifid is still breakable, as
+      the solver above shows: with a known or guessed period, a search over
+      candidate squares, scored by English letter statistics, recovers the key
+      from a few hundred letters. The American Cryptogram Association includes
+      it among its standard cipher types.
     </p>
   </div>
 
@@ -60,7 +74,7 @@ import Faq from "../components/Faq.astro";
       {
         question: "Why is Bifid harder to break than a simple substitution?",
         answer:
-          "Each ciphertext letter combines coordinates from two different plaintext letters, so letter frequencies no longer map one to one. It is still breakable: with the period known, hill climbing over squares recovers the key from a few hundred letters.",
+          "Each ciphertext letter combines coordinates from two different plaintext letters, so letter frequencies no longer map one to one. It is still breakable: the period shows in letter-pair statistics, and a search over squares then recovers the key from about 200 letters, as the solver on this page does.",
       },
     ]}
   />

@@ -1,15 +1,16 @@
 ---
-// ABOUTME: Trifid cipher tool page with keyword cube, period, and encrypt/decrypt form.
+// ABOUTME: Trifid cipher tool page with encrypt/decrypt form and a cube-recovering breaker.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import AnnealBreaker from "../components/AnnealBreaker.astro";
 import Faq from "../components/Faq.astro";
 ---
 
 <Base
-  title="Trifid cipher — encrypt and decrypt online"
-  description="Encrypt and decrypt the Trifid cipher online, Delastelle's three-dimensional fractionating cipher, with any keyword and period. Runs in your browser."
+  title="Trifid cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the Trifid cipher online, Delastelle's three-dimensional fractionating cipher, with any keyword and period. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Trifid cipher</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
@@ -20,6 +21,18 @@ import Faq from "../components/Faq.astro";
     letters and +; other characters are dropped.
   </p>
   <CipherTool cipher="trifid" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Trifid ciphertext and the solver ranks the likely periods from
+    symbol-pair statistics, then searches for the cube by simulated annealing in
+    parallel on your processor cores. Trifid is much harder than Bifid: expect
+    to need 350 letters or more and up to a minute; giving the period, if you
+    know it, saves most of that time.
+  </p>
+  <AnnealBreaker cipher="trifid" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the Trifid cipher
@@ -37,7 +50,8 @@ import Faq from "../components/Faq.astro";
       sources use a full stop or #, so check which one a puzzle expects. The
       default period of 5 matches common worked examples, including the FELIX
       MARIE DELASTELLE example. Like Bifid, Trifid resists frequency counting
-      but falls to statistical hill climbing over keys once the period is known.
+      but falls to a statistical search over cubes, as the solver above shows,
+      given a few hundred symbols of ciphertext.
     </p>
   </div>
 

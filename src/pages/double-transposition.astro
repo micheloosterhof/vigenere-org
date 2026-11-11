@@ -1,15 +1,16 @@
 ---
-// ABOUTME: Double transposition tool page: columnar transposition applied twice with two keywords.
+// ABOUTME: Double transposition tool page: encrypt/decrypt with two keywords, and a breaker given the key lengths.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import AnnealBreaker from "../components/AnnealBreaker.astro";
 import Faq from "../components/Faq.astro";
 ---
 
 <Base
-  title="Double transposition cipher — encrypt and decrypt online"
-  description="Encrypt and decrypt the double transposition cipher online: columnar transposition applied twice with two keywords. Runs in your browser."
+  title="Double transposition cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the double transposition cipher online: columnar transposition applied twice with two keywords. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">
     Double transposition cipher
@@ -22,6 +23,18 @@ import Faq from "../components/Faq.astro";
     last row may be incomplete (no padding).
   </p>
   <CipherTool cipher="double" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the keys
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Give the two key lengths and paste the ciphertext; the solver searches both
+    column orders at once by simulated annealing, in parallel on your processor
+    cores, and stops when the decryption reads as English. It works best on
+    letters-only ciphertext of 200 letters or more; keys up to about seven
+    columns are found quickly, longer keys need more text and several attempts.
+  </p>
+  <AnnealBreaker cipher="double" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the double transposition cipher
@@ -46,10 +59,10 @@ import Faq from "../components/Faq.astro";
       It was broken in practice, but mainly through operational mistakes:
       several messages of the same length under the same keys can be anagrammed
       together, and a guessed plaintext fragment constrains both permutations.
-      Modern statistical attacks need long ciphertexts and substantial
-      computation, which is why this page offers encryption and decryption only
-      and no automatic breaker. Using the same keyword twice is allowed but
-      makes the system weaker.
+      Modern statistical attacks, like the solver above, search both column
+      orders at once; they need the key lengths, or a search over them, and a
+      few hundred letters. Using the same keyword twice is allowed but makes the
+      system weaker.
     </p>
   </div>
 
@@ -66,9 +79,9 @@ import Faq from "../components/Faq.astro";
           "It resists hand solution far better than single transposition and served armies and agents through both world wars. It was broken mainly through key reuse: several messages of the same length under the same keys can be solved together.",
       },
       {
-        question: "Why is there no breaker on this page?",
+        question: "How do I break a double transposition without the keys?",
         answer:
-          "The key is a pair of permutations, so the search space is the product of both. Breaking it needs long ciphertexts and statistical search, which this site does not offer yet.",
+          "Enter the two key lengths in the breaker on this page. It searches both column orders together by simulated annealing, scoring each attempt by how English the decryption reads. Keys up to about seven columns fall from 200 letters; longer keys need more text. If the lengths are unknown, try likely pairs in turn.",
       },
     ]}
   />

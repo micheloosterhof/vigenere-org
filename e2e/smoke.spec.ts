@@ -628,3 +628,95 @@ test("the grouped navigation opens a family menu", async ({ page }) => {
     "Hello",
   );
 });
+
+// The annealing breakers run in a pool of workers seeded from Math.random,
+// so these use texts long enough that a few attempts always suffice.
+const ORWELL =
+  "ITWASABRIGHTCOLDDAYINAPRILANDTHECLOCKSWERESTRIKINGTHIRTEENWINSTONSMITH" +
+  "HISCHINNUZZLEDINTOHISBREASTINANEFFORTTOESCAPETHEVILEWINDSLIPPEDQUICKLY" +
+  "THROUGHTHEGLASSDOORSOFVICTORYMANSIONSTHOUGHNOTQUICKLYENOUGHTOPREVENTA" +
+  "SWIRLOFGRITTYDUSTFROMENTERINGALONGWITHHIMTHEHALLWAYSMELTOFBOILEDCABBA" +
+  "GEANDOLDRAGMATSATONEENDOFITACOLOUREDPOSTERTOOLARGEFORINDOORDISPLAYHAD" +
+  "BEENTACKEDTOTHEWALL";
+
+for (const [cipher, path, encryptQuery, breakFields, expected] of [
+  [
+    "bifid",
+    "/bifid/",
+    "key=SECRETKEYWORD&period=6&mode=encrypt",
+    {},
+    "period 6",
+  ],
+  [
+    "trifid",
+    "/trifid/",
+    "key=SECRETKEYWORD&period=5&mode=encrypt",
+    { period: "5" },
+    "period 5",
+  ],
+  [
+    "double",
+    "/double-transposition/",
+    "key=ZEBRA&key2=CIPHERS&mode=encrypt",
+    { length1: "5", length2: "7" },
+    "first key",
+  ],
+] as const) {
+  test(`the ${cipher} breaker recovers the plaintext in a worker pool`, async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await page.goto(`${path}?text=${ORWELL}&${encryptQuery}`);
+    const ciphertext = await page
+      .locator(`[data-cipher=${cipher}] [data-output]`)
+      .inputValue();
+    expect(ciphertext).not.toBe(ORWELL);
+    const breaker = page.locator(`[data-anneal-breaker=${cipher}]`);
+    await breaker.locator("[data-input]").fill(ciphertext);
+    for (const [name, value] of Object.entries(breakFields)) {
+      await breaker.locator(`[data-field=${name}]`).fill(value);
+    }
+    await breaker.locator("[data-solve]").click();
+    await expect(breaker.locator("[data-summary]")).toContainText(
+      `Recovered: ${expected}`,
+      { timeout: 170_000 },
+    );
+    const recovered = await breaker.locator("[data-output]").inputValue();
+    let same = 0;
+    for (let i = 0; i < ORWELL.length; i += 1) {
+      if (recovered[i] === ORWELL[i]) {
+        same += 1;
+      }
+    }
+    expect(same / ORWELL.length).toBeGreaterThan(0.9);
+  });
+}
+
+test("the stop button ends an annealing search and keeps the best attempt", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("/bifid/");
+  const breaker = page.locator("[data-anneal-breaker=bifid]");
+  // Pseudo-random letters (no repeats to overfit) never read as English, so
+  // the search runs until stopped.
+  let seed = 12345;
+  const noise = Array.from({ length: 200 }, () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return "ABCDEFGHIKLMNOPQRSTUVWXYZ"[seed % 25];
+  }).join("");
+  await breaker.locator("[data-input]").fill(noise);
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-stop]")).toBeVisible();
+  // Let at least one attempt finish so there is a best attempt to keep.
+  await expect(breaker.locator("[data-progress-text]")).toContainText(
+    /[1-9]\d* of \d+ attempts finished/,
+    { timeout: 60_000 },
+  );
+  await breaker.locator("[data-stop]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "No English decryption found",
+  );
+  await expect(breaker.locator("[data-solve]")).toBeEnabled();
+  await expect(breaker.locator("[data-stop]")).toBeHidden();
+});
