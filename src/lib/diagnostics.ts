@@ -111,7 +111,9 @@ export function kappa(text: string | number[], skip: number): number {
 /**
  * Normalized IoC of the difference stream (c[i] op c[i-lag]). For a ciphertext
  * autokey cipher the difference at the primer-length lag is the plaintext, so it
- * reads English. `op` is "sub" for the Vigenère side, "add" for the Beaufort side.
+ * reads English. `op` is "sub" for the Vigenère and Beaufort tableaux (Beaufort
+ * gives the negated difference, which has the same IoC), "add" for variant
+ * Beaufort.
  */
 export function deltaStreamIoc(
   text: string | number[],

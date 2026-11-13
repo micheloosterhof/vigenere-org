@@ -132,13 +132,16 @@ describe("analyze", () => {
     expect(report.likelyFamily).toBe("monoalphabetic");
   });
 
-  it("flags ciphertext autokey", () => {
-    const report = analyze(
-      autokey(ENGLISH, "TYPEWRITER", "ciphertext", "vigenere", "encrypt"),
-    );
-    expect(report.likelyFamily).toBe("ciphertext-autokey");
-    expect(report.autokeyLag).toBe(10);
-  });
+  it.each(["vigenere", "beaufort", "variant-beaufort"] as const)(
+    "flags ciphertext autokey on the %s tableau",
+    (tableau) => {
+      const report = analyze(
+        autokey(ENGLISH, "TYPEWRITER", "ciphertext", tableau, "encrypt"),
+      );
+      expect(report.likelyFamily).toBe("ciphertext-autokey");
+      expect(report.autokeyLag).toBe(10);
+    },
+  );
 
   it("analyzes text shorter than one alphabet", () => {
     const report = analyze("FRQILGHQWLDO UHSRUW");
