@@ -50,7 +50,8 @@ building the commit CI tested), or on a manual run.
     attack over `public/data/english-words.txt` (google-10000-english);
     works on short texts and runs before the statistical solver, both on
     the quagmire page and inside the auto-solver.
-  - `solve-autokey.ts` — primer recovery for both autokey variants.
+  - `solve-autokey.ts` — primer recovery for both autokey variants on
+    the Vigenère, Beaufort and variant Beaufort tableaux.
   - `diagnostics.ts` — the statistical feature vector (IoC, chi-squared,
     autokey delta stream, transposition signature) behind `/analyze`.
   - `autosolve.ts` — cipher identification: routes by IoC, escalates,

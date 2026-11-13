@@ -1,5 +1,5 @@
 ---
-// ABOUTME: Autokey cipher tool page covering plaintext and ciphertext variants.
+// ABOUTME: Autokey cipher tool page covering plaintext and ciphertext variants on three tableaux.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
@@ -10,14 +10,17 @@ import Faq from "../components/Faq.astro";
 
 <Base
   title="Autokey cipher — encrypt, decrypt, and break online"
-  description="Encrypt, decrypt, and break the autokey cipher online, in both the plaintext and ciphertext variants. Runs in your browser."
+  description="Encrypt, decrypt, and break the autokey cipher online, with plaintext or ciphertext keying on a Vigenère or Beaufort tableau. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Autokey cipher</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
     The autokey cipher starts from a short primer keyword and then extends the
     key with the message itself, so the key never repeats. In the plaintext
     variant the key continues with the plaintext; in the ciphertext variant it
-    continues with the ciphertext just produced.
+    continues with the ciphertext just produced. The tableau sets how each key
+    letter combines with the message letter: Vigenère adds it (C = P + K),
+    Beaufort subtracts the letter from the key (C = K − P), and variant Beaufort
+    subtracts the key from the letter (C = P − K).
   </p>
   <AutokeyTool />
 
@@ -26,9 +29,9 @@ import Faq from "../components/Faq.astro";
   </h2>
   <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
     Paste ciphertext of at least 26 letters and the solver tries both variants
-    over every primer length, keeping the decryption that reads as English. The
-    plaintext variant is recovered exactly; in the ciphertext variant the
-    opening letters are reconstructed from context.
+    on all three tableaux over every primer length, keeping the decryption that
+    reads as English. The plaintext variant is recovered exactly; in the
+    ciphertext variant the opening letters are reconstructed from context.
   </p>
   <AutokeyBreaker />
 

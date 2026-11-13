@@ -97,7 +97,7 @@ test("autokey page encrypts and its breaker recovers the plaintext", async ({
     "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
     "THIRTEEN WINSTON SMITH SLIPPED QUICKLY THROUGH THE GLASS DOORS";
   await page.goto(
-    `/autokey/?text=${encodeURIComponent(plaintext)}&key=QUEEN&variant=plaintext&mode=encrypt`,
+    `/autokey/?text=${encodeURIComponent(plaintext)}&key=QUEEN&variant=plaintext&tableau=beaufort&mode=encrypt`,
   );
   const tool = page.locator("[data-autokey]");
   const ciphertext = await tool.locator("[data-output]").inputValue();
@@ -111,7 +111,7 @@ test("autokey page encrypts and its breaker recovers the plaintext", async ({
     timeout: 30_000,
   });
   await expect(breaker.locator("[data-summary]")).toContainText(
-    "primer length 5",
+    "Beaufort tableau, primer length 5",
   );
 });
 

@@ -1,4 +1,4 @@
-// ABOUTME: Tests for the ciphertext autokey solver.
+// ABOUTME: Tests for the plaintext and ciphertext autokey solvers on every tableau.
 // ABOUTME: Encrypts with a known primer and checks the plaintext is recovered without it.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
@@ -61,6 +61,23 @@ describe("breakCiphertextAutokey", () => {
     expect(result.plaintext.slice(40)).toBe(PLAIN.slice(40));
   });
 
+  it.each(["vigenere", "beaufort", "variant-beaufort"] as const)(
+    "recovers plaintext and names the %s tableau",
+    (tableau) => {
+      const ciphertext = autokey(
+        PLAIN,
+        "TYPEWRITER",
+        "ciphertext",
+        tableau,
+        "encrypt",
+      );
+      const result = breakCiphertextAutokey(ciphertext, TABLE);
+      expect(result.tableau).toBe(tableau);
+      expect(result.primerLength).toBe(10);
+      expect(result.plaintext.slice(40)).toBe(PLAIN.slice(40));
+    },
+  );
+
   it("preserves case and punctuation", () => {
     const ciphertext = autokey(
       "Attack at Dawn, and hold the line until dusk.",
@@ -114,6 +131,30 @@ describe("breakPlaintextAutokey", () => {
       const result = breakPlaintextAutokey(ciphertext, TABLE, {
         rng: mulberry32(2),
       });
+      expect(result.primerLength).toBe(6);
+      expect(result.plaintext).toBe(PLAIN);
+    },
+  );
+
+  it.each([
+    ["vigenere", 4],
+    ["beaufort", 5],
+    ["variant-beaufort", 6],
+  ] as const)(
+    "recovers plaintext exactly and names the %s tableau",
+    { timeout: 60000 },
+    (tableau, seed) => {
+      const ciphertext = autokey(
+        PLAIN,
+        "SECRET",
+        "plaintext",
+        tableau,
+        "encrypt",
+      );
+      const result = breakPlaintextAutokey(ciphertext, TABLE, {
+        rng: mulberry32(seed),
+      });
+      expect(result.tableau).toBe(tableau);
       expect(result.primerLength).toBe(6);
       expect(result.plaintext).toBe(PLAIN);
     },

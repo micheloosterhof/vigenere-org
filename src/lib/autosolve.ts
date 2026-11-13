@@ -35,6 +35,7 @@ import {
 } from "./solve-polyalphabetic";
 import {
   AUTOKEY_MIN_LENGTH,
+  TABLEAU_NAME,
   breakCiphertextAutokey,
   breakPlaintextAutokey,
 } from "./solve-autokey";
@@ -142,7 +143,7 @@ export async function autosolve(
     const recovered = breakCiphertextAutokey(text, table);
     attempts.push({
       cipher: "Ciphertext autokey",
-      keyLabel: `primer length ${recovered.primerLength}, opening ~${recovered.primerLength} letters approximate`,
+      keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau, opening ~${recovered.primerLength} letters approximate`,
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
       href: deepLink("autokey", text, [], "break"),
@@ -306,7 +307,7 @@ export async function autosolve(
     const recovered = breakPlaintextAutokey(text, table, { rng: options.rng });
     attempts.push({
       cipher: "Plaintext autokey",
-      keyLabel: `primer length ${recovered.primerLength}`,
+      keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau`,
       fitness: scoreText(recovered.plaintext),
       plaintext: recovered.plaintext,
       href: deepLink("autokey", text, [], "break"),

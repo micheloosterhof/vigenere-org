@@ -332,6 +332,9 @@ describe("autosolve", () => {
     );
     const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(8) });
     expect(result.best.cipher).toBe("Ciphertext autokey");
+    expect(result.best.keyLabel).toBe(
+      "primer length 10, Vigenère tableau, opening ~10 letters approximate",
+    );
     expect(result.diagnostics.likelyFamily).toBe("ciphertext-autokey");
     let matches = 0;
     for (let i = 0; i < PLAIN.length; i += 1) {
@@ -355,6 +358,7 @@ describe("autosolve", () => {
       );
       const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(9) });
       expect(result.best.cipher).toBe("Plaintext autokey");
+      expect(result.best.keyLabel).toBe("primer length 6, Vigenère tableau");
       expect(result.best.plaintext).toBe(PLAIN);
     },
   );

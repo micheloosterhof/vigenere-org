@@ -1,6 +1,6 @@
 ---
 // ABOUTME: Key-recovery form for autokey ciphertext with an unknown primer.
-// ABOUTME: Runs both variant attacks and reports the one that reads as English.
+// ABOUTME: Runs both variant attacks over every tableau and reports the one that reads as English.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
@@ -45,6 +45,7 @@ import WordSplitToggle from "./WordSplitToggle.astro";
 
 <script>
   import {
+    TABLEAU_NAME,
     breakCiphertextAutokey,
     breakPlaintextAutokey,
   } from "../lib/solve-autokey";
@@ -79,9 +80,10 @@ import WordSplitToggle from "./WordSplitToggle.astro";
         const plaintextWins =
           plaintextAttempt.fitness >= ciphertextAttempt.fitness;
         const best = plaintextWins ? plaintextAttempt : ciphertextAttempt;
+        const tableau = TABLEAU_NAME[best.tableau];
         summary.textContent = plaintextWins
-          ? `Plaintext autokey, primer length ${best.primerLength}.`
-          : `Ciphertext autokey, primer length ${best.primerLength}; the first ~${best.primerLength} letters are reconstructed from context and may be off.`;
+          ? `Plaintext autokey, ${tableau} tableau, primer length ${best.primerLength}.`
+          : `Ciphertext autokey, ${tableau} tableau, primer length ${best.primerLength}; the first ~${best.primerLength} letters are reconstructed from context and may be off.`;
         setOutput(best.plaintext);
         announce(`${summary.textContent} ${best.plaintext}`);
         result.hidden = false;
