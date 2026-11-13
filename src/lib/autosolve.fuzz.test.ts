@@ -109,7 +109,7 @@ describe("autosolve fuzz over random keys", () => {
       const mean = await meanRecovery(
         4,
         (rng) => 3 + Math.floor(rng() * 4),
-        (k) => autokey(PLAIN, k, "plaintext", "encrypt"),
+        (k) => autokey(PLAIN, k, "plaintext", "vigenere", "encrypt"),
         "Plaintext autokey",
       );
       expect(mean).toBe(1);
@@ -123,7 +123,7 @@ describe("autosolve fuzz over random keys", () => {
       const mean = await meanRecovery(
         5,
         (rng) => 3 + Math.floor(rng() * 4),
-        (k) => autokey(PLAIN, k, "ciphertext", "encrypt"),
+        (k) => autokey(PLAIN, k, "ciphertext", "vigenere", "encrypt"),
         "Ciphertext autokey",
       );
       expect(mean).toBeGreaterThan(0.9);

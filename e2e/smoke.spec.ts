@@ -277,6 +277,26 @@ test("editing the autokey form mirrors its settings into the URL", async ({
   await expect(tool.locator("[data-output]")).toHaveValue(ciphertext);
 });
 
+test("autokey deep link selects the tableau and the form mirrors it", async ({
+  page,
+}) => {
+  await page.goto(
+    "/autokey/?text=NOTIFYQUARTERMASTER&key=X&variant=plaintext&tableau=beaufort",
+  );
+  const tool = page.locator("[data-autokey]");
+  await expect(tool.locator("[data-output]")).toHaveValue(
+    "KZVLDHIWUJYPNFMIZPN",
+  );
+  await tool.locator("[data-tableau]").selectOption("variant-beaufort");
+  await tool.locator("[data-encrypt]").click();
+  await expect(tool.locator("[data-output]")).toHaveValue(
+    "QBFPXTSEGRCLNVOSBLN",
+  );
+  await expect(page).toHaveURL(
+    "/autokey/?text=NOTIFYQUARTERMASTER&key=X&variant=plaintext&tableau=variant-beaufort",
+  );
+});
+
 test("typing on the analyze page mirrors the text into the URL", async ({
   page,
 }) => {

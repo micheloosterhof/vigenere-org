@@ -142,45 +142,99 @@ describe("substitution", () => {
 
 describe("autokey", () => {
   it("encrypts the plaintext-autokey vectors from aldegonde", () => {
-    expect(autokey("NOTIFYQUARTERMASTER", "X", "plaintext", "encrypt")).toBe(
-      "KBHBNDOKURKXVDMSLXV",
-    );
     expect(
-      autokey("NOTIFYQUARTERMASTER", "TYPEWRITER", "plaintext", "encrypt"),
+      autokey("NOTIFYQUARTERMASTER", "X", "plaintext", "vigenere", "encrypt"),
+    ).toBe("KBHBNDOKURKXVDMSLXV");
+    expect(
+      autokey(
+        "NOTIFYQUARTERMASTER",
+        "TYPEWRITER",
+        "plaintext",
+        "vigenere",
+        "encrypt",
+      ),
     ).toBe("GMIMBPYNEIGSKUFQJYR");
   });
 
   it("decrypts the plaintext-autokey vectors", () => {
-    expect(autokey("KBHBNDOKURKXVDMSLXV", "X", "plaintext", "decrypt")).toBe(
-      "NOTIFYQUARTERMASTER",
-    );
     expect(
-      autokey("GMIMBPYNEIGSKUFQJYR", "TYPEWRITER", "plaintext", "decrypt"),
+      autokey("KBHBNDOKURKXVDMSLXV", "X", "plaintext", "vigenere", "decrypt"),
+    ).toBe("NOTIFYQUARTERMASTER");
+    expect(
+      autokey(
+        "GMIMBPYNEIGSKUFQJYR",
+        "TYPEWRITER",
+        "plaintext",
+        "vigenere",
+        "decrypt",
+      ),
     ).toBe("NOTIFYQUARTERMASTER");
   });
 
   it("encrypts and decrypts the ciphertext-autokey vectors", () => {
-    expect(autokey("NOTIFYQUARTERMASTER", "X", "ciphertext", "encrypt")).toBe(
-      "KYRZECSMMDWARDDVOSJ",
-    );
-    expect(autokey("KYRZECSMMDWARDDVOSJ", "X", "ciphertext", "decrypt")).toBe(
-      "NOTIFYQUARTERMASTER",
-    );
     expect(
-      autokey("NOTIFYQUARTERMASTER", "TYPEWRITER", "ciphertext", "encrypt"),
+      autokey("NOTIFYQUARTERMASTER", "X", "ciphertext", "vigenere", "encrypt"),
+    ).toBe("KYRZECSMMDWARDDVOSJ");
+    expect(
+      autokey("KYRZECSMMDWARDDVOSJ", "X", "ciphertext", "vigenere", "decrypt"),
+    ).toBe("NOTIFYQUARTERMASTER");
+    expect(
+      autokey(
+        "NOTIFYQUARTERMASTER",
+        "TYPEWRITER",
+        "ciphertext",
+        "vigenere",
+        "encrypt",
+      ),
     ).toBe("GMIMBPYNEIZQZYBHRRV");
   });
 
+  // Beaufort (key minus letter) and variant Beaufort (letter minus key)
+  // vectors come from an independent Python reference that reproduces the
+  // aldegonde Vigenere vectors above.
+  it.each([
+    ["plaintext", "beaufort", "X", "KZVLDHIWUJYPNFMIZPN"],
+    ["plaintext", "beaufort", "TYPEWRITER", "GKWWRTSZEAUKCWFGXQJ"],
+    ["plaintext", "variant-beaufort", "X", "QBFPXTSEGRCLNVOSBLN"],
+    ["plaintext", "variant-beaufort", "TYPEWRITER", "UQEEJHIBWAGQYEVUDKR"],
+    ["ciphertext", "beaufort", "X", "KWDVQSCIIRYUDRRZGCL"],
+    ["ciphertext", "beaufort", "TYPEWRITER", "GKWWRTSZEANGFKRBZVN"],
+    ["ciphertext", "variant-beaufort", "X", "QYVNSGKKQBSMFHTZUKH"],
+    ["ciphertext", "variant-beaufort", "TYPEWRITER", "UQEEJHIBWAZONIRLLDV"],
+  ] as const)(
+    "%s autokey on the %s tableau with primer %s",
+    (variant, tableau, primer, ciphertext) => {
+      expect(
+        autokey("NOTIFYQUARTERMASTER", primer, variant, tableau, "encrypt"),
+      ).toBe(ciphertext);
+      expect(autokey(ciphertext, primer, variant, tableau, "decrypt")).toBe(
+        "NOTIFYQUARTERMASTER",
+      );
+    },
+  );
+
   it("preserves case and punctuation through a round trip", () => {
     const text = "Notify quartermaster, at once!";
-    const encrypted = autokey(text, "typewriter", "plaintext", "encrypt");
-    expect(autokey(encrypted, "typewriter", "plaintext", "decrypt")).toBe(text);
-    const encrypted2 = autokey(text, "x", "ciphertext", "encrypt");
-    expect(autokey(encrypted2, "x", "ciphertext", "decrypt")).toBe(text);
+    const encrypted = autokey(
+      text,
+      "typewriter",
+      "plaintext",
+      "vigenere",
+      "encrypt",
+    );
+    expect(
+      autokey(encrypted, "typewriter", "plaintext", "vigenere", "decrypt"),
+    ).toBe(text);
+    const encrypted2 = autokey(text, "x", "ciphertext", "beaufort", "encrypt");
+    expect(autokey(encrypted2, "x", "ciphertext", "beaufort", "decrypt")).toBe(
+      text,
+    );
   });
 
   it("throws on a primer with no letters", () => {
-    expect(() => autokey("ABC", "", "plaintext", "encrypt")).toThrow();
+    expect(() =>
+      autokey("ABC", "", "plaintext", "vigenere", "encrypt"),
+    ).toThrow();
   });
 });
 

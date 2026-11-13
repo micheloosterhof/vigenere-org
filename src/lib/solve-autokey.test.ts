@@ -40,14 +40,20 @@ function accuracy(recovered: string, expected: string): number {
 
 describe("breakCiphertextAutokey", () => {
   it("recovers plaintext from a short primer without knowing it", () => {
-    const ciphertext = autokey(PLAIN, "X", "ciphertext", "encrypt");
+    const ciphertext = autokey(PLAIN, "X", "ciphertext", "vigenere", "encrypt");
     const result = breakCiphertextAutokey(ciphertext, TABLE);
     expect(result.primerLength).toBe(1);
     expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.97);
   });
 
   it("recovers plaintext from a longer primer and finds its length", () => {
-    const ciphertext = autokey(PLAIN, "TYPEWRITER", "ciphertext", "encrypt");
+    const ciphertext = autokey(
+      PLAIN,
+      "TYPEWRITER",
+      "ciphertext",
+      "vigenere",
+      "encrypt",
+    );
     const result = breakCiphertextAutokey(ciphertext, TABLE);
     expect(result.primerLength).toBe(10);
     // Everything past the primer is recovered exactly from the difference.
@@ -60,6 +66,7 @@ describe("breakCiphertextAutokey", () => {
       "Attack at Dawn, and hold the line until dusk.",
       "KEY",
       "ciphertext",
+      "vigenere",
       "encrypt",
     );
     const result = breakCiphertextAutokey(ciphertext, TABLE);
@@ -78,7 +85,13 @@ describe("breakPlaintextAutokey", () => {
     "recovers plaintext exactly from a short primer",
     { timeout: 60000 },
     () => {
-      const ciphertext = autokey(PLAIN, "X", "plaintext", "encrypt");
+      const ciphertext = autokey(
+        PLAIN,
+        "X",
+        "plaintext",
+        "vigenere",
+        "encrypt",
+      );
       const result = breakPlaintextAutokey(ciphertext, TABLE, {
         rng: mulberry32(1),
       });
@@ -91,7 +104,13 @@ describe("breakPlaintextAutokey", () => {
     "recovers plaintext and finds a longer primer length",
     { timeout: 60000 },
     () => {
-      const ciphertext = autokey(PLAIN, "SECRET", "plaintext", "encrypt");
+      const ciphertext = autokey(
+        PLAIN,
+        "SECRET",
+        "plaintext",
+        "vigenere",
+        "encrypt",
+      );
       const result = breakPlaintextAutokey(ciphertext, TABLE, {
         rng: mulberry32(2),
       });

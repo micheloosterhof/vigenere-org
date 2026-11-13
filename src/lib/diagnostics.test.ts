@@ -66,7 +66,13 @@ describe("iocPerPeriod", () => {
 
 describe("deltaStreamIoc detects ciphertext autokey", () => {
   it("elevates for ciphertext autokey at the primer-length lag", () => {
-    const cipher = autokey(ENGLISH, "TYPEWRITER", "ciphertext", "encrypt");
+    const cipher = autokey(
+      ENGLISH,
+      "TYPEWRITER",
+      "ciphertext",
+      "vigenere",
+      "encrypt",
+    );
     expect(deltaStreamIoc(cipher, 10, "sub")).toBeGreaterThan(1.4);
   });
 
@@ -128,7 +134,7 @@ describe("analyze", () => {
 
   it("flags ciphertext autokey", () => {
     const report = analyze(
-      autokey(ENGLISH, "TYPEWRITER", "ciphertext", "encrypt"),
+      autokey(ENGLISH, "TYPEWRITER", "ciphertext", "vigenere", "encrypt"),
     );
     expect(report.likelyFamily).toBe("ciphertext-autokey");
     expect(report.autokeyLag).toBe(10);

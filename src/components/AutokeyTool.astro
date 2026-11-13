@@ -1,6 +1,6 @@
 ---
-// ABOUTME: Encrypt/decrypt form for the autokey cipher with variant selection.
-// ABOUTME: The variant chooses whether plaintext or ciphertext extends the key.
+// ABOUTME: Encrypt/decrypt form for the autokey cipher with variant and tableau selection.
+// ABOUTME: The variant picks what extends the key; the tableau picks how key and letter combine.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { buttonClass, fieldClass } from "../styles/form";
@@ -18,6 +18,17 @@ import WordSplitToggle from "./WordSplitToggle.astro";
       <option value="ciphertext">
         Ciphertext autokey — the ciphertext extends the key
       </option>
+    </select>
+  </label>
+
+  <label class="flex flex-col gap-1">
+    <span class="text-sm font-medium">Tableau</span>
+    <select data-tableau class={`${fieldClass} max-w-88`}>
+      <option value="vigenere" selected>
+        Vigenère — C = P + K
+      </option>
+      <option value="beaufort">Beaufort — C = K − P</option>
+      <option value="variant-beaufort">Variant Beaufort — C = P − K</option>
     </select>
   </label>
 
@@ -66,18 +77,24 @@ import WordSplitToggle from "./WordSplitToggle.astro";
 </div>
 
 <script>
-  import { autokey, type AutokeyVariant, type Mode } from "../lib/cipher";
+  import {
+    autokey,
+    type AutokeyTableau,
+    type AutokeyVariant,
+    type Mode,
+  } from "../lib/cipher";
   import { deepLink, liveShareUrl } from "./live-url";
   import { liveRegion } from "./announce";
   import { wordSplitOutput } from "./word-split";
 
   for (const root of document.querySelectorAll<HTMLElement>("[data-autokey]")) {
     const variant = root.querySelector<HTMLSelectElement>("[data-variant]");
+    const tableau = root.querySelector<HTMLSelectElement>("[data-tableau]");
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
     const key = root.querySelector<HTMLInputElement>("[data-key]");
     const output = root.querySelector<HTMLTextAreaElement>("[data-output]");
     const error = root.querySelector<HTMLParagraphElement>("[data-error]");
-    if (!variant || !input || !key || !output || !error) {
+    if (!variant || !tableau || !input || !key || !output || !error) {
       continue;
     }
     const setOutput = wordSplitOutput(root, output);
@@ -91,12 +108,14 @@ import WordSplitToggle from "./WordSplitToggle.astro";
             ["text", input.value],
             ["key", key.value],
             ["variant", variant.value],
+            ["tableau", tableau.value === "vigenere" ? "" : tableau.value],
             ["mode", lastMode === "decrypt" ? "decrypt" : ""],
           ],
     );
     input.addEventListener("input", syncUrl);
     key.addEventListener("input", syncUrl);
     variant.addEventListener("change", syncUrl);
+    tableau.addEventListener("change", syncUrl);
 
     const run = (mode: Mode): void => {
       lastMode = mode;
@@ -107,6 +126,7 @@ import WordSplitToggle from "./WordSplitToggle.astro";
           input.value,
           key.value,
           variant.value as AutokeyVariant,
+          tableau.value as AutokeyTableau,
           mode,
         );
         setOutput(result);
@@ -126,7 +146,7 @@ import WordSplitToggle from "./WordSplitToggle.astro";
       .querySelector("[data-decrypt]")
       ?.addEventListener("click", () => run("decrypt"));
 
-    // Deep link: /autokey?text=...&key=X&variant=ciphertext&mode=encrypt
+    // Deep link: /autokey?text=...&key=X&variant=ciphertext&tableau=beaufort&mode=encrypt
     const params = deepLink("tool");
     if (params) {
       input.value = params.get("text") ?? "";
@@ -137,6 +157,10 @@ import WordSplitToggle from "./WordSplitToggle.astro";
       const variantValue = params.get("variant");
       if (variantValue === "plaintext" || variantValue === "ciphertext") {
         variant.value = variantValue;
+      }
+      const tableauValue = params.get("tableau");
+      if (tableauValue === "beaufort" || tableauValue === "variant-beaufort") {
+        tableau.value = tableauValue;
       }
       run(params.get("mode") === "decrypt" ? "decrypt" : "encrypt");
     }

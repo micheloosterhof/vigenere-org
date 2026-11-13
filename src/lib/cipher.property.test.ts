@@ -4,7 +4,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { autokey, beaufort, caesar, substitution, vigenere } from "./cipher";
+import {
+  autokey,
+  beaufort,
+  caesar,
+  substitution,
+  vigenere,
+  type AutokeyTableau,
+  type AutokeyVariant,
+} from "./cipher";
 import { quagmire, type QuagmireVariant } from "./quagmire";
 
 const join = (chars: string[]): string => chars.join("");
@@ -67,17 +75,26 @@ describe("round-trip properties", () => {
     );
   });
 
-  it("plaintext and ciphertext autokey decrypt what they encrypt", () => {
+  it("autokey decrypts what it encrypts for every variant and tableau", () => {
     fc.assert(
       fc.property(
         text,
         key,
-        fc.constantFrom("plaintext", "ciphertext") as fc.Arbitrary<
-          "plaintext" | "ciphertext"
-        >,
-        (t, k, variant) => {
+        fc.constantFrom<AutokeyVariant>("plaintext", "ciphertext"),
+        fc.constantFrom<AutokeyTableau>(
+          "vigenere",
+          "beaufort",
+          "variant-beaufort",
+        ),
+        (t, k, variant, tableau) => {
           expect(
-            autokey(autokey(t, k, variant, "encrypt"), k, variant, "decrypt"),
+            autokey(
+              autokey(t, k, variant, tableau, "encrypt"),
+              k,
+              variant,
+              tableau,
+              "decrypt",
+            ),
           ).toBe(t);
         },
       ),

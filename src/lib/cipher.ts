@@ -131,14 +131,52 @@ export function porta(text: string, key: string): string {
 export type AutokeyVariant = "plaintext" | "ciphertext";
 
 /**
+ * How a key letter combines with a message letter: Vigenere adds the key
+ * (C = P + K), Beaufort subtracts the letter from the key (C = K - P), and
+ * variant Beaufort subtracts the key from the letter (C = P - K).
+ */
+export type AutokeyTableau = "vigenere" | "beaufort" | "variant-beaufort";
+
+/** Ciphertext letter value for plaintext letter `plain` under key letter `key`. */
+export function encipherLetter(
+  tableau: AutokeyTableau,
+  plain: number,
+  key: number,
+): number {
+  const value =
+    tableau === "vigenere"
+      ? plain + key
+      : tableau === "beaufort"
+        ? key - plain
+        : plain - key;
+  return ((value % ALPHABET_SIZE) + ALPHABET_SIZE) % ALPHABET_SIZE;
+}
+
+/** Plaintext letter value for ciphertext letter `cipher` under key letter `key`. */
+export function decipherLetter(
+  tableau: AutokeyTableau,
+  cipher: number,
+  key: number,
+): number {
+  const value =
+    tableau === "vigenere"
+      ? cipher - key
+      : tableau === "beaufort"
+        ? key - cipher
+        : cipher + key;
+  return ((value % ALPHABET_SIZE) + ALPHABET_SIZE) % ALPHABET_SIZE;
+}
+
+/**
  * Autokey cipher: the key starts with a primer and continues with the message
  * itself, either its plaintext or its ciphertext. Because the key never
- * repeats, there is no period.
+ * repeats, there is no period. The tableau sets how key and letter combine.
  */
 export function autokey(
   text: string,
   primer: string,
   variant: AutokeyVariant,
+  tableau: AutokeyTableau,
   mode: Mode,
 ): string {
   const key = normalizeKey(primer);
@@ -154,8 +192,8 @@ export function autokey(
       const letter = upper.charCodeAt(0) - CODE_A;
       const result =
         mode === "encrypt"
-          ? (letter + keyValue) % ALPHABET_SIZE
-          : (letter - keyValue + ALPHABET_SIZE) % ALPHABET_SIZE;
+          ? encipherLetter(tableau, letter, keyValue)
+          : decipherLetter(tableau, letter, keyValue);
       const plain = mode === "encrypt" ? letter : result;
       const cipher = mode === "encrypt" ? result : letter;
       key.push(variant === "plaintext" ? plain : cipher);

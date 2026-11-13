@@ -299,7 +299,13 @@ describe("autosolve", () => {
         `/quagmire/?text=${urlText(quagmireText)}&variant=3&keyword=SPRING&key=TALE&indicator=A&mode=decrypt`,
       );
 
-      const autokeyText = autokey(PLAIN, "QUEEN", "ciphertext", "encrypt");
+      const autokeyText = autokey(
+        PLAIN,
+        "QUEEN",
+        "ciphertext",
+        "vigenere",
+        "encrypt",
+      );
       const auto = await autosolve(autokeyText, TABLE, { rng: mulberry32(5) });
       expect(attemptNamed(auto, "Ciphertext autokey").href).toBe(
         `/autokey/?text=${urlText(autokeyText)}&mode=break`,
@@ -317,7 +323,13 @@ describe("autosolve", () => {
   });
 
   it("identifies and breaks ciphertext autokey", async () => {
-    const ciphertext = autokey(PLAIN, "TYPEWRITER", "ciphertext", "encrypt");
+    const ciphertext = autokey(
+      PLAIN,
+      "TYPEWRITER",
+      "ciphertext",
+      "vigenere",
+      "encrypt",
+    );
     const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(8) });
     expect(result.best.cipher).toBe("Ciphertext autokey");
     expect(result.diagnostics.likelyFamily).toBe("ciphertext-autokey");
@@ -334,7 +346,13 @@ describe("autosolve", () => {
     "identifies and breaks plaintext autokey",
     { timeout: 60000 },
     async () => {
-      const ciphertext = autokey(PLAIN, "SECRET", "plaintext", "encrypt");
+      const ciphertext = autokey(
+        PLAIN,
+        "SECRET",
+        "plaintext",
+        "vigenere",
+        "encrypt",
+      );
       const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(9) });
       expect(result.best.cipher).toBe("Plaintext autokey");
       expect(result.best.plaintext).toBe(PLAIN);
