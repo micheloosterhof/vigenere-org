@@ -34,13 +34,15 @@ import {
   type PolyalphabeticSolver,
 } from "./solve-polyalphabetic";
 import {
-  AUTOKEY_MIN_LENGTH,
+  CIPHERTEXT_AUTOKEY_REQUIREMENTS,
+  PLAINTEXT_AUTOKEY_REQUIREMENTS,
   TABLEAU_NAME,
   breakCiphertextAutokey,
   breakPlaintextAutokey,
 } from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
 import { shareSearch } from "./share-url";
+import { meetsRequirements, type TextShape } from "./solver-requirements";
 
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
@@ -133,11 +135,11 @@ export async function autosolve(
     attempts.some((a) => a.fitness >= READABLE_BIGRAM);
   // Both autokey attacks need more text than the others; short text gets the
   // attacks it can support rather than an error.
-  const longEnoughForAutokey = diagnostics.length >= AUTOKEY_MIN_LENGTH;
+  const shape: TextShape = { letters: diagnostics.length };
 
   // Ciphertext autokey has no period, so the statistics flag it directly.
   if (
-    longEnoughForAutokey &&
+    meetsRequirements(CIPHERTEXT_AUTOKEY_REQUIREMENTS, shape) &&
     diagnostics.likelyFamily === "ciphertext-autokey"
   ) {
     const recovered = breakCiphertextAutokey(text, table);
@@ -303,7 +305,7 @@ export async function autosolve(
 
   // Plaintext autokey leaves no passive signature, so it is an active fallback.
   // It is cheap, so it runs before the slow general polyalphabetic attack.
-  if (longEnoughForAutokey && !readable()) {
+  if (meetsRequirements(PLAINTEXT_AUTOKEY_REQUIREMENTS, shape) && !readable()) {
     const recovered = breakPlaintextAutokey(text, table, { rng: options.rng });
     attempts.push({
       cipher: "Plaintext autokey",
