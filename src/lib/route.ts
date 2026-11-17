@@ -2,6 +2,7 @@
 // ABOUTME: Includes a breaker that tries every grid width, fill, and route, ranked by bigram fitness.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import type { Mode } from "./cipher";
 import { scoreText } from "./solve";
 
@@ -209,3 +210,11 @@ export function breakRoute(text: string): RouteCandidate[] {
   }
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
+
+/** What the exhaustive route breaker needs. */
+export const ROUTE_REQUIREMENTS: SolverRequirements = {
+  id: "route",
+  ciphers: ["Route"],
+  assumes: ["transposition"],
+  basis: "unmeasured",
+};

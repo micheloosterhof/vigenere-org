@@ -2,6 +2,7 @@
 // ABOUTME: Includes a breaker that tries every rail count and ranks the decryptions by bigram fitness.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import type { Mode } from "./cipher";
 import { scoreText } from "./solve";
 
@@ -67,3 +68,11 @@ export function breakRailFence(text: string): RailCandidate[] {
   }
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
+
+/** What the exhaustive rail fence breaker needs. */
+export const RAIL_FENCE_REQUIREMENTS: SolverRequirements = {
+  id: "rail-fence",
+  ciphers: ["Rail fence"],
+  assumes: ["transposition"],
+  basis: "unmeasured",
+};

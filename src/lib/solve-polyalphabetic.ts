@@ -2,6 +2,7 @@
 // ABOUTME: Detects the period by index of coincidence, then hill climbs each column under joint quadgram scoring.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
@@ -170,3 +171,13 @@ export function breakPolyalphabetic(
       (bestScore / (sample.length - 3)) * QUADGRAM_LOG10_SCALE,
   };
 }
+
+/** What the general polyalphabetic attack needs: enough text to fit a separate alphabet to each column. */
+export const POLYALPHABETIC_REQUIREMENTS: SolverRequirements = {
+  id: "polyalphabetic",
+  ciphers: ["Polyalphabetic"],
+  assumes: ["periodic"],
+  minLettersPerColumn: 200,
+  maxPeriod: MAX_PERIOD,
+  basis: "estimate",
+};

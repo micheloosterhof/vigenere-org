@@ -2,6 +2,7 @@
 // ABOUTME: Includes a columnar breaker that searches every column order up to a key length, ranked by bigram fitness.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import { normalizeKey, type Mode } from "./cipher";
 import { scoreText } from "./solve";
 
@@ -181,3 +182,11 @@ export function breakColumnar(
     return b.fitness - a.fitness;
   });
 }
+
+/** What the columnar transposition breaker needs. */
+export const COLUMNAR_REQUIREMENTS: SolverRequirements = {
+  id: "columnar-transposition",
+  ciphers: ["Columnar transposition"],
+  assumes: ["transposition"],
+  basis: "unmeasured",
+};

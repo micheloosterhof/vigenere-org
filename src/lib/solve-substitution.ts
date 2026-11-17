@@ -2,6 +2,7 @@
 // ABOUTME: Steepest-ascent swaps scored with quadgram statistics, restarted from several seeds.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
@@ -112,3 +113,11 @@ export function breakSubstitution(
       QUADGRAM_MIN_LOG10 + (bestScore / quadgrams) * QUADGRAM_LOG10_SCALE,
   };
 }
+
+/** What the substitution hill climb needs. */
+export const SUBSTITUTION_REQUIREMENTS: SolverRequirements = {
+  id: "substitution",
+  ciphers: ["Substitution"],
+  assumes: ["single-alphabet"],
+  basis: "unmeasured",
+};

@@ -2,6 +2,7 @@
 // ABOUTME: Greedy adjacent-key-pair search with English bigram scoring over all key lengths; the best key is polished with quadgrams.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import { ENGLISH_BIGRAM_LOGPROBS } from "./data/english-bigrams";
 import { portaLetter } from "./cipher";
 import { quadgramFitness } from "./quadgrams";
@@ -302,3 +303,27 @@ export function caesarCandidates(text: string): ShiftCandidate[] {
   }
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
+
+/** What the Caesar shift ranking needs. */
+export const CAESAR_REQUIREMENTS: SolverRequirements = {
+  id: "caesar",
+  ciphers: ["Caesar"],
+  assumes: ["standard-alphabet", "single-alphabet"],
+  basis: "unmeasured",
+};
+
+/** What the periodic shift-key recovery needs. */
+export const PERIODIC_REQUIREMENTS: SolverRequirements = {
+  id: "periodic-shift",
+  ciphers: ["Vigenère", "Beaufort", "Gronsfeld"],
+  assumes: ["standard-alphabet", "periodic"],
+  basis: "unmeasured",
+};
+
+/** What the Porta key recovery needs. */
+export const PORTA_REQUIREMENTS: SolverRequirements = {
+  id: "porta",
+  ciphers: ["Porta"],
+  assumes: ["standard-alphabet", "periodic"],
+  basis: "unmeasured",
+};

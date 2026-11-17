@@ -2,9 +2,11 @@
 // ABOUTME: The shared-alphabet fit both confirms it is Quagmire III and cleans up the general solver's stray errors.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import { substituteLetters } from "./cipher";
 import { toLetterValues } from "./solve";
 import {
+  POLYALPHABETIC_REQUIREMENTS,
   breakPolyalphabetic,
   type PolyalphabeticProgress,
   type PolyalphabeticSolver,
@@ -117,3 +119,13 @@ export async function breakQuagmire(
     fitness: general.fitness,
   };
 }
+
+/** What the shared-alphabet Quagmire III attack needs: it starts from the general polyalphabetic solution. */
+export const QUAGMIRE_REQUIREMENTS: SolverRequirements = {
+  id: "quagmire-shared-alphabet",
+  ciphers: ["Quagmire III"],
+  assumes: ["periodic", "shared-alphabet"],
+  minLettersPerColumn: POLYALPHABETIC_REQUIREMENTS.minLettersPerColumn,
+  maxPeriod: POLYALPHABETIC_REQUIREMENTS.maxPeriod,
+  basis: "estimate",
+};

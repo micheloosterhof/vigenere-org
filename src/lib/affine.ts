@@ -2,6 +2,7 @@
 // ABOUTME: Includes a breaker that tries all 312 keys and ranks the decryptions by bigram fitness.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import { substituteLetters, type Mode } from "./cipher";
 import { scoreText } from "./solve";
 
@@ -62,3 +63,11 @@ export function breakAffine(text: string): AffineCandidate[] {
   }
   return candidates.sort((x, y) => y.fitness - x.fitness);
 }
+
+/** What the exhaustive affine breaker needs. */
+export const AFFINE_REQUIREMENTS: SolverRequirements = {
+  id: "affine",
+  ciphers: ["Affine"],
+  assumes: ["standard-alphabet", "single-alphabet"],
+  basis: "unmeasured",
+};

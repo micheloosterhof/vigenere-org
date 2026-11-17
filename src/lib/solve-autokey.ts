@@ -2,6 +2,7 @@
 // ABOUTME: Ciphertext autokey falls to deciphering each letter under the one a primer-length back; plaintext autokey to a primer search.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
@@ -278,3 +279,21 @@ export function breakPlaintextAutokey(
     fitness: QUADGRAM_MIN_LOG10 + bestScore * QUADGRAM_LOG10_SCALE,
   };
 }
+
+/** What the ciphertext autokey attack needs. */
+export const CIPHERTEXT_AUTOKEY_REQUIREMENTS: SolverRequirements = {
+  id: "ciphertext-autokey",
+  ciphers: ["Ciphertext autokey"],
+  assumes: ["standard-alphabet", "autokey"],
+  minLetters: AUTOKEY_MIN_LENGTH,
+  basis: "enforced",
+};
+
+/** What the plaintext autokey primer search needs. */
+export const PLAINTEXT_AUTOKEY_REQUIREMENTS: SolverRequirements = {
+  id: "plaintext-autokey",
+  ciphers: ["Plaintext autokey"],
+  assumes: ["standard-alphabet", "autokey"],
+  minLetters: AUTOKEY_MIN_LENGTH,
+  basis: "enforced",
+};

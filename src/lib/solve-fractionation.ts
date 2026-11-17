@@ -2,6 +2,7 @@
 // ABOUTME: A pair index of coincidence ranks the periods; the best few are annealed until one reads as English.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
@@ -424,3 +425,12 @@ export function decryptWithGrid(
     raw: problem.score(key),
   };
 }
+
+/** What the Bifid and Trifid annealing attack needs. */
+export const FRACTIONATION_REQUIREMENTS: SolverRequirements = {
+  id: "fractionation",
+  ciphers: ["Bifid", "Trifid"],
+  assumes: ["fractionation", "periodic"],
+  minLetters: MIN_LETTERS,
+  basis: "enforced",
+};

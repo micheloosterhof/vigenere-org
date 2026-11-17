@@ -2,6 +2,7 @@
 // ABOUTME: Covers variants I-III; with the alphabet fixed each column is a 26-way shift, so short texts break in seconds.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import { inverseAlphabet, mixedAlphabet, substituteLetters } from "./cipher";
 import { scoreLetterValues, toLetterValues } from "./solve";
 import { ENGLISH_FREQUENCIES } from "./diagnostics";
@@ -272,3 +273,18 @@ export function breakQuagmireDictionary(
     fitness: winner.fitness,
   };
 }
+
+/** What the keyword dictionary attack needs. */
+export const QUAGMIRE_DICTIONARY_REQUIREMENTS: SolverRequirements = {
+  id: "quagmire-dictionary",
+  ciphers: ["Quagmire I", "Quagmire II", "Quagmire III"],
+  assumes: [
+    "periodic",
+    "shared-alphabet",
+    "keyword-alphabet",
+    "keyword-in-word-list",
+  ],
+  minLetters: MIN_LENGTH,
+  maxPeriod: MAX_PERIOD,
+  basis: "enforced",
+};

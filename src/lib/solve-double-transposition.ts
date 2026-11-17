@@ -2,6 +2,7 @@
 // ABOUTME: Decryption is an index permutation, so each step only rearranges and rescores the text.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import type { SolverRequirements } from "./solver-requirements";
 import {
   QUADGRAM_LOG10_SCALE,
   QUADGRAM_MIN_LOG10,
@@ -264,3 +265,12 @@ export function breakDoubleTransposition(
   }
   return best;
 }
+
+/** What the double transposition annealing attack needs. */
+export const DOUBLE_TRANSPOSITION_REQUIREMENTS: SolverRequirements = {
+  id: "double-transposition",
+  ciphers: ["Double transposition"],
+  assumes: ["transposition"],
+  minLetters: MIN_LETTERS,
+  basis: "enforced",
+};
