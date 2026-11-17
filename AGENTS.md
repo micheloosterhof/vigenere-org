@@ -52,6 +52,13 @@ building the commit CI tested), or on a manual run.
     the quagmire page and inside the auto-solver.
   - `solve-autokey.ts` — primer recovery for both autokey variants on
     the Vigenère, Beaufort and variant Beaufort tableaux.
+  - `solver-requirements.ts` / `solver-registry.ts` — each solver module
+    exports a `*_REQUIREMENTS` constant: the key structure it assumes and
+    its minimum text (total and per column), with the basis of the numbers
+    (enforced, measured, estimate, unmeasured). The registry lists them
+    all; `meetsRequirements` checks a ciphertext against one. Kept as plain
+    data so the auto-solver, or later a trained classifier over the
+    `diagnostics.ts` features, can choose a solver by id.
   - `diagnostics.ts` — the statistical feature vector (IoC, chi-squared,
     autokey delta stream, transposition signature) behind `/analyze`.
   - `autosolve.ts` — cipher identification: routes by IoC, escalates,
