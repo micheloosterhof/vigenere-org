@@ -10,7 +10,14 @@ import {
   RUN_SETTINGS,
 } from "../src/lib/solve-fractionation";
 import { trifid } from "../src/lib/trifid";
-import { ownTrials, plaintextSlice, randomKey, record, TABLE } from "./trials";
+import {
+  ownTrials,
+  plaintextSlice,
+  randomKey,
+  record,
+  sameSymbols,
+  TABLE,
+} from "./trials";
 
 // Each run length is a multiple of the solver's own, with this many jobs per
 // text.
@@ -40,17 +47,6 @@ for (const cipher of ["bifid", "trifid"] as const) {
       }
     }
   }
-}
-
-/** Fraction of positions where the recovered symbol is the true one. */
-function sameSymbols(recovered: string, plain: string): number {
-  let same = 0;
-  for (let i = 0; i < plain.length; i += 1) {
-    if (recovered[i] === plain[i]) {
-      same += 1;
-    }
-  }
-  return same / plain.length;
 }
 
 it("single fractionation jobs at the true period", () => {

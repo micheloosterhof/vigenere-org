@@ -97,6 +97,20 @@ export function accuracy(recovered: string, plain: string): number {
   return same / plain.length;
 }
 
+/**
+ * Fraction of positions where the recovered symbol is the true one. For text
+ * that may hold symbols other than letters, which must stay in place.
+ */
+export function sameSymbols(recovered: string, plain: string): number {
+  let same = 0;
+  for (let i = 0; i < plain.length; i += 1) {
+    if (recovered[i] === plain[i]) {
+      same += 1;
+    }
+  }
+  return same / plain.length;
+}
+
 // BENCH_SHARD="2/8" runs every eighth trial starting at the third, so a grid
 // can be spread over several processes.
 const [SHARD, SHARDS] = (process.env.BENCH_SHARD ?? "0/1")
