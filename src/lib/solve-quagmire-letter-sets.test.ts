@@ -191,6 +191,32 @@ describe("breakQuagmireLetterSets", () => {
     },
   );
 
+  it(
+    "searches in depth no more combinations than asked",
+    { timeout: 120000 },
+    () => {
+      const ciphertext = quagmire(
+        PLAIN.slice(0, 120),
+        { variant: 2, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
+        "encrypt",
+      );
+      const seen: [number, number][] = [];
+      breakQuagmireLetterSets(ciphertext, TABLE, {
+        variants: [2],
+        periods: [5, 7],
+        sizes: [8],
+        deepJobs: 1,
+        rng: seededRng(3),
+        onProgress: (done, total) => seen.push([done, total]),
+      });
+      expect(seen).toEqual([
+        [1, 3],
+        [2, 3],
+        [3, 3],
+      ]);
+    },
+  );
+
   it("decrypts the whole of a text longer than it searches", () => {
     const long = `${PLAIN} ${PLAIN} ${PLAIN}`;
     const ciphertext = quagmire(

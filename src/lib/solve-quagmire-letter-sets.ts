@@ -93,13 +93,15 @@ export interface LetterSetSolution extends LetterSetJob {
   setsCompleted: number;
 }
 
-interface Options {
+export interface LetterSetsOptions {
   /** Variants to try; all three by default. */
   variants?: KeywordVariant[];
   /** Periods to try, in this order; by default every period with enough letters per column, likeliest first. */
   periods?: number[];
   /** Numbers of different letters in the keyword to try; by default sizes that cover 3 to 10. */
   sizes?: number[];
+  /** How many of the best-scoring variants, periods and sizes get the full search when the quick pass finds nothing; 6 by default. */
+  deepJobs?: number;
   rng?: () => number;
   onProgress?: (done: number, total: number) => void;
 }
@@ -322,7 +324,7 @@ function shortestPeriod(offsets: number[]): number {
 export function breakQuagmireLetterSets(
   text: string,
   table: Uint8Array,
-  options: Options = {},
+  options: LetterSetsOptions = {},
 ): QuagmireDictionaryResult {
   const cipher = toLetterValues(text).slice(0, SEARCH_LETTERS);
   if (cipher.length < 2 * MIN_PER_COLUMN) {
@@ -333,7 +335,7 @@ export function breakQuagmireLetterSets(
   const sizes = options.sizes ?? SIZES;
   const periods = options.periods ?? letterSetPeriods(cipher);
   const deepJobs = Math.min(
-    DEEP_JOBS,
+    options.deepJobs ?? DEEP_JOBS,
     periods.length * variants.length * sizes.length,
   );
   const steps = periods.length + deepJobs;
