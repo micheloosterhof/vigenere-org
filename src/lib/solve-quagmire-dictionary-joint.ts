@@ -257,7 +257,7 @@ export const QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS: SolverRequirements = {
     "keyword-in-word-list",
   ],
   minLetters: MIN_RELIABLE_LENGTH,
-  maxLetters: MAX_PER_COLUMN * MAX_PERIOD,
+  maxLetters: MAX_PER_COLUMN * MAX_PERIOD - 1,
   reliableLettersPerColumn: 8,
   maxPeriod: MAX_PERIOD,
   basis: "measured",
