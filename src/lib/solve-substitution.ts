@@ -114,10 +114,19 @@ export function breakSubstitution(
   };
 }
 
-/** What the substitution hill climb needs. */
+/**
+ * What the substitution hill climb needs. In bench/results/simple-solvers.tsv
+ * it recovers 9 of 10 texts at 200 letters, 7 at 120, 5 at 80 and none at 60.
+ * A free alphabet fits anything short to English: up to 30 letters every
+ * random text comes out at -4.1 or better, and badly wrong answers pass -4.5
+ * up to 40 letters, so no answer under 60 letters is believed.
+ */
 export const SUBSTITUTION_REQUIREMENTS: SolverRequirements = {
   id: "substitution",
   ciphers: ["Substitution"],
   assumes: ["single-alphabet"],
-  basis: "unmeasured",
+  minLetters: 60,
+  reliableLetters: 200,
+  readableQuadgram: -4.5,
+  basis: "measured",
 };

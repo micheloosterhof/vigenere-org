@@ -211,10 +211,16 @@ export function breakRoute(text: string): RouteCandidate[] {
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
 
-/** What the exhaustive route breaker needs. */
+/**
+ * What the exhaustive route breaker needs. In
+ * bench/results/simple-solvers.tsv it recovers 63 of 70 texts from 20 letters
+ * up; at 10 letters one shuffled text in five comes out reading as English.
+ */
 export const ROUTE_REQUIREMENTS: SolverRequirements = {
   id: "route",
   ciphers: ["Route"],
   assumes: ["transposition"],
-  basis: "unmeasured",
+  minLetters: 20,
+  reliableLetters: 20,
+  basis: "measured",
 };

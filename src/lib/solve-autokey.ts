@@ -280,20 +280,35 @@ export function breakPlaintextAutokey(
   };
 }
 
-/** What the ciphertext autokey attack needs. */
+/**
+ * What the ciphertext autokey attack needs. The code refuses text under
+ * AUTOKEY_MIN_LENGTH letters. In bench/results/keyed-solvers.tsv it recovers
+ * every text from 12 letters per primer letter up; with fewer, the opening it
+ * cannot recover is too large a share of the text.
+ */
 export const CIPHERTEXT_AUTOKEY_REQUIREMENTS: SolverRequirements = {
   id: "ciphertext-autokey",
   ciphers: ["Ciphertext autokey"],
   assumes: ["standard-alphabet", "autokey"],
   minLetters: AUTOKEY_MIN_LENGTH,
-  basis: "enforced",
+  reliableLettersPerColumn: 12,
+  readableQuadgram: -4.5,
+  basis: "measured",
 };
 
-/** What the plaintext autokey primer search needs. */
+/**
+ * What the plaintext autokey primer search needs. The code refuses text under
+ * AUTOKEY_MIN_LENGTH letters. In bench/results/keyed-solvers.tsv it recovers
+ * every text from 8 letters per primer letter up and 16 of 20 at 6. Up to 60
+ * letters it lifts one random text in six to a quadgram fitness of -4.7, so
+ * its answers are believed only from -4.5.
+ */
 export const PLAINTEXT_AUTOKEY_REQUIREMENTS: SolverRequirements = {
   id: "plaintext-autokey",
   ciphers: ["Plaintext autokey"],
   assumes: ["standard-alphabet", "autokey"],
   minLetters: AUTOKEY_MIN_LENGTH,
-  basis: "enforced",
+  reliableLettersPerColumn: 8,
+  readableQuadgram: -4.5,
+  basis: "measured",
 };

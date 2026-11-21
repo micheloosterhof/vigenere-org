@@ -69,10 +69,17 @@ export function breakRailFence(text: string): RailCandidate[] {
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
 
-/** What the exhaustive rail fence breaker needs. */
+/**
+ * What the exhaustive rail fence breaker needs. In
+ * bench/results/simple-solvers.tsv it recovers every text from 30 letters up
+ * and 8 of 10 at 16 to 20; under 20 letters a wrong rail count sometimes
+ * reads as English.
+ */
 export const RAIL_FENCE_REQUIREMENTS: SolverRequirements = {
   id: "rail-fence",
   ciphers: ["Rail fence"],
   assumes: ["transposition"],
-  basis: "unmeasured",
+  minLetters: 20,
+  reliableLetters: 30,
+  basis: "measured",
 };

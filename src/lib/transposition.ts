@@ -183,10 +183,17 @@ export function breakColumnar(
   });
 }
 
-/** What the columnar transposition breaker needs. */
+/**
+ * What the columnar transposition breaker needs. In
+ * bench/results/simple-solvers.tsv (keys of 3 to 7 letters) it recovers 48 of
+ * 50 texts from 30 letters up and half at 20; under 20 letters a third of
+ * shuffled texts come out reading as English.
+ */
 export const COLUMNAR_REQUIREMENTS: SolverRequirements = {
   id: "columnar-transposition",
   ciphers: ["Columnar transposition"],
   assumes: ["transposition"],
-  basis: "unmeasured",
+  minLetters: 20,
+  reliableLetters: 30,
+  basis: "measured",
 };

@@ -64,10 +64,17 @@ export function breakAffine(text: string): AffineCandidate[] {
   return candidates.sort((x, y) => y.fitness - x.fitness);
 }
 
-/** What the exhaustive affine breaker needs. */
+/**
+ * What the exhaustive affine breaker needs. In
+ * bench/results/simple-solvers.tsv it recovers every text from 16 letters up
+ * and 7 of 10 at 10 letters, where one in ten random texts also reads as
+ * English.
+ */
 export const AFFINE_REQUIREMENTS: SolverRequirements = {
   id: "affine",
   ciphers: ["Affine"],
   assumes: ["standard-alphabet", "single-alphabet"],
-  basis: "unmeasured",
+  minLetters: 16,
+  reliableLetters: 16,
+  basis: "measured",
 };

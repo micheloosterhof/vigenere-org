@@ -304,26 +304,46 @@ export function caesarCandidates(text: string): ShiftCandidate[] {
   return candidates.sort((a, b) => b.fitness - a.fitness);
 }
 
-/** What the Caesar shift ranking needs. */
+/**
+ * What the Caesar shift ranking needs. In bench/results/simple-solvers.tsv it
+ * finds the shift of every text from 10 letters up, and with 26 keys to try
+ * it never makes random letters read as English.
+ */
 export const CAESAR_REQUIREMENTS: SolverRequirements = {
   id: "caesar",
   ciphers: ["Caesar"],
   assumes: ["standard-alphabet", "single-alphabet"],
-  basis: "unmeasured",
+  reliableLetters: 10,
+  basis: "measured",
 };
 
-/** What the periodic shift-key recovery needs. */
+/**
+ * What the periodic shift-key recovery needs. In
+ * bench/results/keyed-solvers.tsv (Vigenère and Beaufort, keys of 3 to 15
+ * letters) it recovers 36 of 40 texts at 12 letters per key letter and all 40
+ * at 20; at 6 to 8 it recovers about two in three. Trying every key length
+ * lifts random letters to a quadgram fitness of -4.7, so its answers are
+ * believed only from -4.5.
+ */
 export const PERIODIC_REQUIREMENTS: SolverRequirements = {
   id: "periodic-shift",
   ciphers: ["Vigenère", "Beaufort", "Gronsfeld"],
   assumes: ["standard-alphabet", "periodic"],
-  basis: "unmeasured",
+  reliableLettersPerColumn: 12,
+  readableQuadgram: -4.5,
+  basis: "measured",
 };
 
-/** What the Porta key recovery needs. */
+/**
+ * What the Porta key recovery needs. In bench/results/keyed-solvers.tsv it
+ * recovers 19 of 20 texts at 8 letters per key letter and none below, because
+ * the key length is capped at one per eight letters.
+ */
 export const PORTA_REQUIREMENTS: SolverRequirements = {
   id: "porta",
   ciphers: ["Porta"],
   assumes: ["standard-alphabet", "periodic"],
-  basis: "unmeasured",
+  reliableLettersPerColumn: 8,
+  readableQuadgram: -4.5,
+  basis: "measured",
 };

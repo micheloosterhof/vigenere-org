@@ -178,7 +178,8 @@ export function breakPolyalphabetic(
  * period given, it recovers 45 of 50 texts at 200 letters per column, 24 of 50
  * at 150 and 2 of 50 at 100. Below 75 per column the free alphabets fit random
  * letters to pseudo-English (-4.0 at 25 per column, -4.7 at 50, under -5.2
- * from 75), so an answer there cannot be believed.
+ * from 75), so an answer there cannot be believed. Right answers score -4.3
+ * or better; half-right ones reach -4.6.
  */
 export const POLYALPHABETIC_REQUIREMENTS: SolverRequirements = {
   id: "polyalphabetic",
@@ -186,6 +187,7 @@ export const POLYALPHABETIC_REQUIREMENTS: SolverRequirements = {
   assumes: ["periodic"],
   minLettersPerColumn: 75,
   reliableLettersPerColumn: 200,
+  readableQuadgram: -4.5,
   maxPeriod: MAX_PERIOD,
   basis: "measured",
 };

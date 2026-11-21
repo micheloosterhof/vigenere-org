@@ -47,8 +47,17 @@ export interface SolverRequirements {
   minLetters?: number;
   /** The same floor counted per key position, for periodic ciphers. */
   minLettersPerColumn?: number;
-  /** Fewest letters per key position at which the solver recovers at least nine texts in ten. */
+  /** Fewest letters at which the solver recovers at least nine texts in ten. */
+  reliableLetters?: number;
+  /** The same reliable size counted per key position (per primer letter for autokey). */
   reliableLettersPerColumn?: number;
+  /**
+   * Average quadgram log10 probability an answer must reach to be believed,
+   * where the usual level is not enough: a solver that searches a large key
+   * space fits text with nothing to find closer to English than one that tries
+   * a handful of keys.
+   */
+  readableQuadgram?: number;
   /** Most letters the solver is meant for: beyond this it only costs time, because a cheaper solver covers the text. */
   maxLetters?: number;
   /** Longest key period the solver tries. */

@@ -50,6 +50,7 @@ describe("SOLVER_REQUIREMENTS", () => {
       const stated =
         solver.minLetters !== undefined ||
         solver.minLettersPerColumn !== undefined ||
+        solver.reliableLetters !== undefined ||
         solver.reliableLettersPerColumn !== undefined;
       expect(stated, solver.id).toBe(solver.basis !== "unmeasured");
     }
