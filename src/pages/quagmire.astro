@@ -27,8 +27,8 @@ import Faq from "../components/Faq.astro";
     Break Quagmire without the keywords
   </h2>
   <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
-    The solver works through four attacks on the single-keyword variants (I, II,
-    and III), cheapest first. It tries nearly ten thousand English words as the
+    The solver works through its attacks cheapest first. For the single-keyword
+    variants (I, II, and III) it tries nearly ten thousand English words as the
     alphabet keyword and picks each key position's shift from its letter
     frequencies; that takes seconds and needs about 24 letters per key position.
     On shorter text it solves all the shifts of a keyword together, which is how
@@ -37,13 +37,17 @@ import Faq from "../components/Faq.astro";
     rest of the alphabet follows the keyword in order, so that set alone places
     every other letter. This needs no word list, about 16 letters per key
     position for Quagmire I and II, and up to 48 for Quagmire III with a long
-    keyword. Last comes the statistical attack: break the text as a general
+    keyword. Next comes the statistical attack: break the text as a general
     polyalphabetic cipher, check whether one shared mixed alphabet explains
     every key position — the mark of Quagmire III — and rewrite that alphabet
     into its keyword form, naming the period key. It needs roughly two hundred
-    letters per key position. The slower attacks can take a minute; everything
-    runs in your browser. Quagmire IV comes out as the general polyalphabetic
-    decryption, as on the
+    letters per key position. Last, for Quagmire IV, it searches for the letters
+    of both keywords at once. That needs about 48 letters per key position and
+    finds keywords of up to eight different letters each; longer keywords are
+    beyond it. The slower attacks can take a minute; everything runs in your
+    browser. A Quagmire IV with two hundred letters per key position comes out
+    of the statistical attack first, without its keywords: the general
+    polyalphabetic decryption, as on the
     <a
       href="/polyalphabetic"
       class="text-orange-700 underline-offset-2 hover:underline dark:text-orange-400"
@@ -96,7 +100,7 @@ import Faq from "../components/Faq.astro";
       {
         question: "How does the breaker find the keyword?",
         answer:
-          "It first tries a dictionary of about 10,000 common English words as the alphabet keyword, which works on short texts such as Kryptos K1. If the keyword is not in the dictionary, it works out which letters the keyword holds, since the rest of the alphabet follows the keyword in order. If that fails too, a statistical solver recovers each alphabet and then reconciles them into one keyword alphabet.",
+          "It first tries a dictionary of about 10,000 common English words as the alphabet keyword, which works on short texts such as Kryptos K1. If the keyword is not in the dictionary, it works out which letters the keyword holds, since the rest of the alphabet follows the keyword in order. If that fails too, a statistical solver recovers each alphabet and then reconciles them into one keyword alphabet. Quagmire IV has two keywords: the breaker searches for the letters of both at once.",
       },
     ]}
   />

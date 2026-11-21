@@ -18,9 +18,17 @@
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the
   rows under `bench/results/` say which solver succeeded on which text.
-- Quagmire IV breaker (`solve-quagmire-iv.ts`) is not on the page: it needs
-  the period and both keyword sizes, about half a minute per combination, so
-  it wants a worker pool and a benchmark with the sizes unknown.
+- Quagmire IV breaker (`solve-quagmire-iv.ts`): keywords of 9 or more
+  different letters are outside the sizes it tries (0 of 24 texts in
+  `bench/results/quagmire-iv-unknown.tsv`); with the sizes given exactly and
+  300 runs it solves them from 64 letters per column, so size fields on the
+  page or a slower last round could cover them. The auto-solver does not run
+  it. A long Quagmire IV text is solved by the statistical attack before the
+  search runs, so its keywords are not named.
+- Trifid: the true period is among the four periods the breaker tries in
+  92 to 94% of texts of 300 to 400 letters and in 66% at 200 (scratch
+  measurement, 50 texts per length); more finalists or a better period
+  statistic would lift the solve rate when the period is not given.
 - The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
   seconds); its word scan could be shared among workers.
 - The statistical Quagmire III solver misses the shared alphabet on 29 of
