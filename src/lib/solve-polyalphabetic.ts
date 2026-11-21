@@ -177,7 +177,7 @@ export const POLYALPHABETIC_REQUIREMENTS: SolverRequirements = {
   id: "polyalphabetic",
   ciphers: ["Polyalphabetic"],
   assumes: ["periodic"],
-  minLettersPerColumn: 200,
+  reliableLettersPerColumn: 200,
   maxPeriod: MAX_PERIOD,
   basis: "estimate",
 };

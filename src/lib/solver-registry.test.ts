@@ -47,7 +47,8 @@ describe("SOLVER_REQUIREMENTS", () => {
     for (const solver of SOLVER_REQUIREMENTS) {
       const stated =
         solver.minLetters !== undefined ||
-        solver.minLettersPerColumn !== undefined;
+        solver.minLettersPerColumn !== undefined ||
+        solver.reliableLettersPerColumn !== undefined;
       expect(stated, solver.id).toBe(solver.basis !== "unmeasured");
     }
   });

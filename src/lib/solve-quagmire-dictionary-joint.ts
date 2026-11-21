@@ -258,7 +258,7 @@ export const QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS: SolverRequirements = {
   ],
   minLetters: MIN_RELIABLE_LENGTH,
   maxLetters: MAX_PER_COLUMN * MAX_PERIOD,
-  minLettersPerColumn: 8,
+  reliableLettersPerColumn: 8,
   maxPeriod: MAX_PERIOD,
   basis: "measured",
 };

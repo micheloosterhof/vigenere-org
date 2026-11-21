@@ -125,7 +125,8 @@ export const QUAGMIRE_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-shared-alphabet",
   ciphers: ["Quagmire III"],
   assumes: ["periodic", "shared-alphabet"],
-  minLettersPerColumn: POLYALPHABETIC_REQUIREMENTS.minLettersPerColumn,
+  reliableLettersPerColumn:
+    POLYALPHABETIC_REQUIREMENTS.reliableLettersPerColumn,
   maxPeriod: POLYALPHABETIC_REQUIREMENTS.maxPeriod,
   basis: "estimate",
 };

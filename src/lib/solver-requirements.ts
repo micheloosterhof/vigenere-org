@@ -26,9 +26,9 @@ export type KeyAssumption =
 
 /**
  * Where a solver's length limits come from: `enforced` limits are refused by
- * the code, `measured` ones are the smallest size at which a benchmark under
- * bench/ solved at least nine trials in ten, `estimate` ones are a documented
- * rule of thumb, and `unmeasured` means no limit is stated.
+ * the code, `measured` ones come from a benchmark under bench/, `estimate`
+ * ones are a documented rule of thumb, and `unmeasured` means no limit is
+ * stated.
  */
 export type RequirementBasis =
   "enforced" | "measured" | "estimate" | "unmeasured";
@@ -39,12 +39,18 @@ export interface SolverRequirements {
   /** Display names of the ciphers the solver breaks. */
   ciphers: string[];
   assumes: KeyAssumption[];
-  /** Least number of letters in the whole ciphertext. */
+  /**
+   * Fewest letters at which an answer means anything. With less text a wrong
+   * key decrypts to something that reads as well as the right one, so no
+   * result can be believed.
+   */
   minLetters?: number;
+  /** The same floor counted per key position, for periodic ciphers. */
+  minLettersPerColumn?: number;
+  /** Fewest letters per key position at which the solver recovers at least nine texts in ten. */
+  reliableLettersPerColumn?: number;
   /** Most letters the solver is meant for: beyond this it only costs time, because a cheaper solver covers the text. */
   maxLetters?: number;
-  /** Least number of letters per key position, for periodic ciphers. */
-  minLettersPerColumn?: number;
   /** Longest key period the solver tries. */
   maxPeriod?: number;
   basis: RequirementBasis;
@@ -57,7 +63,11 @@ export interface TextShape {
   period?: number;
 }
 
-/** True when the ciphertext is long enough, and its period short enough, for the solver. */
+/**
+ * True when the solver is meant for a ciphertext of this size and an answer
+ * from it could be believed. It says nothing about how likely the solver is to
+ * succeed: compare `reliableLettersPerColumn` for that.
+ */
 export function meetsRequirements(
   solver: SolverRequirements,
   shape: TextShape,
