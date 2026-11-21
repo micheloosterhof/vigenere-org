@@ -59,10 +59,18 @@ building the commit CI tested), or on a manual run.
     on periods with under 32 letters per column.
   - `quagmire-letter-sets.ts` / `solve-quagmire-letter-sets.ts` — Quagmire
     I-III without a word list: scores which letters form the keyword (the
-    rest of the alphabet follows in order, so the set alone places them),
-    then completes the best sets by local search over keyword order,
-    letters and shifts. The variant, periods and keyword sizes to try are
-    given by the caller; not yet wired into a page.
+    rest of the alphabet follows in order, so the set alone places them).
+    A quick pass over every period, variant and keyword size completes the
+    best sets; the best-scoring combinations then get a full search.
+    `letter-sets-pool.ts` / `letter-sets.worker.ts` share the periods among
+    workers. Runs in the quagmire worker and the auto-solver.
+  - `quagmire-key-climb.ts` — completes keyword letter sets into a key by
+    local search over keyword order, letters and shifts (bigrams from
+    several starts, then quadgrams, then again from the alphabet turned one
+    place); handles one keyword or two.
+  - `solve-quagmire-iv.ts` — Quagmire IV: anneals the two keyword letter
+    sets together, then completes the pairs. Needs the period and both
+    keyword sizes from the caller; not wired into a page.
   - `solve-autokey.ts` — primer recovery for both autokey variants on
     the Vigenère, Beaufort and variant Beaufort tableaux.
   - `solver-requirements.ts` / `solver-registry.ts` — each solver module
