@@ -39,6 +39,9 @@ building the commit CI tested), or on a manual run.
     best period first), run on a pool of workers that stops at the first
     English decryption or on Stop.
     Settings (iterations, restarts, temperature) were chosen by benchmark.
+    The pool itself is `job-pool.ts` (jobs dealt in order to up to 8
+    workers) with `job-worker.ts` as its worker side; both take any job
+    type.
   - `segment.ts` — word segmentation (Zipf costs over the word list plus
     inflections and unknown chunks) behind the "Split into words" toggle.
   - `solve-substitution.ts` — quadgram hill climb for one mixed alphabet.
