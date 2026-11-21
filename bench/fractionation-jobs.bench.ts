@@ -68,7 +68,7 @@ it("single fractionation jobs at the true period", () => {
       cipher === "bifid"
         ? bifid(plain, key, period, "encrypt")
         : trifid(plain, key, period, "encrypt");
-    const iterations = RUN_SETTINGS[cipher].iterations * scale;
+    const iterations = RUN_SETTINGS[cipher].rounds[0].iterations * scale;
     for (let job = 0; job < jobs; job += 1) {
       const start = performance.now();
       const result = annealFractionation(cipher, ciphertext, period, TABLE, {

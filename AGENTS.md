@@ -27,14 +27,17 @@ building the commit CI tested), or on a manual run.
   - `anneal.ts` — simulated annealing core (linear cooling, early exit at
     a target score, seeded rng) plus quadgram scoring that skips non-letters.
   - `solve-fractionation.ts` — Bifid/Trifid breaker: a pair index of
-    coincidence ranks the periods, then the square or cube is annealed.
+    coincidence ranks the periods, then the square or cube is annealed in
+    rounds: short runs at every period first, runs three and ten times as
+    long when those find nothing (some texts fail every short run).
     Needs 100+ letters (refused below: random text overfits toward English).
   - `solve-double-transposition.ts` — anneals both column orders at given
     key lengths, then tries all cyclic column rotations (a rotated
     plaintext scores almost as well as the true one).
   - `anneal-jobs.ts` / `anneal-pool.ts` / `anneal.worker.ts` — the three
-    annealing breakers split into seeded jobs (best period first), run on a
-    pool of workers that stops at the first English decryption or on Stop.
+    annealing breakers split into seeded jobs (shortest runs first, then
+    best period first), run on a pool of workers that stops at the first
+    English decryption or on Stop.
     Settings (iterations, restarts, temperature) were chosen by benchmark.
   - `segment.ts` — word segmentation (Zipf costs over the word list plus
     inflections and unknown chunks) behind the "Split into words" toggle.

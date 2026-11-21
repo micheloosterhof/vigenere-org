@@ -1,5 +1,5 @@
 // ABOUTME: Splits a Bifid, Trifid, or double transposition attack into independent annealing jobs.
-// ABOUTME: Jobs come most likely first (best-ranked period), so a pool finds the key early and stops.
+// ABOUTME: Jobs come cheapest and most likely first (short runs, best-ranked period), so a pool finds the key early and stops.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { seededRng } from "./anneal";
@@ -20,7 +20,13 @@ export type AnnealRequest =
   | { cipher: "double"; firstLength: number; secondLength: number };
 
 export type AnnealJob =
-  | { cipher: "bifid" | "trifid"; period: number; seed: number }
+  | {
+      cipher: "bifid" | "trifid";
+      period: number;
+      /** Annealing steps of this run. */
+      iterations: number;
+      seed: number;
+    }
   | {
       cipher: "double";
       firstLength: number;
@@ -50,10 +56,17 @@ export function planJobs(
     }
     return jobs;
   }
-  const { restarts } = RUN_SETTINGS[request.cipher];
-  for (const period of rankPeriods(request.cipher, text, request.periods)) {
-    for (let run = 0; run < restarts; run += 1) {
-      jobs.push({ cipher: request.cipher, period, seed: seed + jobs.length });
+  const periods = rankPeriods(request.cipher, text, request.periods);
+  for (const { iterations, restarts } of RUN_SETTINGS[request.cipher].rounds) {
+    for (const period of periods) {
+      for (let run = 0; run < restarts; run += 1) {
+        jobs.push({
+          cipher: request.cipher,
+          period,
+          iterations,
+          seed: seed + jobs.length,
+        });
+      }
     }
   }
   return jobs;
@@ -75,6 +88,9 @@ export function runJob(
   }
   return {
     cipher: job.cipher,
-    ...annealFractionation(job.cipher, text, job.period, table, options),
+    ...annealFractionation(job.cipher, text, job.period, table, {
+      ...options,
+      iterations: job.iterations,
+    }),
   };
 }

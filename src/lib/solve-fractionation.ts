@@ -49,13 +49,40 @@ export interface AnnealRunOptions {
   onProgress?: (fraction: number) => void;
 }
 
-/** Per-cipher annealing settings, chosen by benchmark: many short runs beat few long ones. */
+/** A round of annealing runs of one length, tried at every period. */
+export interface AnnealRound {
+  iterations: number;
+  restarts: number;
+}
+
+/**
+ * Per-cipher annealing settings, chosen by benchmark. Whether a run finds the
+ * key depends on the text more than on luck: in
+ * bench/results/fractionation-jobs.tsv most texts fall to a short run, but
+ * some fail every short run and fall to one three or ten times as long. So
+ * the short runs come first and the longer rounds follow only when they find
+ * nothing.
+ */
 export const RUN_SETTINGS: Record<
   FractionationCipher,
-  { iterations: number; restarts: number; finalists: number }
+  { rounds: AnnealRound[]; finalists: number }
 > = {
-  bifid: { iterations: 100000, restarts: 12, finalists: 3 },
-  trifid: { iterations: 300000, restarts: 8, finalists: 4 },
+  bifid: {
+    rounds: [
+      { iterations: 100000, restarts: 12 },
+      { iterations: 300000, restarts: 8 },
+      { iterations: 1000000, restarts: 4 },
+    ],
+    finalists: 3,
+  },
+  trifid: {
+    rounds: [
+      { iterations: 300000, restarts: 8 },
+      { iterations: 900000, restarts: 8 },
+      { iterations: 3000000, restarts: 4 },
+    ],
+    finalists: 4,
+  },
 };
 
 /** Everything a solver needs about one cipher: its grid and how a key decrypts. */
@@ -353,7 +380,7 @@ export function annealFractionation(
   const problem = problemFor(geometry, values, period, table);
   const result = anneal(problem, {
     rng: options.rng,
-    iterations: options.iterations ?? RUN_SETTINGS[cipher].iterations,
+    iterations: options.iterations ?? RUN_SETTINGS[cipher].rounds[0].iterations,
     // The raw score is a sum over the text, so the temperature scales with length.
     temperature: n * (options.temperatureFactor ?? 1),
     target,
@@ -369,16 +396,19 @@ export function annealFractionation(
   };
 }
 
-export interface BreakFractionationOptions extends AnnealRunOptions {
+export interface BreakFractionationOptions extends Omit<
+  AnnealRunOptions,
+  "iterations"
+> {
   periods?: number[];
-  restarts?: number;
+  rounds?: AnnealRound[];
   finalists?: number;
 }
 
 /**
- * Sequential search: anneals each ranked period with restarts and stops at
- * the first decryption that reads as English. The page runs the same jobs
- * across a worker pool instead.
+ * Sequential search: round by round, anneals each ranked period with the
+ * round's restarts, and stops at the first decryption that reads as English.
+ * The page runs the same jobs across a worker pool instead.
  */
 export function breakFractionation(
   cipher: FractionationCipher,
@@ -394,20 +424,19 @@ export function breakFractionation(
     options.finalists ?? settings.finalists,
   );
   let best: FractionationCandidate | null = null;
-  for (const period of periods) {
-    for (let run = 0; run < (options.restarts ?? settings.restarts); run += 1) {
-      const candidate = annealFractionation(
-        cipher,
-        text,
-        period,
-        table,
-        options,
-      );
-      if (best === null || candidate.fitness > best.fitness) {
-        best = candidate;
-      }
-      if (candidate.english) {
-        return candidate;
+  for (const { iterations, restarts } of options.rounds ?? settings.rounds) {
+    for (const period of periods) {
+      for (let run = 0; run < restarts; run += 1) {
+        const candidate = annealFractionation(cipher, text, period, table, {
+          ...options,
+          iterations,
+        });
+        if (best === null || candidate.fitness > best.fitness) {
+          best = candidate;
+        }
+        if (candidate.english) {
+          return candidate;
+        }
       }
     }
   }

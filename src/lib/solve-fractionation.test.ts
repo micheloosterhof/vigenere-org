@@ -128,9 +128,28 @@ describe("breakFractionation", () => {
     const found = breakFractionation("bifid", noise, TABLE, {
       rng: seededRng(1),
       periods: [5],
-      restarts: 1,
-      iterations: 5000,
+      rounds: [{ iterations: 5000, restarts: 1 }],
     });
     expect(found.english).toBe(false);
   });
+
+  it("goes on to longer runs when the short ones find nothing", () => {
+    const ciphertext = bifid(
+      LETTERS.slice(0, 250),
+      "SECRETKEYWORD",
+      7,
+      "encrypt",
+    );
+    const short = { iterations: 500, restarts: 2 };
+    const attack = (
+      rounds: { iterations: number; restarts: number }[],
+    ): boolean =>
+      breakFractionation("bifid", ciphertext, TABLE, {
+        rng: seededRng(11),
+        periods: [7],
+        rounds,
+      }).english;
+    expect(attack([short])).toBe(false);
+    expect(attack([short, { iterations: 100000, restarts: 12 }])).toBe(true);
+  }, 120_000);
 });

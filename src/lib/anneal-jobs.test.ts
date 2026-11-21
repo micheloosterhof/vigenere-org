@@ -24,12 +24,31 @@ describe("planJobs", () => {
   it("queues every restart of the best period first, each with its own seed", () => {
     const ciphertext = bifid(LETTERS, "KEYWORD", 6, "encrypt");
     const jobs = planJobs(ciphertext, { cipher: "bifid" }, 100);
-    const { restarts, finalists } = RUN_SETTINGS.bifid;
-    expect(jobs).toHaveLength(restarts * finalists);
+    const { rounds, finalists } = RUN_SETTINGS.bifid;
+    const perPeriod = rounds.reduce((sum, round) => sum + round.restarts, 0);
+    expect(jobs).toHaveLength(perPeriod * finalists);
     expect(
-      jobs.slice(0, restarts).every((j) => "period" in j && j.period === 6),
+      jobs
+        .slice(0, rounds[0].restarts)
+        .every((j) => "period" in j && j.period === 6),
     ).toBe(true);
     expect(new Set(jobs.map((j) => j.seed)).size).toBe(jobs.length);
+  });
+
+  it("queues the short runs of every period before any longer run", () => {
+    const ciphertext = bifid(LETTERS, "KEYWORD", 6, "encrypt");
+    const jobs = planJobs(ciphertext, { cipher: "bifid" }, 100);
+    const { rounds, finalists } = RUN_SETTINGS.bifid;
+    const lengths = jobs.map((j) => ("iterations" in j ? j.iterations : 0));
+    expect(lengths).toEqual([...lengths].sort((a, b) => a - b));
+    expect(
+      lengths
+        .slice(0, rounds[0].restarts * finalists)
+        .every((length) => length === rounds[0].iterations),
+    ).toBe(true);
+    expect(lengths[lengths.length - 1]).toBe(
+      rounds[rounds.length - 1].iterations,
+    );
   });
 
   it("uses only the given period when there is one", () => {
@@ -56,5 +75,16 @@ describe("runJob", () => {
     );
     expect(result.cipher).toBe("double");
     expect(result.plaintext).toHaveLength(120);
+  });
+
+  it("anneals a Bifid job for the job's number of steps", () => {
+    const ciphertext = bifid(LETTERS, "KEYWORD", 6, "encrypt");
+    const fitness = (iterations: number): number =>
+      runJob(
+        { cipher: "bifid", period: 6, iterations, seed: 3 },
+        ciphertext,
+        TABLE,
+      ).fitness;
+    expect(fitness(20000)).toBeGreaterThan(fitness(1) + 0.5);
   });
 });
