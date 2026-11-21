@@ -83,4 +83,29 @@ describe("anneal", () => {
     );
     expect(evaluations).toBeLessThan(10);
   });
+
+  it("cools to the end temperature when one is given, not to zero", () => {
+    // Every neighbour scores one worse; a worse key is taken when the random
+    // number, here always 0.5, is below exp(-1 / temperature): down to a
+    // temperature of 1.45.
+    const accepted = (endTemperature?: number): number => {
+      let reached = 0;
+      anneal(
+        {
+          random: () => 0,
+          neighbour: (key) => {
+            reached = Math.max(reached, key);
+            return key + 1;
+          },
+          score: (key) => -key,
+        },
+        { rng: () => 0.5, iterations: 20, temperature: 10, endTemperature },
+      );
+      return reached;
+    };
+    // Falling from 10 to zero in twenty steps, the last two steps are too
+    // cold, so the key stops at 18; ending at 5, every step is taken.
+    expect(accepted()).toBe(18);
+    expect(accepted(5)).toBe(19);
+  });
 });

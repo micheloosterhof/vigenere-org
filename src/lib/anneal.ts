@@ -56,8 +56,10 @@ export interface AnnealProblem<Key> {
 export interface AnnealOptions {
   rng: () => number;
   iterations: number;
-  /** Starting temperature in raw quadgram units; it falls linearly to zero. */
+  /** Starting temperature in raw quadgram units; it falls linearly to the end temperature. */
   temperature: number;
+  /** The temperature the run ends at; zero by default. */
+  endTemperature?: number;
   /** Called every so often with the fraction done. */
   onProgress?: (fraction: number) => void;
   /** Stops early once the best score reaches this. */
@@ -79,13 +81,15 @@ export function anneal<Key>(
   options: AnnealOptions,
 ): AnnealResult<Key> {
   const { rng, iterations, temperature, onProgress, target } = options;
+  const endTemperature = options.endTemperature ?? 0;
   let current = problem.random(rng);
   let currentScore = problem.score(current);
   let best = current;
   let bestScore = currentScore;
   const reportEvery = Math.max(1, Math.floor(iterations / 50));
   for (let step = 0; step < iterations; step += 1) {
-    const t = temperature * (1 - step / iterations);
+    const t =
+      endTemperature + (temperature - endTemperature) * (1 - step / iterations);
     const candidate = problem.neighbour(current, rng);
     const score = problem.score(candidate);
     const delta = score - currentScore;
