@@ -313,6 +313,21 @@ describe("autosolve", () => {
     },
   );
 
+  it("does not pass off an overfitted long key as a solution", async () => {
+    // On the 63 letters of Kryptos K1 a 13-letter Vigenère key decrypts to
+    // pseudo-English that scores like English on bigrams.
+    const k1 =
+      "EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD";
+    const result = await autosolve(k1, TABLE, { rng: mulberry32(13) });
+    expect(result.solved).toBe(false);
+  });
+
+  it("marks a decryption that reads as English as solved", async () => {
+    const result = await autosolve(vigenere(PLAIN, "LEMON", "encrypt"), TABLE);
+    expect(result.best.cipher).toBe("Vigenère");
+    expect(result.solved).toBe(true);
+  });
+
   it("identifies Beaufort ciphertext and recovers the key", async () => {
     const result = await autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),

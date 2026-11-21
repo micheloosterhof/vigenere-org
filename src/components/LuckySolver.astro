@@ -100,6 +100,9 @@ import WordSplitToggle from "./WordSplitToggle.astro";
     if (result.alreadyEnglish) {
       return "This already looks like readable English, but here is the best decryption anyway.";
     }
+    if (!result.solved) {
+      return `No attack produced readable English. The closest guess is the ${result.best.cipher} cipher (${result.best.keyLabel}).`;
+    }
     return `This looks like the ${result.best.cipher} cipher (${result.best.keyLabel}).`;
   }
 

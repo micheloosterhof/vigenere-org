@@ -19,16 +19,20 @@ import {
   breakPorta,
   READABLE_BIGRAM,
   scoreText,
+  toLetterValues,
   vigenereDecrypt,
 } from "./solve";
+import { quadgramFitness } from "./quadgrams";
 import { breakRailFence } from "./railfence";
 import { breakColumnar } from "./transposition";
 import {
   breakQuagmireDictionary,
   type DictionaryVariant,
+  type QuagmireDictionaryResult,
 } from "./solve-quagmire-dictionary";
 import { breakSubstitution } from "./solve-substitution";
 import {
+  POLYALPHABETIC_REQUIREMENTS,
   breakPolyalphabetic,
   type PolyalphabeticProgress,
   type PolyalphabeticSolver,
@@ -43,6 +47,13 @@ import {
 import { analyze, type Diagnostics } from "./diagnostics";
 import { shareSearch } from "./share-url";
 import { meetsRequirements, type TextShape } from "./solver-requirements";
+
+// Average quadgram log10 probability a decryption must reach, besides the
+// bigram level, to count as read. A long key on short text fits bigrams to
+// pseudo-English (a 13-letter Vigenère key reaches -2.46 on the 63 letters of
+// Kryptos K1, whose true plaintext scores -2.44) but stays far from English
+// on quadgrams (-5.0 against -4.4).
+const READABLE_QUADGRAM = -4.7;
 
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
@@ -96,6 +107,8 @@ export interface AutosolveResult {
   diagnostics: Diagnostics;
   best: Attempt;
   attempts: Attempt[];
+  /** True when the best attempt reads as English; otherwise it is only the closest guess. */
+  solved: boolean;
   alreadyEnglish: boolean;
 }
 
@@ -131,8 +144,18 @@ export async function autosolve(
   const diagnostics = analyze(text);
   const period = diagnostics.period;
   const attempts: Attempt[] = [];
-  const readable = (): boolean =>
-    attempts.some((a) => a.fitness >= READABLE_BIGRAM);
+  // Attempts on less text than their solver can be believed on.
+  const doubtful = new Set<Attempt>();
+  const reads = (attempt: Attempt): boolean => {
+    if (doubtful.has(attempt) || attempt.fitness < READABLE_BIGRAM) {
+      return false;
+    }
+    const values = toLetterValues(attempt.plaintext);
+    return (
+      values.length < 4 || quadgramFitness(values, table) >= READABLE_QUADGRAM
+    );
+  };
+  const readable = (): boolean => attempts.some(reads);
   // Both autokey attacks need more text than the others; short text gets the
   // attacks it can support rather than an error.
   const shape: TextShape = { letters: diagnostics.length };
@@ -316,28 +339,32 @@ export async function autosolve(
     });
   }
 
+  const pushQuagmire = (dictionary: QuagmireDictionaryResult): void => {
+    attempts.push({
+      cipher: QUAGMIRE_NAME[dictionary.variant],
+      keyLabel: `keyword ${dictionary.keyword}, key ${dictionary.key}`,
+      fitness: scoreText(dictionary.plaintext),
+      plaintext: dictionary.plaintext,
+      href: deepLink(
+        "quagmire",
+        text,
+        [
+          ["variant", String(dictionary.variant)],
+          ["keyword", dictionary.keyword],
+          ["key", dictionary.key],
+          ["indicator", dictionary.indicator],
+        ],
+        "decrypt",
+      ),
+    });
+  };
+
   // The keyword dictionary attack covers the Quagmire family on far shorter
   // text than the general attack, and is much cheaper, so it goes first.
   if (options.words !== undefined && !readable()) {
     const dictionary = breakQuagmireDictionary(text, options.words, table);
     if (dictionary.found) {
-      attempts.push({
-        cipher: QUAGMIRE_NAME[dictionary.variant],
-        keyLabel: `keyword ${dictionary.keyword}, key ${dictionary.key}`,
-        fitness: scoreText(dictionary.plaintext),
-        plaintext: dictionary.plaintext,
-        href: deepLink(
-          "quagmire",
-          text,
-          [
-            ["variant", String(dictionary.variant)],
-            ["keyword", dictionary.keyword],
-            ["key", dictionary.key],
-            ["indicator", dictionary.indicator],
-          ],
-          "decrypt",
-        ),
-      });
+      pushQuagmire(dictionary);
     }
   }
 
@@ -351,7 +378,7 @@ export async function autosolve(
       restarts: options.restarts,
       onProgress: options.onProgress,
     });
-    attempts.push({
+    const attempt: Attempt = {
       cipher: "Polyalphabetic",
       keyLabel: `period ${recovered.period}`,
       fitness: scoreText(recovered.plaintext),
@@ -362,10 +389,23 @@ export async function autosolve(
         [["period", String(recovered.period)]],
         "break",
       ),
-    });
+    };
+    attempts.push(attempt);
+    // A free alphabet per column fits short columns to pseudo-English.
+    if (
+      !meetsRequirements(POLYALPHABETIC_REQUIREMENTS, {
+        letters: shape.letters,
+        period: recovered.period,
+      })
+    ) {
+      doubtful.add(attempt);
+    }
   }
 
   attempts.sort((a, b) => {
+    if (reads(a) !== reads(b)) {
+      return reads(a) ? -1 : 1;
+    }
     if (Math.abs(a.fitness - b.fitness) <= SIMPLER_EPSILON) {
       return COMPLEXITY[a.cipher] - COMPLEXITY[b.cipher];
     }
@@ -376,6 +416,7 @@ export async function autosolve(
     diagnostics,
     best: attempts[0],
     attempts,
+    solved: reads(attempts[0]),
     alreadyEnglish: scoreText(text) >= READABLE_BIGRAM,
   };
 }
