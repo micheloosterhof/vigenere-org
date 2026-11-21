@@ -34,6 +34,7 @@ describe("SOLVER_REQUIREMENTS", () => {
         "route",
         "double-transposition",
         "fractionation",
+        "playfair",
       ]),
     );
   });

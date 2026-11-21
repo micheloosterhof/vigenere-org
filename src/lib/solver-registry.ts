@@ -16,6 +16,7 @@ import {
 } from "./solve-autokey";
 import { DOUBLE_TRANSPOSITION_REQUIREMENTS } from "./solve-double-transposition";
 import { FRACTIONATION_REQUIREMENTS } from "./solve-fractionation";
+import { PLAYFAIR_REQUIREMENTS } from "./solve-playfair";
 import { POLYALPHABETIC_REQUIREMENTS } from "./solve-polyalphabetic";
 import { QUAGMIRE_REQUIREMENTS } from "./solve-quagmire";
 import { QUAGMIRE_DICTIONARY_REQUIREMENTS } from "./solve-quagmire-dictionary";
@@ -45,4 +46,5 @@ export const SOLVER_REQUIREMENTS: readonly SolverRequirements[] = [
   ROUTE_REQUIREMENTS,
   DOUBLE_TRANSPOSITION_REQUIREMENTS,
   FRACTIONATION_REQUIREMENTS,
+  PLAYFAIR_REQUIREMENTS,
 ];

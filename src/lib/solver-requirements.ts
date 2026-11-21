@@ -22,7 +22,9 @@ export type KeyAssumption =
   /** The key stream continues with the text itself. */
   | "autokey"
   /** Letters are split into coordinates that are regrouped. */
-  | "fractionation";
+  | "fractionation"
+  /** Letters are enciphered two at a time. */
+  | "digraphic";
 
 /**
  * Where a solver's length limits come from: `enforced` limits are refused by
