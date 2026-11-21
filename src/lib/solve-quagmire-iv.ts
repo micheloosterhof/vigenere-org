@@ -15,6 +15,7 @@ import {
   keywordForm,
   keywordOfAlphabet,
   letterSetPeriods,
+  QUAGMIRE_LETTER_SETS_REQUIREMENTS,
   readableFitness,
   shortestPeriod,
 } from "./solve-quagmire-letter-sets";
@@ -461,17 +462,22 @@ export function breakQuagmireIv(
 }
 
 /**
- * What the Quagmire IV breaker needs. In bench/results/quagmire-iv.tsv, with
- * the period and both keyword sizes given, it solves every text at 64 letters
- * per column (24 of 24), and at 48 all but those with 9 different letters in
- * each keyword (18 of 18 against 1 of 6). With both sizes guessed one too
- * large it solves 21 of 24 at 64 per column.
+ * What the Quagmire IV breaker needs. In
+ * bench/results/quagmire-iv-unknown.tsv, with the period and both keyword
+ * sizes unknown, it solves texts whose keywords have up to 8 different
+ * letters each in 15 of 24 cases at 32 letters per column, 22 of 24 at 48,
+ * which is the figure stated, 23 of 24 at 64 and 24 of 24 at 96. Keywords of
+ * 9 different letters each are outside the sizes it tries (0 of 24). None of
+ * 24 texts without keyword alphabets was reported as found. With the period
+ * and both sizes given and 300 runs, bench/results/quagmire-iv.tsv, it also
+ * solves keywords of 9 letters each at 64 per column (6 of 6).
  */
 export const QUAGMIRE_IV_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-iv",
   ciphers: ["Quagmire IV"],
   assumes: ["periodic", "shared-alphabet", "keyword-alphabet"],
   minLetters: MIN_RELIABLE_LENGTH,
-  reliableLettersPerColumn: 64,
+  reliableLettersPerColumn: 48,
+  maxPeriod: QUAGMIRE_LETTER_SETS_REQUIREMENTS.maxPeriod,
   basis: "measured",
 };
