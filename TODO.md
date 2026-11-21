@@ -31,11 +31,12 @@
   statistic would lift the solve rate when the period is not given.
 - The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
   seconds); its word scan could be shared among workers.
-- The statistical Quagmire III solver misses the shared alphabet on 29 of
-  the 93 texts it decrypts correctly in
-  `bench/results/quagmire-shared-alphabet.tsv` (9 of 40 at 300 letters per
-  column) and reports them as a general polyalphabetic cipher. Why
-  `reconcileSharedAlphabet` returns no fit there is not yet looked into.
+- The statistical Quagmire III solver misses the shared alphabet when every
+  shift is even (4 of 93 right decryptions in
+  `bench/results/quagmire-shared-alphabet.tsv`, all at periods 3 and 5): the
+  letters then fall into two halves that no pair connects, and
+  `reconcileSharedAlphabet` gives up instead of placing the halves side by
+  side.
 - More languages (German, French, Spanish n-gram tables from the aldegonde
   counts) — needs corpus decisions.
 - Slow-solver fuzz for Quagmire / polyalphabetic behind a slow-test tag.

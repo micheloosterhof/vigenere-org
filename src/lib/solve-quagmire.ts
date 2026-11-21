@@ -150,8 +150,11 @@ export function canBeBelieved(
  * recovers 37 of 40 texts at 200 letters per column, 16 of 40 at 150 and
  * none at 100, whether the shared alphabet comes from a keyword or is a
  * random arrangement. The shared-alphabet fit is never claimed on a wrong
- * decryption, but it is missed on 29 of the 93 right ones, which are then
- * reported as a general polyalphabetic cipher.
+ * decryption, nor on any of 100 texts with an unrelated alphabet per column.
+ * It is missed on 6 of the 93 right decryptions, which are then reported as
+ * a general polyalphabetic cipher: 4 whose shifts are all even, which splits
+ * the alphabet into two halves that no pair of letters connects, and 2 with
+ * too many wrong letters.
  */
 export const QUAGMIRE_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-shared-alphabet",
