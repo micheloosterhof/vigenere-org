@@ -23,9 +23,6 @@
   it wants a worker pool and a benchmark with the sizes unknown.
 - The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
   seconds); its word scan could be shared among workers.
-- `EARLY_EXIT_FITNESS` in `solve-polyalphabetic.ts` is -3.6, which no right
-  answer in `bench/results/polyalphabetic.tsv` reaches (best -3.97), so the
-  early exit never fires.
 - More languages (German, French, Spanish n-gram tables from the aldegonde
   counts) — needs corpus decisions.
 - Slow-solver fuzz for Quagmire / polyalphabetic behind a slow-test tag.

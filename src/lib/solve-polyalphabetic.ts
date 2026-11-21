@@ -23,9 +23,12 @@ export const RESTARTS = 10;
 
 /**
  * Average quadgram log10 probability at which a decryption reads as English;
- * once a restart reaches it, further restarts cannot meaningfully improve.
+ * once a restart reaches it, further restarts cannot meaningfully improve. In
+ * bench/results/polyalphabetic-restarts.tsv every restart that reached it on
+ * 75 or more letters per column was at least 95% right (384 restarts), and
+ * the best restart under 90% right scored -4.28.
  */
-export const EARLY_EXIT_FITNESS = -3.6;
+export const EARLY_EXIT_FITNESS = -4.25;
 
 export interface PolyalphabeticResult {
   period: number;

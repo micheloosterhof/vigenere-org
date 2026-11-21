@@ -170,6 +170,29 @@ describe("breakPolyalphabetic", () => {
     expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
   });
 
+  it(
+    "stops restarting once a restart reads as English",
+    { timeout: 120000 },
+    () => {
+      const ciphertext = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "PAULBRANDT", key: "TALE", indicator: "P" },
+        "encrypt",
+      );
+      let restartsRun = 0;
+      const result = breakPolyalphabetic(ciphertext, TABLE, {
+        period: 4,
+        restarts: 10,
+        rng: mulberry32(6),
+        onProgress: () => {
+          restartsRun += 1;
+        },
+      });
+      expect(accuracy(result.plaintext, PLAIN)).toBeGreaterThan(0.98);
+      expect(restartsRun).toBeLessThan(10);
+    },
+  );
+
   // Workers sharing the restarts must not all begin from the same frequency
   // seed; with it off, every restart draws its start from the rng.
   it("starts from a random key instead of the frequency seed when asked", () => {
