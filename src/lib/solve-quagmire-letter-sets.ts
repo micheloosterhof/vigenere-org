@@ -5,11 +5,14 @@
 import { averageLog10, quadgramRaw } from "./anneal";
 import { ENGLISH_BIGRAM_LOGPROBS } from "./data/english-bigrams";
 import { ENGLISH_FREQUENCIES } from "./diagnostics";
+import { columnIoc } from "./period";
 import {
   bestLetterSets,
   letterSetCount,
   letterSetScorer,
   type KeywordVariant,
+  type LetterSetScorer,
+  type ScoredLetterSet,
 } from "./quagmire-letter-sets";
 import { toLetterValues } from "./solve";
 import {
@@ -31,6 +34,30 @@ const MIN_SETS_SCORED = 15000;
 // Starts of the completion search per letter set: the set as given, then
 // random orders of its letters.
 const STARTS = 4;
+
+// The quick pass scores this many sets per variant and keyword size and
+// completes the best few: in bench/results/quagmire-letter-sets-search.tsv
+// nine solutions in ten come from the ten best sets.
+const QUICK_SETS_SCORED = 15000;
+const QUICK_SETS_COMPLETED = 10;
+// How many variants, periods and sizes get the full search after the quick
+// pass, and the log10 likelihood taken off a best set score per column to
+// compare periods.
+const DEEP_JOBS = 6;
+const COLUMN_PENALTY = 2;
+
+const VARIANTS: readonly KeywordVariant[] = [1, 2, 3];
+// Keyword sizes tried when none are given. A size up to two letters too large
+// still builds the true alphabet, because the extra letters are the first of
+// the ordered tail, so these cover keywords of 3 to 10 different letters.
+const SIZES: readonly number[] = [6, 8, 10, 4];
+const MAX_PERIOD = 12;
+// A period is tried only when it leaves at least this many letters per column.
+const MIN_PER_COLUMN = 8;
+// A period counts as looking as monoalphabetic as the best one when its
+// column index of coincidence rises this share of the way from the median
+// period's to the best period's.
+const PEAK_SHARE = 0.6;
 
 // Average quadgram log10 probability from which a decryption counts as found;
 // the search stops at the first completion that reaches it.
@@ -63,9 +90,11 @@ export interface LetterSetSolution extends LetterSetJob {
 }
 
 interface Options {
+  /** Variants to try; all three by default. */
   variants?: KeywordVariant[];
+  /** Periods to try, in this order; by default every period with enough letters per column, likeliest first. */
   periods?: number[];
-  /** Numbers of different letters in the keyword to try. */
+  /** Numbers of different letters in the keyword to try; by default sizes that cover 3 to 10. */
   sizes?: number[];
   rng?: () => number;
   onProgress?: (done: number, total: number) => void;
@@ -291,28 +320,16 @@ export function decryptWithAlphabet(
   });
 }
 
-/**
- * Runs one part of the search: scores a sample of the keyword letter sets of
- * the job's size, completes the best ones in turn, and returns the completion
- * with the best quadgram fitness.
- */
-export function runLetterSetJob(
+/** Completes the given letter sets in turn; returns the completion with the best quadgram fitness. */
+function completeSets(
   cipher: number[],
   job: LetterSetJob,
+  scorer: LetterSetScorer,
+  sets: ScoredLetterSet[],
   table: Uint8Array,
   rng: () => number,
 ): LetterSetSolution {
-  const { variant, period, size } = job;
-  const scorer = letterSetScorer(cipher, variant, period);
-  const all = letterSetCount(size);
-  const scored = job.scored ?? Math.max(SAMPLE * all, MIN_SETS_SCORED);
-  const sets = bestLetterSets(
-    scorer,
-    size,
-    job.completed ?? SETS_COMPLETED,
-    Math.min(1, scored / all),
-    rng,
-  );
+  const { variant, period } = job;
   let best: LetterSetSolution = {
     ...job,
     alphabet: Array.from({ length: ALPHABET_SIZE }, (_, i) => i),
@@ -351,54 +368,219 @@ export function runLetterSetJob(
 }
 
 /**
- * Breaks a Quagmire I, II, or III whose alphabet keyword is not in any word
- * list. In a keyword-mixed alphabet the letters outside the keyword follow it
- * in order, so knowing which letters the keyword holds places all the others.
- * For each variant, period, and keyword size given, a sample of the letter
- * sets is scored and the best are completed; the search stops at the first
- * decryption that reads as English. Check `found`.
+ * Runs one part of the search: scores a sample of the keyword letter sets of
+ * the job's size, completes the best ones in turn, and returns the completion
+ * with the best quadgram fitness.
  */
-export function breakQuagmireLetterSets(
-  text: string,
+export function runLetterSetJob(
+  cipher: number[],
+  job: LetterSetJob,
   table: Uint8Array,
-  options: Options & Required<Pick<Options, "periods" | "sizes">>,
-): QuagmireDictionaryResult {
-  const cipher = toLetterValues(text);
-  const rng = options.rng ?? Math.random;
-  const jobs: LetterSetJob[] = [];
-  for (const period of options.periods) {
-    for (const size of options.sizes) {
-      for (const variant of options.variants ?? ([3, 1, 2] as const)) {
-        jobs.push({ variant, period, size });
+  rng: () => number,
+): LetterSetSolution {
+  const scorer = letterSetScorer(cipher, job.variant, job.period);
+  const all = letterSetCount(job.size);
+  const scored = job.scored ?? Math.max(SAMPLE * all, MIN_SETS_SCORED);
+  const sets = bestLetterSets(
+    scorer,
+    job.size,
+    job.completed ?? SETS_COMPLETED,
+    Math.min(1, scored / all),
+    rng,
+  );
+  return completeSets(cipher, job, scorer, sets, table, rng);
+}
+
+export interface PeriodScan {
+  /** The best completion the quick pass found at this period. */
+  solution: LetterSetSolution;
+  /** Every variant and keyword size tried, with its best letter-set score. */
+  jobs: { job: LetterSetJob; score: number }[];
+}
+
+/**
+ * The quick pass over one period: for every variant and keyword size, scores
+ * a small sample of letter sets and keeps the best few; then completes those,
+ * starting with the variant and size whose best set scored highest. At the
+ * true period that is nearly always the true variant with a size that fits.
+ */
+export function scanLetterSetPeriod(
+  cipher: number[],
+  period: number,
+  table: Uint8Array,
+  rng: () => number,
+  variants: readonly KeywordVariant[] = VARIANTS,
+  sizes: readonly number[] = SIZES,
+): PeriodScan {
+  const scans: {
+    job: LetterSetJob;
+    scorer: LetterSetScorer;
+    sets: ScoredLetterSet[];
+  }[] = [];
+  for (const variant of variants) {
+    const scorer = letterSetScorer(cipher, variant, period);
+    for (const size of sizes) {
+      const sets = bestLetterSets(
+        scorer,
+        size,
+        QUICK_SETS_COMPLETED,
+        Math.min(1, QUICK_SETS_SCORED / letterSetCount(size)),
+        rng,
+      );
+      if (sets.length > 0) {
+        scans.push({ job: { variant, period, size }, scorer, sets });
       }
     }
   }
+  scans.sort((a, b) => b.sets[0].score - a.sets[0].score);
   let best: LetterSetSolution | undefined;
-  for (const [done, job] of jobs.entries()) {
-    const solution = runLetterSetJob(cipher, job, table, rng);
+  for (const { job, scorer, sets } of scans) {
+    const solution = completeSets(cipher, job, scorer, sets, table, rng);
     if (best === undefined || solution.fitness > best.fitness) {
       best = solution;
     }
-    options.onProgress?.(done + 1, jobs.length);
     if (best.fitness >= READABLE_QUADGRAM) {
       break;
     }
   }
   if (best === undefined) {
-    throw new Error("no period or keyword size to try");
+    throw new Error("no variant or keyword size to try");
   }
-  const alphabetText = best.alphabet
+  return {
+    solution: best,
+    jobs: scans.map(({ job, sets }) => ({ job, score: sets[0].score })),
+  };
+}
+
+/**
+ * The periods worth trying, most promising first, out of those that leave
+ * enough letters per column. Periods whose columns look about as
+ * monoalphabetic as the best one come first, shortest first, so that a period
+ * is tried before its multiples; the others follow, best first.
+ */
+export function letterSetPeriods(cipher: number[]): number[] {
+  const periods: number[] = [];
+  for (let period = 2; period <= MAX_PERIOD; period += 1) {
+    if (cipher.length / period >= MIN_PER_COLUMN) {
+      periods.push(period);
+    }
+  }
+  const ioc = new Map(
+    periods.map((period) => [period, columnIoc(cipher, period)]),
+  );
+  const of = (period: number): number => ioc.get(period) ?? 0;
+  const sorted = [...periods].sort((a, b) => of(a) - of(b));
+  const peak = of(sorted[sorted.length - 1]);
+  const baseline = of(sorted[Math.floor(sorted.length / 2)]);
+  const strong = baseline + PEAK_SHARE * (peak - baseline);
+  return [
+    ...periods.filter((period) => of(period) >= strong),
+    ...sorted.reverse().filter((period) => of(period) < strong),
+  ];
+}
+
+/** The shortest period that the offsets repeat with. */
+function shortestPeriod(offsets: number[]): number {
+  for (let period = 1; period < offsets.length; period += 1) {
+    if (
+      offsets.length % period === 0 &&
+      offsets.every((offset, i) => offset === offsets[i % period])
+    ) {
+      return period;
+    }
+  }
+  return offsets.length;
+}
+
+/**
+ * Breaks a Quagmire I, II, or III whose alphabet keyword is not in any word
+ * list. In a keyword-mixed alphabet the letters outside the keyword follow it
+ * in order, so knowing which letters the keyword holds places all the others.
+ * A quick pass scans each period in turn, for every variant and keyword size;
+ * if none reads as English, the variants, periods and sizes whose best letter
+ * set scored highest get the full search. Check `found`.
+ */
+export function breakQuagmireLetterSets(
+  text: string,
+  table: Uint8Array,
+  options: Options = {},
+): QuagmireDictionaryResult {
+  const cipher = toLetterValues(text);
+  if (cipher.length < 2 * MIN_PER_COLUMN) {
+    throw new Error(`text must contain at least ${2 * MIN_PER_COLUMN} letters`);
+  }
+  const rng = options.rng ?? Math.random;
+  const variants = options.variants ?? VARIANTS;
+  const sizes = options.sizes ?? SIZES;
+  const periods = options.periods ?? letterSetPeriods(cipher);
+  const deepJobs = Math.min(
+    DEEP_JOBS,
+    periods.length * variants.length * sizes.length,
+  );
+  const steps = periods.length + deepJobs;
+  let done = 0;
+  const step = (): void => {
+    done += 1;
+    options.onProgress?.(done, steps);
+  };
+
+  let best: LetterSetSolution | undefined;
+  const keep = (solution: LetterSetSolution): boolean => {
+    if (best === undefined || solution.fitness > best.fitness) {
+      best = solution;
+    }
+    return best.fitness >= READABLE_QUADGRAM;
+  };
+  const ranked: { job: LetterSetJob; score: number }[] = [];
+  let found = false;
+  for (const period of periods) {
+    const scan = scanLetterSetPeriod(
+      cipher,
+      period,
+      table,
+      rng,
+      variants,
+      sizes,
+    );
+    ranked.push(...scan.jobs);
+    found = keep(scan.solution);
+    step();
+    if (found) {
+      break;
+    }
+  }
+  if (!found) {
+    // Every extra column adds a free shift, which lifts the best score of a
+    // wrong period; the penalty per column takes that out of the comparison.
+    const rank = ({ job, score }: (typeof ranked)[number]): number =>
+      score - COLUMN_PENALTY * job.period;
+    ranked.sort((a, b) => rank(b) - rank(a));
+    for (const { job } of ranked.slice(0, deepJobs)) {
+      found = keep(runLetterSetJob(cipher, job, table, rng));
+      step();
+      if (found) {
+        break;
+      }
+    }
+  }
+  if (best === undefined) {
+    throw new Error("no period to try");
+  }
+  const solved: LetterSetSolution = best;
+  // A multiple of the true period decrypts as well; report the period itself.
+  const period = shortestPeriod(solved.offsets);
+  const alphabetText = solved.alphabet
     .map((value) => String.fromCharCode(CODE_A + value))
     .join("");
   return keywordResult(
     text,
     {
       word: keywordOfAlphabet(alphabetText),
-      variant: best.variant,
-      period: best.period,
-      offsets: best.offsets,
-      fitness: best.fitness,
+      variant: solved.variant,
+      period,
+      offsets: solved.offsets.slice(0, period),
+      fitness: solved.fitness,
     },
-    cipher.length >= MIN_RELIABLE_LENGTH && best.fitness >= READABLE_QUADGRAM,
+    cipher.length >= MIN_RELIABLE_LENGTH && solved.fitness >= READABLE_QUADGRAM,
   );
 }

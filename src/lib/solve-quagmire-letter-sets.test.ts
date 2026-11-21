@@ -144,7 +144,7 @@ describe("breakQuagmireLetterSets", () => {
   );
 
   it(
-    "tries the variants, periods and sizes it is given in turn",
+    "finds the variant, period and keyword size by itself",
     { timeout: 120000 },
     () => {
       const ciphertext = quagmire(
@@ -152,30 +152,57 @@ describe("breakQuagmireLetterSets", () => {
         { variant: 2, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
         "encrypt",
       );
-      const seen: number[] = [];
       const result = breakQuagmireLetterSets(ciphertext, TABLE, {
-        variants: [1, 2],
-        periods: [6],
-        sizes: [8],
         rng: seededRng(3),
-        onProgress: (done, total) => {
-          seen.push(done);
-          expect(total).toBe(2);
-        },
       });
       expect(result.found).toBe(true);
       expect(result.variant).toBe(2);
+      expect(result.period).toBe(6);
+      expect(result.keyword).toBe("VORTIGEN");
       expect(result.plaintext).toBe(PLAIN);
-      expect(seen).toEqual([1, 2]);
     },
   );
+
+  it(
+    "reports each period and each deeper search as a step",
+    { timeout: 120000 },
+    () => {
+      const ciphertext = quagmire(
+        PLAIN.slice(0, 120),
+        { variant: 2, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
+        "encrypt",
+      );
+      const seen: [number, number][] = [];
+      // Neither period fits, so both are scanned and the one variant and size
+      // of each is then searched in depth.
+      breakQuagmireLetterSets(ciphertext, TABLE, {
+        variants: [2],
+        periods: [5, 7],
+        sizes: [8],
+        rng: seededRng(3),
+        onProgress: (done, total) => seen.push([done, total]),
+      });
+      expect(seen).toEqual([
+        [1, 4],
+        [2, 4],
+        [3, 4],
+        [4, 4],
+      ]);
+    },
+  );
+
+  it("refuses text too short to hold eight letters per column", () => {
+    expect(() => breakQuagmireLetterSets("ABCDEFGHIJKLMNO", TABLE)).toThrow(
+      /at least 16 letters/,
+    );
+  });
 
   it(
     "reports not found when no keyword alphabet fits",
     { timeout: 120000 },
     () => {
       const ciphertext = quagmire(
-        PLAIN,
+        PLAIN.slice(0, 120),
         { variant: 3, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
         "encrypt",
       );
