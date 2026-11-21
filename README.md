@@ -15,15 +15,18 @@ no message text ever leaves the page.
 - **Rail fence**: zigzag transposition with a rail-count solver.
 - **Columnar transposition**: keyword column order, with an exhaustive
   column-order solver up to seven columns.
-- **Playfair**: digraph substitution over a keyword-mixed 5×5 square.
+- **Playfair**: digraph substitution over a keyword-mixed 5×5 square, with
+  a solver that recovers the square by simulated annealing.
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts
-  Kryptos K1/K2 with the right keys. A solver breaks variants I–III blind:
-  a keyword dictionary attack handles short texts in seconds, and a
+  Kryptos K1/K2 with the right keys. A solver breaks all four blind:
+  keyword dictionary attacks handle short texts (Kryptos K1 from its 63
+  letters), a scan of which letters the keyword holds finds keywords in no
+  dictionary, a search for two keywords handles Quagmire IV, and a
   statistical fallback (Quagmire III) reconciles the general polyalphabetic
   result into one shared alphabet, normalized to keyword form with the key
-  named. The auto-solver runs the dictionary attack too.
+  named. The auto-solver runs these attacks too.
 - **Substitution**: encrypt/decrypt plus a quadgram hill-climbing solver.
 - **Polyalphabetic solver**: breaks periodic ciphers with arbitrary
   per-position alphabets (Quagmire without keywords), inspired by
