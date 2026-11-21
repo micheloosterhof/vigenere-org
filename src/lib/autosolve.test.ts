@@ -328,6 +328,23 @@ describe("autosolve", () => {
     expect(result.solved).toBe(true);
   });
 
+  it(
+    "breaks a Quagmire too short for per-column shifts: Kryptos K1",
+    { timeout: 120000 },
+    async () => {
+      const k1 =
+        "EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD";
+      // A twentieth of the word list keeps the keyword scan short.
+      const words = [...WORDS.filter((_, i) => i % 20 === 0), "KRYPTOS"];
+      const result = await autosolve(k1, TABLE, { rng: mulberry32(13), words });
+      expect(result.best.cipher).toBe("Quagmire III");
+      expect(result.best.keyLabel).toBe("keyword KRYPTOS, key PALIMPSEST");
+      expect(result.best.plaintext).toBe(
+        "BETWEENSUBTLESHADINGANDTHEABSENCEOFLIGHTLIESTHENUANCEOFIQLUSION",
+      );
+    },
+  );
+
   it("identifies Beaufort ciphertext and recovers the key", async () => {
     const result = await autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),

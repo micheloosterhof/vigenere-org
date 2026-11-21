@@ -30,6 +30,10 @@ import {
   type DictionaryVariant,
   type QuagmireDictionaryResult,
 } from "./solve-quagmire-dictionary";
+import {
+  breakQuagmireDictionaryJoint,
+  QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS,
+} from "./solve-quagmire-dictionary-joint";
 import { breakSubstitution } from "./solve-substitution";
 import {
   POLYALPHABETIC_REQUIREMENTS,
@@ -365,6 +369,23 @@ export async function autosolve(
     const dictionary = breakQuagmireDictionary(text, options.words, table);
     if (dictionary.found) {
       pushQuagmire(dictionary);
+    }
+  }
+
+  // With few letters per column the dictionary keywords need their shifts
+  // solved together. That takes tens of seconds, so it runs only on text the
+  // statistics call periodic and that nothing cheaper has read.
+  if (
+    options.words !== undefined &&
+    period > 1 &&
+    !readable() &&
+    meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, shape)
+  ) {
+    const joint = breakQuagmireDictionaryJoint(text, options.words, table, {
+      rng: options.rng,
+    });
+    if (joint.found) {
+      pushQuagmire(joint);
     }
   }
 
