@@ -191,6 +191,23 @@ describe("breakQuagmireLetterSets", () => {
     },
   );
 
+  it("decrypts the whole of a text longer than it searches", () => {
+    const long = `${PLAIN} ${PLAIN} ${PLAIN}`;
+    const ciphertext = quagmire(
+      long,
+      { variant: 1, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
+      "encrypt",
+    );
+    const result = breakQuagmireLetterSets(ciphertext, TABLE, {
+      variants: [1],
+      periods: [6],
+      sizes: [8],
+      rng: seededRng(7),
+    });
+    expect(result.found).toBe(true);
+    expect(result.plaintext).toBe(long);
+  });
+
   it("refuses text too short to hold eight letters per column", () => {
     expect(() => breakQuagmireLetterSets("ABCDEFGHIJKLMNO", TABLE)).toThrow(
       /at least 16 letters/,

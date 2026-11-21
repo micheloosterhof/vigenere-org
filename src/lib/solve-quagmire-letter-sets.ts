@@ -18,6 +18,7 @@ import {
   keywordResult,
   type QuagmireDictionaryResult,
 } from "./solve-quagmire-dictionary";
+import type { SolverRequirements } from "./solver-requirements";
 
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
@@ -52,11 +53,24 @@ const MIN_PER_COLUMN = 8;
 // period's to the best period's.
 const PEAK_SHARE = 0.6;
 
-// Average quadgram log10 probability from which a decryption counts as found;
-// the search stops at the first completion that reaches it.
-const READABLE_QUADGRAM = -4.5;
 // Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
+// The search reads at most this many letters: enough for 48 per column at the
+// longest period, and completions cost time in proportion to the text.
+const SEARCH_LETTERS = 600;
+
+/**
+ * The average quadgram log10 probability from which a decryption of `letters`
+ * letters counts as found; the search stops at the first completion that
+ * reaches it. Under a hundred letters the bar is higher: in
+ * bench/results/quagmire-letter-sets-unknown.tsv a decryption with a third of
+ * its letters right reached -4.45 on 64 letters, where the right ones scored
+ * -4.36 or better. From about a hundred letters wrong decryptions stay below
+ * -5.0.
+ */
+function readableFitness(letters: number): number {
+  return letters < 100 ? -4.4 : -4.5;
+}
 
 /** One part of the search: a variant, period, and number of keyword letters. */
 export interface LetterSetJob {
@@ -165,7 +179,7 @@ function completeSets(
       best = { ...job, alphabet, offsets, fitness, setsCompleted: 0 };
     }
     best.setsCompleted = completed + 1;
-    if (best.fitness >= READABLE_QUADGRAM) {
+    if (best.fitness >= readableFitness(cipher.length)) {
       break;
     }
   }
@@ -244,7 +258,7 @@ export function scanLetterSetPeriod(
     if (best === undefined || solution.fitness > best.fitness) {
       best = solution;
     }
-    if (best.fitness >= READABLE_QUADGRAM) {
+    if (best.fitness >= readableFitness(cipher.length)) {
       break;
     }
   }
@@ -310,7 +324,7 @@ export function breakQuagmireLetterSets(
   table: Uint8Array,
   options: Options = {},
 ): QuagmireDictionaryResult {
-  const cipher = toLetterValues(text);
+  const cipher = toLetterValues(text).slice(0, SEARCH_LETTERS);
   if (cipher.length < 2 * MIN_PER_COLUMN) {
     throw new Error(`text must contain at least ${2 * MIN_PER_COLUMN} letters`);
   }
@@ -334,7 +348,7 @@ export function breakQuagmireLetterSets(
     if (best === undefined || solution.fitness > best.fitness) {
       best = solution;
     }
-    return best.fitness >= READABLE_QUADGRAM;
+    return best.fitness >= readableFitness(cipher.length);
   };
   const ranked: { job: LetterSetJob; score: number }[] = [];
   let found = false;
@@ -386,6 +400,26 @@ export function breakQuagmireLetterSets(
       offsets: solved.offsets.slice(0, period),
       fitness: solved.fitness,
     },
-    cipher.length >= MIN_RELIABLE_LENGTH && solved.fitness >= READABLE_QUADGRAM,
+    cipher.length >= MIN_RELIABLE_LENGTH &&
+      solved.fitness >= readableFitness(cipher.length),
   );
 }
+
+/**
+ * What the letter-set scan needs. In
+ * bench/results/quagmire-letter-sets-unknown.tsv, with variant, period and
+ * keyword size all unknown, Quagmire I and II fall at 16 letters per column
+ * (45 of 48 texts) and Quagmire III with a keyword of 5 different letters too
+ * (8 of 8). Quagmire III with 7 different letters needs 24 (7 of 8) and with
+ * 9 needs 48 (7 of 8), which is the figure stated. None of 36 texts without a
+ * keyword alphabet was reported as found.
+ */
+export const QUAGMIRE_LETTER_SETS_REQUIREMENTS: SolverRequirements = {
+  id: "quagmire-letter-sets",
+  ciphers: ["Quagmire I", "Quagmire II", "Quagmire III"],
+  assumes: ["periodic", "shared-alphabet", "keyword-alphabet"],
+  minLetters: MIN_RELIABLE_LENGTH,
+  reliableLettersPerColumn: 48,
+  maxPeriod: MAX_PERIOD,
+  basis: "measured",
+};
