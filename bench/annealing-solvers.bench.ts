@@ -1,5 +1,5 @@
 // ABOUTME: Benchmark of the annealing breakers for Bifid, Trifid and double transposition by text length.
-// ABOUTME: Each length gets true ciphertexts and a text with nothing to find, which must not come out reading as English.
+// ABOUTME: Each length gets true ciphertexts and texts with nothing to find, which must not come out reading as English.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { it } from "vitest";
@@ -16,6 +16,7 @@ import {
   randomKey,
   randomLetters,
   record,
+  sameSymbols,
   shuffledLetters,
   TABLE,
 } from "./trials";
@@ -32,7 +33,7 @@ const trials: Trial[] = [];
 for (const solver of ["bifid", "trifid", "double-transposition"] as const) {
   for (const letters of [100, 150, 200, 300]) {
     for (const size of solver === "double-transposition" ? [5, 7] : [5, 9]) {
-      for (let repeat = 0; repeat < 4; repeat += 1) {
+      for (let repeat = 0; repeat < 6; repeat += 1) {
         trials.push({ solver, letters, size, repeat });
       }
     }
@@ -46,7 +47,7 @@ it("annealing breakers by text length", () => {
     );
     // Bifid has no J: its square merges it with I.
     const plain = plaintextSlice(letters, rng).replace(/J/g, "I");
-    // Three trials hold a real ciphertext, the fourth has nothing to find.
+    // Three trials hold a real ciphertext, three have nothing to find.
     const real = repeat < 3;
     const secondSize = size + 2;
     let ciphertext: string;
@@ -79,7 +80,14 @@ it("annealing breakers by text length", () => {
       letters,
       size,
       kind: real ? "true" : "nothing",
-      accuracy: real ? accuracy(result.plaintext, plain).toFixed(2) : "",
+      // A Trifid decryption can hold "+", which must not shift the letters
+      // after it.
+      accuracy: real
+        ? (solver === "trifid" ? sameSymbols : accuracy)(
+            result.plaintext,
+            plain,
+          ).toFixed(2)
+        : "",
       fitness: result.fitness.toFixed(2),
       english: result.english ? 1 : 0,
       seconds: ((performance.now() - start) / 1000).toFixed(1),
