@@ -13,6 +13,7 @@ import {
   quagmireIvPeriods,
   quagmireIvResult,
   runQuagmireIvJob,
+  runSeededQuagmireIvJob,
 } from "./solve-quagmire-iv";
 
 const TABLE = new Uint8Array(
@@ -85,6 +86,35 @@ describe("runQuagmireIvJob", () => {
     );
     expect(solution.pairsCompleted).toBe(20);
   });
+});
+
+describe("runSeededQuagmireIvJob", () => {
+  const sizes = { plainSize: 7, cipherSize: 7, runs: 30 };
+
+  it(
+    "gives the same result for the same seed and says it reads as English",
+    { timeout: 120000 },
+    () => {
+      const job = { period: 6, ...sizes, seed: 1 };
+      const first = runSeededQuagmireIvJob(job, CIPHERTEXT, TABLE);
+      expect(first.english).toBe(true);
+      expect(first.fitness).toBeGreaterThan(-4.5);
+      expect(runSeededQuagmireIvJob(job, CIPHERTEXT, TABLE)).toEqual(first);
+    },
+  );
+
+  it(
+    "says a wrong period does not read as English",
+    { timeout: 120000 },
+    () => {
+      const result = runSeededQuagmireIvJob(
+        { period: 5, ...sizes, seed: 1 },
+        CIPHERTEXT,
+        TABLE,
+      );
+      expect(result.english).toBe(false);
+    },
+  );
 });
 
 describe("planQuagmireIvJobs", () => {

@@ -2,7 +2,7 @@
 // ABOUTME: Jobs anneal the two keyword letter sets together at a period and pair of keyword sizes, quick jobs first, and complete the best pairs into keys.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { averageLog10, quadgramRaw } from "./anneal";
+import { averageLog10, quadgramRaw, seededRng } from "./anneal";
 import { substituteLetters } from "./cipher";
 import { nameQuagmireKey } from "./keyword-alphabet";
 import { completeKey, decryptWithAlphabets } from "./quagmire-key-climb";
@@ -317,6 +317,30 @@ export function searchedLetters(text: string): number[] {
 /** Whether a decryption of `letters` letters with this fitness counts as found. */
 export function quagmireIvFound(letters: number, fitness: number): boolean {
   return letters >= MIN_RELIABLE_LENGTH && fitness >= readableFitness(letters);
+}
+
+/** A job as a pool worker takes it: with the seed of its random numbers. */
+export interface SeededQuagmireIvJob extends QuagmireIvJob {
+  seed: number;
+}
+
+/** A job's solution, with what tells a pool to stop: whether it reads as English. */
+export interface QuagmireIvJobResult extends QuagmireIvSolution {
+  english: boolean;
+}
+
+/** Runs one job on the letters of `text` that the search reads. */
+export function runSeededQuagmireIvJob(
+  job: SeededQuagmireIvJob,
+  text: string,
+  table: Uint8Array,
+): QuagmireIvJobResult {
+  const cipher = searchedLetters(text);
+  const solution = runQuagmireIvJob(cipher, job, table, seededRng(job.seed));
+  return {
+    ...solution,
+    english: quagmireIvFound(cipher.length, solution.fitness),
+  };
 }
 
 /**
