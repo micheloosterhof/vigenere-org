@@ -30,9 +30,9 @@ import Faq from "../components/Faq.astro";
   <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
     Give the two key lengths and paste the ciphertext; the solver searches both
     column orders at once by simulated annealing, in parallel on your processor
-    cores, and stops when the decryption reads as English. It works best on
-    letters-only ciphertext of 200 letters or more; keys up to about seven
-    columns are found quickly, longer keys need more text and several attempts.
+    cores, and stops when the decryption reads as English. It needs letters-only
+    ciphertext of 100 letters or more; keys of up to nine columns are found
+    quickly, longer keys need more text and several attempts.
   </p>
   <AnnealBreaker cipher="double" />
 
@@ -81,7 +81,7 @@ import Faq from "../components/Faq.astro";
       {
         question: "How do I break a double transposition without the keys?",
         answer:
-          "Enter the two key lengths in the breaker on this page. It searches both column orders together by simulated annealing, scoring each attempt by how English the decryption reads. Keys up to about seven columns fall from 200 letters; longer keys need more text. If the lengths are unknown, try likely pairs in turn.",
+          "Enter the two key lengths in the breaker on this page. It searches both column orders together by simulated annealing, scoring each attempt by how English the decryption reads. Keys of up to nine columns fall from 100 letters; longer keys need more text. If the lengths are unknown, try likely pairs in turn.",
       },
     ]}
   />
