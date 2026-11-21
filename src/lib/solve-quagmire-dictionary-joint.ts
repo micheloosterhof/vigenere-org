@@ -1,5 +1,5 @@
 // ABOUTME: Quagmire keyword dictionary attack for short texts: solves each keyword's column shifts together, not one by one.
-// ABOUTME: A chain score filters the word list, the exact ring solution re-ranks the survivors, and annealing on quadgrams decides.
+// ABOUTME: A chain score filters the word list, the exact ring solution re-ranks the survivors, and a climb plus annealing on quadgrams decides.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { anneal, averageLog10, quadgramRaw } from "./anneal";
@@ -26,11 +26,10 @@ const PROGRESS_EVERY = 500;
 const CHAIN_KEEP = 1000;
 const RING_KEEP = 100;
 
-// A short annealing run ranks every ring survivor; the best of all periods
-// then get several longer runs.
-const QUICK_ITERATIONS = 3000;
+// The survivors of all periods that are annealed, after a climb from their
+// ring shifts has ranked them, and the annealing runs each gets.
 const FINAL_KEEP = 60;
-const FINAL_RUNS = 4;
+const FINAL_RUNS = 8;
 const FINAL_ITERATIONS = 10000;
 // Starting temperature in raw quadgram units.
 const TEMPERATURE = 100;
@@ -65,6 +64,11 @@ interface Candidate {
   score: number;
 }
 
+/** A candidate with a shift for each column. */
+interface Shifted extends Candidate {
+  shifts: number[];
+}
+
 /** The decryption plan for a keyword and variant. */
 function planFor(word: string, variant: DictionaryVariant): VariantPlan {
   const alphabet = mixedAlphabet(word);
@@ -88,7 +92,7 @@ function distinctAlphabets(words: string[]): string[] {
 }
 
 /** The `keep` best-scoring candidates, best first. */
-function best(candidates: Candidate[], keep: number): Candidate[] {
+function best<T extends Candidate>(candidates: T[], keep: number): T[] {
   return candidates.sort((a, b) => b.score - a.score).slice(0, keep);
 }
 
@@ -99,8 +103,8 @@ function best(candidates: Candidate[], keep: number): Candidate[] {
  * neighbouring columns, so the bigrams tie the shifts together. For every
  * keyword, variant, and period the best shifts under bigram score are found by
  * dynamic programming (the open chain to shortlist, the closed ring to
- * re-rank); the survivors' shifts are then annealed on quadgram score, which
- * decides the winner. Check `found`.
+ * re-rank); the survivors' shifts are then improved on quadgram score, by a
+ * climb and then annealing, which decides the winner. Check `found`.
  */
 export function breakQuagmireDictionaryJoint(
   text: string,
@@ -163,64 +167,87 @@ export function breakQuagmireDictionaryJoint(
     }
   });
 
-  // Stage 2: the exact ring score re-ranks each period's shortlist.
-  const survivors: Candidate[] = [];
+  // Stage 2: the exact ring solution re-ranks each period's shortlist and
+  // gives every survivor its shifts to start from.
+  const survivors: Shifted[] = [];
   for (const period of periods) {
     const ring = best(byPeriod[period], CHAIN_KEEP).map((candidate) => {
       const plan = planFor(candidate.word, candidate.variant);
       const shifted = shiftTable(cipher, plan.input, plan.output);
-      return { ...candidate, score: ringShifts(shifted, length, period).score };
+      const { score, shifts } = ringShifts(shifted, length, period);
+      return { ...candidate, score, shifts };
     });
     survivors.push(...best(ring, RING_KEEP));
   }
 
-  // Stages 3 and 4: anneal the shifts on quadgram score.
+  // Stages 3 and 4 improve the shifts on quadgram score.
   const plain = new Array<number>(length);
-  const annealShifts = (
-    candidate: Candidate,
-    iterations: number,
-  ): { raw: number; offsets: number[] } => {
+  const quadgrams = (shifted: Uint8Array, shifts: number[]): number => {
+    const period = shifts.length;
+    for (let i = 0; i < length; i += 1) {
+      plain[i] = shifted[i * ALPHABET_SIZE + shifts[i % period]];
+    }
+    return quadgramRaw(plain, length, table);
+  };
+  const tableOf = (candidate: Candidate): Uint8Array => {
     const plan = planFor(candidate.word, candidate.variant);
-    const shifted = shiftTable(cipher, plan.input, plan.output);
-    const { period } = candidate;
-    const result = anneal<number[]>(
-      {
-        random: (random) =>
-          Array.from({ length: period }, () =>
-            Math.floor(random() * ALPHABET_SIZE),
-          ),
-        neighbour: (shifts, random) => {
-          const changed = [...shifts];
-          changed[Math.floor(random() * period)] = Math.floor(
-            random() * ALPHABET_SIZE,
-          );
-          return changed;
-        },
-        score: (shifts) => {
-          for (let i = 0; i < length; i += 1) {
-            plain[i] = shifted[i * ALPHABET_SIZE + shifts[i % period]];
-          }
-          return quadgramRaw(plain, length, table);
-        },
-      },
-      { rng, iterations, temperature: TEMPERATURE },
-    );
-    return { raw: result.score, offsets: result.key };
+    return shiftTable(cipher, plan.input, plan.output);
   };
 
-  const quick = best(
-    survivors.map((candidate) => ({
-      ...candidate,
-      score: annealShifts(candidate, QUICK_ITERATIONS).raw,
-    })),
+  // Stage 3: from the ring shifts, move one column at a time to its best
+  // shift until none improves. This ranks the survivors of all periods the
+  // same way on every run; annealing from random shifts here ranked the true
+  // keyword of Kryptos K1 anywhere from first to 290th.
+  const climbed = best(
+    survivors.map((candidate) => {
+      const shifted = tableOf(candidate);
+      const shifts = [...candidate.shifts];
+      let score = quadgrams(shifted, shifts);
+      let improved = true;
+      while (improved) {
+        improved = false;
+        for (let column = 0; column < shifts.length; column += 1) {
+          let bestShift = shifts[column];
+          for (let shift = 0; shift < ALPHABET_SIZE; shift += 1) {
+            shifts[column] = shift;
+            const changed = quadgrams(shifted, shifts);
+            if (changed > score) {
+              score = changed;
+              bestShift = shift;
+              improved = true;
+            }
+          }
+          shifts[column] = bestShift;
+        }
+      }
+      return { ...candidate, score, shifts };
+    }),
     FINAL_KEEP,
   );
-  const finalists: Finalist[] = quick.map((candidate) => {
-    let top = { raw: -Infinity, offsets: [] as number[] };
+
+  // Stage 4: anneal the best from their climbed shifts, which gets past
+  // optima that need several columns to change together.
+  const finalists: Finalist[] = climbed.map((candidate) => {
+    const shifted = tableOf(candidate);
+    const { period } = candidate;
+    let top = { raw: candidate.score, offsets: candidate.shifts };
     for (let run = 0; run < FINAL_RUNS; run += 1) {
-      const result = annealShifts(candidate, FINAL_ITERATIONS);
-      if (result.raw > top.raw) {
-        top = result;
+      const result = anneal<number[]>(
+        {
+          random: () => [...candidate.shifts],
+          neighbour: (shifts, random) => {
+            const changed = [...shifts];
+            changed[Math.floor(random() * period)] = Math.floor(
+              random() * ALPHABET_SIZE,
+            );
+            return changed;
+          },
+          score: (shifts) => quadgrams(shifted, shifts),
+        },
+        { rng, iterations: FINAL_ITERATIONS, temperature: TEMPERATURE },
+      );
+      if (result.score > top.raw) {
+        top = { raw: result.score, offsets: result.key };
       }
     }
     return {
@@ -243,9 +270,9 @@ export function breakQuagmireDictionaryJoint(
 /**
  * What the joint-shift dictionary attack needs. In
  * bench/results/quagmire-dictionary-joint.tsv, with the period unknown, it
- * solves 18 of 18 texts of 60 letters or more at 8 letters per column, 35 of
- * 36 at 12, and 8 of 9 at 6; below 60 letters it cannot tell a right
- * decryption from a wrong one.
+ * solves every text of 60 letters or more from 6 letters per column up (90 of
+ * 90; at 6 per column that is period 12 only, 9 texts). Below 60 letters it
+ * cannot tell a right decryption from a wrong one.
  */
 export const QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-dictionary-joint",

@@ -49,7 +49,9 @@ describe("breakQuagmireDictionaryJoint", () => {
       KRYPTOS_K1,
       [...FEW_WORDS, "KRYPTOS"],
       TABLE,
-      { rng: seededRng(2) },
+      // A seed for which a ranking that starts from random shifts loses the
+      // keyword among the other periods' candidates.
+      { rng: seededRng(6) },
     );
     expect(result.found).toBe(true);
     expect(result.keyword).toBe("KRYPTOS");
