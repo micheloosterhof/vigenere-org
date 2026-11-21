@@ -1,15 +1,16 @@
 ---
-// ABOUTME: Playfair cipher tool page with keyword-based digraph encrypt/decrypt form.
+// ABOUTME: Playfair cipher tool page with keyword-based digraph encrypt/decrypt form and a square-recovering breaker.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import Base from "../layouts/Base.astro";
 import CipherTool from "../components/CipherTool.astro";
+import AnnealBreaker from "../components/AnnealBreaker.astro";
 import Faq from "../components/Faq.astro";
 ---
 
 <Base
-  title="Playfair cipher — encrypt and decrypt online"
-  description="Encrypt and decrypt the Playfair cipher online with a keyword-mixed 5x5 square. Runs in your browser."
+  title="Playfair cipher — encrypt, decrypt, and break online"
+  description="Encrypt, decrypt, and break the Playfair cipher online: a keyword-mixed 5x5 square, with a solver that recovers the square. Runs in your browser."
 >
   <h1 class="mb-4 text-3xl font-bold tracking-tight">Playfair cipher</h1>
   <p class="mb-8 max-w-prose text-slate-600 dark:text-slate-400">
@@ -19,6 +20,19 @@ import Faq from "../components/Faq.astro";
     an X, and an odd-length message is padded.
   </p>
   <CipherTool cipher="playfair" />
+
+  <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
+    Break without the key
+  </h2>
+  <p class="mb-6 max-w-prose text-slate-600 dark:text-slate-400">
+    Paste Playfair ciphertext and the solver searches for the square by
+    simulated annealing, scoring each attempt by how English the decryption
+    reads. Several searches run side by side on your processor cores and stop as
+    soon as one reads as English. It needs about 125 letters and can take up to
+    a minute; from 100 letters it often still works. The decryption keeps the X
+    that split doubled letters.
+  </p>
+  <AnnealBreaker cipher="playfair" />
 
   <h2 class="mt-12 mb-4 text-2xl font-bold tracking-tight">
     About the Playfair cipher
@@ -39,9 +53,9 @@ import Faq from "../components/Faq.astro";
       step right, letters in the same column move one step down, and any other
       pair forms a rectangle whose corners swap columns. Decryption reverses the
       shifts. The structure leaks, though: a digraph and its reverse encrypt to
-      a pair and its reverse, and X-split doubles betray themselves. With a few
-      hundred letters, Playfair falls to hill-climbing over candidate squares —
-      a solver is on this site's roadmap.
+      a pair and its reverse, and X-split doubles betray themselves. With a
+      couple of hundred letters, Playfair falls to a search over candidate
+      squares, as the solver on this page shows.
     </p>
   </div>
 
@@ -61,6 +75,11 @@ import Faq from "../components/Faq.astro";
         question: "Why does decrypted Playfair text contain extra X letters?",
         answer:
           "Before encrypting, doubled letters in the same pair are split with a filler (X, or Q when the letter is X) and an odd-length message is padded. Decryption returns those fillers; remove them by reading the text.",
+      },
+      {
+        question: "How do I break a Playfair cipher without the key?",
+        answer:
+          "Paste the ciphertext into the solver on this page. It tries squares by simulated annealing, keeping the changes that make the decryption read more like English, and needs about 125 letters of ciphertext. The square it finds works as the key.",
       },
     ]}
   />

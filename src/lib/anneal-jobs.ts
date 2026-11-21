@@ -1,4 +1,4 @@
-// ABOUTME: Splits a Bifid, Trifid, or double transposition attack into independent annealing jobs.
+// ABOUTME: Splits a Bifid, Trifid, Playfair, or double transposition attack into independent annealing jobs.
 // ABOUTME: Jobs come cheapest and most likely first (short runs, best-ranked period), so a pool finds the key early and stops.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
@@ -14,15 +14,29 @@ import {
   DOUBLE_SETTINGS,
   type DoubleCandidate,
 } from "./solve-double-transposition";
+import {
+  annealPlayfair,
+  PLAYFAIR_RUNS,
+  playfairIterations,
+  playfairValues,
+  type PlayfairCandidate,
+} from "./solve-playfair";
 
 export type AnnealRequest =
   | { cipher: "bifid" | "trifid"; periods?: number[] }
+  | { cipher: "playfair" }
   | { cipher: "double"; firstLength: number; secondLength: number };
 
 export type AnnealJob =
   | {
       cipher: "bifid" | "trifid";
       period: number;
+      /** Annealing steps of this run. */
+      iterations: number;
+      seed: number;
+    }
+  | {
+      cipher: "playfair";
       /** Annealing steps of this run. */
       iterations: number;
       seed: number;
@@ -36,6 +50,7 @@ export type AnnealJob =
 
 export type AnnealJobResult =
   | ({ cipher: "bifid" | "trifid" } & FractionationCandidate)
+  | ({ cipher: "playfair" } & PlayfairCandidate)
   | ({ cipher: "double" } & DoubleCandidate);
 
 /** The jobs for an attack, most promising first; `seed` makes them reproducible. */
@@ -53,6 +68,14 @@ export function planJobs(
         secondLength: request.secondLength,
         seed: seed + run,
       });
+    }
+    return jobs;
+  }
+  if (request.cipher === "playfair") {
+    // Throws now, before any worker starts, when the text cannot be attacked.
+    const iterations = playfairIterations(playfairValues(text).length);
+    for (let run = 0; run < PLAYFAIR_RUNS; run += 1) {
+      jobs.push({ cipher: "playfair", iterations, seed: seed + run });
     }
     return jobs;
   }
@@ -84,6 +107,15 @@ export function runJob(
     return {
       cipher: "double",
       ...annealDouble(text, job.firstLength, job.secondLength, table, options),
+    };
+  }
+  if (job.cipher === "playfair") {
+    return {
+      cipher: "playfair",
+      ...annealPlayfair(text, table, {
+        ...options,
+        iterations: job.iterations,
+      }),
     };
   }
   return {

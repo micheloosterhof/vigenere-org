@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { bifid } from "./bifid";
 import { planJobs, runJob } from "./anneal-jobs";
+import { playfair } from "./playfair";
+import { PLAYFAIR_RUNS, playfairIterations } from "./solve-playfair";
 import { RUN_SETTINGS } from "./solve-fractionation";
 import { DOUBLE_SETTINGS } from "./solve-double-transposition";
 
@@ -56,6 +58,26 @@ describe("planJobs", () => {
     expect(jobs.every((j) => "period" in j && j.period === 5)).toBe(true);
   });
 
+  it("plans the Playfair runs, each with its own seed", () => {
+    const ciphertext = playfair(LETTERS, "MONARCHY", "encrypt");
+    const jobs = planJobs(ciphertext, { cipher: "playfair" }, 7);
+    expect(jobs).toHaveLength(PLAYFAIR_RUNS);
+    expect(
+      jobs.every(
+        (j) =>
+          "iterations" in j &&
+          j.iterations === playfairIterations(ciphertext.length),
+      ),
+    ).toBe(true);
+    expect(new Set(jobs.map((j) => j.seed)).size).toBe(jobs.length);
+  });
+
+  it("refuses to plan Playfair jobs for text that cannot be Playfair", () => {
+    expect(() =>
+      planJobs(LETTERS.slice(0, 201), { cipher: "playfair" }, 0),
+    ).toThrow(/even number of letters/);
+  });
+
   it("plans restarts at fixed key lengths for double transposition", () => {
     const jobs = planJobs(
       LETTERS,
@@ -75,6 +97,17 @@ describe("runJob", () => {
     );
     expect(result.cipher).toBe("double");
     expect(result.plaintext).toHaveLength(120);
+  });
+
+  it("runs a Playfair job and tags the result with its cipher", () => {
+    const ciphertext = playfair(LETTERS, "MONARCHY", "encrypt");
+    const result = runJob(
+      { cipher: "playfair", iterations: 2000, seed: 5 },
+      ciphertext,
+      TABLE,
+    );
+    expect(result.cipher).toBe("playfair");
+    expect(result.plaintext).toHaveLength(ciphertext.length);
   });
 
   it("anneals a Bifid job for the job's number of steps", () => {

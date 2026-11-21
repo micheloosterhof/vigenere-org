@@ -24,8 +24,9 @@ building the commit CI tested), or on a manual run.
     with an exhaustive breaker over grid widths and routes.
   - `solve.ts` — periodic key recovery via bigram fitness (Guballa method);
     `keySpace` limits Gronsfeld to digits, `breakPorta` caps key length.
-  - `anneal.ts` — simulated annealing core (linear cooling, early exit at
-    a target score, seeded rng) plus quadgram scoring that skips non-letters.
+  - `anneal.ts` — simulated annealing core (linear cooling to zero or to an
+    end temperature, early exit at a target score, seeded rng) plus quadgram
+    scoring that skips non-letters.
   - `solve-fractionation.ts` — Bifid/Trifid breaker: a pair index of
     coincidence ranks the periods, then the square or cube is annealed in
     rounds: short runs at every period first, runs three and ten times as
@@ -34,7 +35,13 @@ building the commit CI tested), or on a manual run.
   - `solve-double-transposition.ts` — anneals both column orders at given
     key lengths, then tries all cyclic column rotations (a rotated
     plaintext scores almost as well as the true one).
-  - `anneal-jobs.ts` / `anneal-pool.ts` / `anneal.worker.ts` — the three
+  - `solve-playfair.ts` — Playfair breaker: anneals the 5×5 square at a
+    constant temperature in 8 long runs (more steps on shorter text, so a
+    run takes the same time at any length); a run that reaches English is
+    cooled from the square it found and settled by a climb. The bar for
+    English is stricter under 125 letters, where a wrong square can read
+    nearly as well as the right one. Needs 100+ letters.
+  - `anneal-jobs.ts` / `anneal-pool.ts` / `anneal.worker.ts` — the four
     annealing breakers split into seeded jobs (shortest runs first, then
     best period first), run on a pool of workers that stops at the first
     English decryption or on Stop.

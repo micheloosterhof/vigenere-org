@@ -1,5 +1,5 @@
 ---
-// ABOUTME: Breaker form for Bifid, Trifid, and double transposition; anneals keys across a pool of Web Workers.
+// ABOUTME: Breaker form for Bifid, Trifid, Playfair, and double transposition; anneals keys across a pool of Web Workers.
 // ABOUTME: Shows progress with a Stop button, then the best decryption and the recovered key.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
@@ -8,11 +8,10 @@ import ShareLink from "./ShareLink.astro";
 import WordSplitToggle from "./WordSplitToggle.astro";
 
 interface Props {
-  cipher: "bifid" | "trifid" | "double";
+  cipher: "bifid" | "trifid" | "playfair" | "double";
 }
 
 const { cipher } = Astro.props;
-const fractionation = cipher !== "double";
 ---
 
 <div data-anneal-breaker={cipher} class="flex flex-col gap-4">
@@ -26,7 +25,7 @@ const fractionation = cipher !== "double";
     ></textarea>
   </label>
 
-  {fractionation ? (
+  {cipher === "playfair" ? null : cipher !== "double" ? (
     <label class="flex flex-col gap-1">
       <span class="text-sm font-medium">Period (leave empty to detect)</span>
       <input
@@ -132,6 +131,9 @@ const fractionation = cipher !== "double";
     if (result.cipher === "double") {
       return `${verdict}: first key ${result.firstKey}, second key ${result.secondKey} (canonical keywords that decrypt in the form above).`;
     }
+    if (result.cipher === "playfair") {
+      return `${verdict}: square ${result.key} (usable as the key above).`;
+    }
     const period =
       result.period === 0 ? "whole message" : `period ${result.period}`;
     const grid = result.cipher === "bifid" ? "square" : "cube";
@@ -141,7 +143,8 @@ const fractionation = cipher !== "double";
   for (const root of document.querySelectorAll<HTMLElement>(
     "[data-anneal-breaker]",
   )) {
-    const cipher = root.dataset.annealBreaker as "bifid" | "trifid" | "double";
+    const cipher = root.dataset.annealBreaker as
+      "bifid" | "trifid" | "playfair" | "double";
     const input = root.querySelector<HTMLTextAreaElement>("[data-input]");
     const solve = root.querySelector<HTMLButtonElement>("[data-solve]");
     const stopButton = root.querySelector<HTMLButtonElement>("[data-stop]");
@@ -192,6 +195,9 @@ const fractionation = cipher !== "double";
           );
         }
         return { cipher, firstLength, secondLength };
+      }
+      if (cipher === "playfair") {
+        return { cipher };
       }
       const period = field("period");
       return period === "" ? { cipher } : { cipher, periods: [Number(period)] };

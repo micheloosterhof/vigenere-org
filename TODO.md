@@ -12,8 +12,11 @@
 
 - Cloudflare proxy would enable brotli, long cache on `/_astro/*`, and security
   headers (HSTS, CSP) — none settable on GitHub Pages.
-- Playfair solver (hill climb over candidate squares); the /playfair page
-  promises it as "on the roadmap".
+- Playfair breaker: under 125 letters it holds text to a stricter bar, so 5
+  of 24 texts of 100 and 110 letters come out right but are reported as "no
+  English decryption found" (`bench/results/playfair-short.tsv`). Two runs
+  ending on the same square would be a better sign of the right key than
+  the score alone. The auto-solver does not try Playfair.
 - Random-forest cipher classifier: Playfair and both transpositions now exist,
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the

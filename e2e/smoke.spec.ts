@@ -816,6 +816,37 @@ for (const [cipher, path, encryptQuery, breakFields, expected] of [
   });
 }
 
+test("the playfair breaker recovers the plaintext in a worker pool", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto(`/playfair/?text=${ORWELL}&key=MONARCHY&mode=encrypt`);
+  const tool = page.locator("[data-cipher=playfair]");
+  const ciphertext = await tool.locator("[data-output]").inputValue();
+  expect(ciphertext).not.toBe(ORWELL);
+  // The true key gives back the plaintext with the fillers that split its
+  // doubled letters, which is what the breaker should find.
+  await page.goto(`/playfair/?text=${ciphertext}&key=MONARCHY&mode=decrypt`);
+  const padded = await tool.locator("[data-output]").inputValue();
+  expect(padded.startsWith("ITWASABRIGHTCOLDDAYINAPRIL")).toBe(true);
+
+  const breaker = page.locator("[data-anneal-breaker=playfair]");
+  await breaker.locator("[data-input]").fill(ciphertext);
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Recovered: square",
+    { timeout: 170_000 },
+  );
+  const recovered = await breaker.locator("[data-output]").inputValue();
+  let same = 0;
+  for (let i = 0; i < padded.length; i += 1) {
+    if (recovered[i] === padded[i]) {
+      same += 1;
+    }
+  }
+  expect(same / padded.length).toBeGreaterThan(0.9);
+});
+
 test("the stop button ends an annealing search and keeps the best attempt", async ({
   page,
 }) => {
