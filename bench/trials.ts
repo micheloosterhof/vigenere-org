@@ -3,6 +3,8 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { quadgramFitness } from "../src/lib/quadgrams";
+import { scoreText, toLetterValues } from "../src/lib/solve";
 
 const read = (path: string): string =>
   readFileSync(new URL(path, import.meta.url), "utf8");
@@ -47,6 +49,34 @@ export function randomKey(period: number, rng: () => number): string {
       return key;
     }
   }
+}
+
+/** `letters` letters drawn uniformly at random: text with nothing to find. */
+export function randomLetters(letters: number, rng: () => number): string {
+  return Array.from({ length: letters }, () =>
+    String.fromCharCode(65 + Math.floor(rng() * 26)),
+  ).join("");
+}
+
+/** The letters of `text` in random order: English frequencies with no order to restore. */
+export function shuffledLetters(text: string, rng: () => number): string {
+  const letters = [...text];
+  for (let i = letters.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  return letters.join("");
+}
+
+/** How English a text reads: average bigram and quadgram log10 probability. */
+export function englishFitness(text: string): {
+  bigram: number;
+  quadgram: number;
+} {
+  return {
+    bigram: scoreText(text),
+    quadgram: quadgramFitness(toLetterValues(text), TABLE),
+  };
 }
 
 /** A random word from the site's word list with exactly `distinct` different letters. */
