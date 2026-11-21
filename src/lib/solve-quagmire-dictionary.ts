@@ -66,7 +66,7 @@ interface Options {
 // Every variant decrypts as plain = out[(in[cipher] - offset) mod 26]:
 // I reads positions straight off the ciphertext, II writes them straight out,
 // III maps both through the mixed alphabet.
-interface VariantPlan {
+export interface VariantPlan {
   variant: DictionaryVariant;
   input: number[];
   output: number[];
@@ -89,12 +89,91 @@ function decryptValues(
 
 const IDENTITY = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
 
-function variantPlans(alphabet: number[], index: number[]): VariantPlan[] {
+/** The three decryption plans a keyword alphabet allows, in variant order. */
+export function variantPlans(
+  alphabet: number[],
+  index: number[],
+): VariantPlan[] {
   return [
     { variant: 1, input: IDENTITY, output: alphabet },
     { variant: 2, input: index, output: IDENTITY },
     { variant: 3, input: index, output: alphabet },
   ];
+}
+
+/** A keyword, variant and period with the column offsets and fitness found for them. */
+export interface Finalist {
+  word: string;
+  variant: DictionaryVariant;
+  period: number;
+  offsets: number[];
+  fitness: number;
+}
+
+/**
+ * The finalist to report: among those within FITNESS_EPSILON of the best
+ * fitness, the one with the shortest period.
+ */
+export function bestFinalist<T extends Finalist>(finalists: T[]): T {
+  const top = Math.max(...finalists.map((finalist) => finalist.fitness));
+  return [...finalists].sort((a, b) => {
+    const aNearTop = a.fitness >= top - FITNESS_EPSILON;
+    const bNearTop = b.fitness >= top - FITNESS_EPSILON;
+    if (aNearTop && bNearTop) {
+      // Words sharing their unique letters build the same alphabet and tie
+      // exactly; the shortest one is the keyword as the author wrote it.
+      return (
+        a.period - b.period ||
+        b.fitness - a.fitness ||
+        a.word.length - b.word.length ||
+        a.variant - b.variant
+      );
+    }
+    if (aNearTop !== bNearTop) {
+      return aNearTop ? -1 : 1;
+    }
+    return b.fitness - a.fitness;
+  })[0];
+}
+
+/** The full result for a finalist: its alphabet, named period key, and the decryption of `text`. */
+export function keywordResult(
+  text: string,
+  winner: Finalist,
+  found: boolean,
+): QuagmireDictionaryResult {
+  const alphabet = mixedAlphabet(winner.word);
+  const plan = variantPlans(alphabet, inverseAlphabet(alphabet))[
+    winner.variant - 1
+  ];
+  const alphabetText = alphabet
+    .map((value) => String.fromCharCode(CODE_A + value))
+    .join("");
+  const recovered = recoverQuagmireKey(
+    alphabetText,
+    winner.offsets,
+    winner.variant,
+  );
+  const plaintext = substituteLetters(
+    text,
+    winner.offsets,
+    (letter, offset) =>
+      plan.output[
+        (plan.input[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
+      ],
+  );
+  return {
+    found,
+    variant: winner.variant,
+    keyword: winner.word,
+    alphabet: alphabetText,
+    period: winner.period,
+    offsets: winner.offsets,
+    key: recovered.key,
+    indicator: recovered.indicator,
+    plaintext,
+    fitness: winner.fitness,
+  };
 }
 
 /**
@@ -228,58 +307,12 @@ export function breakQuagmireDictionary(
       table,
     ),
   }));
-  const top = Math.max(...finalists.map((finalist) => finalist.fitness));
-  finalists.sort((a, b) => {
-    const aNearTop = a.fitness >= top - FITNESS_EPSILON;
-    const bNearTop = b.fitness >= top - FITNESS_EPSILON;
-    if (aNearTop && bNearTop) {
-      // Words sharing their unique letters build the same alphabet and tie
-      // exactly; the shortest one is the keyword as the author wrote it.
-      return (
-        a.period - b.period ||
-        b.fitness - a.fitness ||
-        a.word.length - b.word.length ||
-        a.variant - b.variant
-      );
-    }
-    if (aNearTop !== bNearTop) {
-      return aNearTop ? -1 : 1;
-    }
-    return b.fitness - a.fitness;
-  });
-  const winner = finalists[0];
-
-  const plan = planFor(winner);
-  const alphabetText = mixedAlphabet(winner.word)
-    .map((value) => String.fromCharCode(CODE_A + value))
-    .join("");
-  const recovered = recoverQuagmireKey(
-    alphabetText,
-    winner.offsets,
-    winner.variant,
-  );
-  const plaintext = substituteLetters(
+  const winner = bestFinalist(finalists);
+  return keywordResult(
     text,
-    winner.offsets,
-    (letter, offset) =>
-      plan.output[
-        (plan.input[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
-      ],
+    winner,
+    cipher.length >= MIN_RELIABLE_LENGTH && winner.fitness >= READABLE_QUADGRAM,
   );
-  return {
-    found:
-      cipher.length >= MIN_RELIABLE_LENGTH &&
-      winner.fitness >= READABLE_QUADGRAM,
-    variant: winner.variant,
-    keyword: winner.word,
-    alphabet: alphabetText,
-    period: winner.period,
-    offsets: winner.offsets,
-    key: recovered.key,
-    indicator: recovered.indicator,
-    plaintext,
-    fitness: winner.fitness,
-  };
 }
 
 /**
