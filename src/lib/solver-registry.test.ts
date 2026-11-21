@@ -26,6 +26,7 @@ describe("SOLVER_REQUIREMENTS", () => {
         "quagmire-dictionary",
         "quagmire-dictionary-joint",
         "quagmire-letter-sets",
+        "quagmire-iv",
         "ciphertext-autokey",
         "plaintext-autokey",
         "rail-fence",

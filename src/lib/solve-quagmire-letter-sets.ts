@@ -68,7 +68,7 @@ const SEARCH_LETTERS = 600;
  * -4.36 or better. From about a hundred letters wrong decryptions stay below
  * -5.0.
  */
-function readableFitness(letters: number): number {
+export function readableFitness(letters: number): number {
   return letters < 100 ? -4.4 : -4.5;
 }
 

@@ -20,6 +20,7 @@ import { POLYALPHABETIC_REQUIREMENTS } from "./solve-polyalphabetic";
 import { QUAGMIRE_REQUIREMENTS } from "./solve-quagmire";
 import { QUAGMIRE_DICTIONARY_REQUIREMENTS } from "./solve-quagmire-dictionary";
 import { QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS } from "./solve-quagmire-dictionary-joint";
+import { QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import { QUAGMIRE_LETTER_SETS_REQUIREMENTS } from "./solve-quagmire-letter-sets";
 import { SUBSTITUTION_REQUIREMENTS } from "./solve-substitution";
 import type { SolverRequirements } from "./solver-requirements";
@@ -36,6 +37,7 @@ export const SOLVER_REQUIREMENTS: readonly SolverRequirements[] = [
   QUAGMIRE_DICTIONARY_REQUIREMENTS,
   QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS,
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
+  QUAGMIRE_IV_REQUIREMENTS,
   CIPHERTEXT_AUTOKEY_REQUIREMENTS,
   PLAINTEXT_AUTOKEY_REQUIREMENTS,
   RAIL_FENCE_REQUIREMENTS,

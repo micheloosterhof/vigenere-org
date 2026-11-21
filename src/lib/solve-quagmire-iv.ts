@@ -11,7 +11,11 @@ import {
   type LetterSetPairScorer,
 } from "./quagmire-letter-sets";
 import { toLetterValues } from "./solve";
-import { keywordOfAlphabet } from "./solve-quagmire-letter-sets";
+import {
+  keywordOfAlphabet,
+  readableFitness,
+} from "./solve-quagmire-letter-sets";
+import type { SolverRequirements } from "./solver-requirements";
 
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
@@ -28,9 +32,6 @@ const TEMPERATURE = 3;
 // score changes little; the other moves replace a keyword letter at random.
 const SLIDE_SHARE = 0.8;
 
-// Average quadgram log10 probability from which a decryption counts as found;
-// the search stops at the first key that reaches it.
-const READABLE_QUADGRAM = -4.5;
 // Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
 
@@ -202,6 +203,8 @@ export function breakQuagmireIv(
   const cipher = toLetterValues(ciphertext);
   const length = cipher.length;
   const rng = options.rng ?? Math.random;
+  // The search stops at the first key whose decryption reads as English.
+  const readable = readableFitness(length);
   const steps = options.periods.length * options.sizes.length;
   let done = 0;
 
@@ -249,13 +252,13 @@ export function breakQuagmireIv(
         if (fitness > best.fitness) {
           best = { fitness, period, ...key };
         }
-        if (best.fitness >= READABLE_QUADGRAM) {
+        if (best.fitness >= readable) {
           break;
         }
       }
       done += 1;
       options.onProgress?.(done, steps);
-      if (best.fitness >= READABLE_QUADGRAM) {
+      if (best.fitness >= readable) {
         break search;
       }
     }
@@ -269,7 +272,7 @@ export function breakQuagmireIv(
   });
   const named = nameQuagmireKey(plainAlphabet, cipherAlphabet, best.offsets);
   return {
-    found: length >= MIN_RELIABLE_LENGTH && best.fitness >= READABLE_QUADGRAM,
+    found: length >= MIN_RELIABLE_LENGTH && best.fitness >= readable,
     plainKeyword: keywordOfAlphabet(plainAlphabet),
     cipherKeyword: keywordOfAlphabet(cipherAlphabet),
     plainAlphabet,
@@ -289,3 +292,19 @@ export function breakQuagmireIv(
     fitness: best.fitness,
   };
 }
+
+/**
+ * What the Quagmire IV breaker needs. In bench/results/quagmire-iv.tsv, with
+ * the period and both keyword sizes given, it solves every text at 64 letters
+ * per column (24 of 24), and at 48 all but those with 9 different letters in
+ * each keyword (18 of 18 against 1 of 6). With both sizes guessed one too
+ * large it solves 21 of 24 at 64 per column.
+ */
+export const QUAGMIRE_IV_REQUIREMENTS: SolverRequirements = {
+  id: "quagmire-iv",
+  ciphers: ["Quagmire IV"],
+  assumes: ["periodic", "shared-alphabet", "keyword-alphabet"],
+  minLetters: MIN_RELIABLE_LENGTH,
+  reliableLettersPerColumn: 64,
+  basis: "measured",
+};
