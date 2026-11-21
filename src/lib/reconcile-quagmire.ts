@@ -10,6 +10,15 @@ const CODE_A = 65;
 // text; genuinely independent per-column alphabets score far worse.
 const MAX_RESIDUAL = 0.15;
 
+// How often a pair of letters must recur in its column to enter the
+// equations, tried in turn. The general solver errs by column: it takes one
+// ciphertext letter for a wrong plaintext letter wherever it occurs, and such
+// a pair recurs like a right one. One wrong pair in the equations leaves no
+// alphabet that fits. The wrong pairs belong to rare letters, so when nothing
+// fits, the fit is tried again from the more frequent pairs alone, and the
+// letters left out of the equations are placed afterwards by vote.
+const MIN_PAIR_COUNTS = [2, 3, 4, 6, 8, 12];
+
 export interface SharedAlphabetFit {
   /** The recovered shared mixed alphabet, as a permutation of A-Z. */
   alphabet: string;
@@ -48,12 +57,14 @@ type Equation = number[];
 /**
  * One edge per (column, plaintext letter), taking the most common ciphertext so
  * a few wrong plaintext letters are outvoted rather than adding bad equations.
+ * A pair seen fewer than `minCount` times gives no edge.
  */
 function majorityEdges(
   cipher: number[],
   plain: number[],
   period: number,
   length: number,
+  minCount: number,
 ): Edge[] {
   const counts = new Map<number, number[]>();
   for (let i = 0; i < length; i += 1) {
@@ -75,9 +86,9 @@ function majorityEdges(
         bestCipher = c;
       }
     }
-    // Skip singletons: one wrong plaintext letter creates a lone bad pair, so
-    // an edge seen only once is more likely noise than signal.
-    if (bestCount >= 2) {
+    // A pair seen once is never an edge: one wrong plaintext letter creates
+    // a lone bad pair, so it is more likely noise than signal.
+    if (bestCount >= minCount) {
       edges.push({
         column: Math.floor(key / ALPHABET_SIZE),
         plain: key % ALPHABET_SIZE,
@@ -234,13 +245,13 @@ function crt(mod2: number, mod13: number): number {
   return 0;
 }
 
+const CANDIDATE_CAP = 8192;
+
 /**
  * Tries to explain every ciphertext letter as `index[cipher] = index[plain] +
  * offset[column]` for one shared letter-to-index map and a shift per column.
  * Returns null when no single alphabet fits, i.e. the columns are independent.
  */
-const CANDIDATE_CAP = 8192;
-
 export function reconcileSharedAlphabet(
   cipher: number[],
   plain: number[],
@@ -250,7 +261,29 @@ export function reconcileSharedAlphabet(
   if (length < ALPHABET_SIZE) {
     return null;
   }
-  const edges = majorityEdges(cipher, plain, period, length);
+  for (const minCount of MIN_PAIR_COUNTS) {
+    const fit = fitFromEdges(
+      majorityEdges(cipher, plain, period, length, minCount),
+      cipher,
+      plain,
+      period,
+      length,
+    );
+    if (fit !== null) {
+      return fit;
+    }
+  }
+  return null;
+}
+
+/** The best shared alphabet that the edges' equations allow, or null if none fits. */
+function fitFromEdges(
+  edges: Edge[],
+  cipher: number[],
+  plain: number[],
+  period: number,
+  length: number,
+): SharedAlphabetFit | null {
   const { coeffOf, equations } = buildForms(edges, period);
 
   // The true offsets are a nonzero null-space vector of the cycle equations
@@ -307,6 +340,61 @@ export function reconcileSharedAlphabet(
   return bestFit;
 }
 
+/**
+ * Places the letters that no equation reached. Every place such a letter
+ * occurs beside a placed letter names the position it must have, given the
+ * column's offset. The letter and free position with the most such places is
+ * settled first, and the count is taken again, until no place names one.
+ */
+function placeByVote(
+  index: number[],
+  cipher: number[],
+  plain: number[],
+  period: number,
+  length: number,
+  offsets: number[],
+): void {
+  const taken = new Array<boolean>(ALPHABET_SIZE).fill(false);
+  for (const position of index) {
+    if (position >= 0) {
+      taken[position] = true;
+    }
+  }
+  for (;;) {
+    const votes = new Int32Array(ALPHABET_SIZE * ALPHABET_SIZE);
+    for (let i = 0; i < length; i += 1) {
+      const p = plain[i];
+      const c = cipher[i];
+      const offset = offsets[i % period];
+      if (index[p] < 0 && index[c] >= 0) {
+        votes[p * ALPHABET_SIZE + mod(index[c] - offset)] += 1;
+      } else if (index[c] < 0 && index[p] >= 0) {
+        votes[c * ALPHABET_SIZE + mod(index[p] + offset)] += 1;
+      }
+    }
+    let most = 0;
+    let letter = -1;
+    let position = -1;
+    for (let l = 0; l < ALPHABET_SIZE; l += 1) {
+      if (index[l] >= 0) {
+        continue;
+      }
+      for (let at = 0; at < ALPHABET_SIZE; at += 1) {
+        if (!taken[at] && votes[l * ALPHABET_SIZE + at] > most) {
+          most = votes[l * ALPHABET_SIZE + at];
+          letter = l;
+          position = at;
+        }
+      }
+    }
+    if (letter < 0) {
+      return;
+    }
+    index[letter] = position;
+    taken[position] = true;
+  }
+}
+
 /** Builds the alphabet for a candidate offset vector, or null if it is not a valid permutation. */
 function fitFromOffsets(
   coeffOf: (number[] | null)[],
@@ -323,9 +411,27 @@ function fitFromOffsets(
       index[letter] = mod(coeff.reduce((sum, v, c) => sum + v * offsets[c], 0));
     }
   }
-  const assigned = index.filter((v) => v >= 0);
-  if (new Set(assigned).size !== assigned.length) {
+  const reached = index.filter((v) => v >= 0);
+  if (new Set(reached).size !== reached.length) {
     return null;
+  }
+  if (reached.length < ALPHABET_SIZE) {
+    // Wrong offsets show in the letters the equations reached, so the vote is
+    // taken only for offsets that explain those.
+    let covered = 0;
+    let bad = 0;
+    for (let i = 0; i < length; i += 1) {
+      if (index[plain[i]] >= 0 && index[cipher[i]] >= 0) {
+        covered += 1;
+        if (mod(index[plain[i]] + offsets[i % period]) !== index[cipher[i]]) {
+          bad += 1;
+        }
+      }
+    }
+    if (bad > MAX_RESIDUAL * covered) {
+      return null;
+    }
+    placeByVote(index, cipher, plain, period, length, offsets);
   }
   let bad = 0;
   for (let i = 0; i < length; i += 1) {
@@ -338,6 +444,7 @@ function fitFromOffsets(
     return null;
   }
 
+  const assigned = index.filter((v) => v >= 0);
   const used = new Set(assigned);
   const free: number[] = [];
   for (let position = 0; position < ALPHABET_SIZE; position += 1) {
