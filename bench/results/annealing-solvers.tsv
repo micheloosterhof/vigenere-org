@@ -1,0 +1,97 @@
+solver	letters	size	kind	accuracy	fitness	english	seconds
+bifid	100	5	nothing		-5.24	0	6.2
+bifid	100	5	true	0.16	-5.10	0	6.0
+bifid	100	5	true	0.37	-5.17	0	6.3
+bifid	100	5	true	0.85	-4.70	1	3.2
+bifid	100	9	nothing		-5.24	0	6.3
+bifid	100	9	true	0.07	-5.10	0	6.1
+bifid	100	9	true	0.20	-4.95	0	6.1
+bifid	100	9	true	0.34	-5.00	0	6.0
+bifid	150	5	nothing		-5.70	0	9.0
+bifid	150	5	true	0.86	-4.68	1	0.0
+bifid	150	5	true	0.91	-4.68	1	0.3
+bifid	150	5	true	0.95	-4.67	1	2.4
+bifid	150	9	nothing		-5.57	0	8.8
+bifid	150	9	true	0.09	-5.70	0	8.8
+bifid	150	9	true	0.90	-4.44	1	0.1
+bifid	150	9	true	0.93	-4.51	1	0.0
+bifid	200	5	nothing		-6.08	0	12.0
+bifid	200	5	true	0.86	-4.56	1	0.0
+bifid	200	5	true	0.96	-4.50	1	0.8
+bifid	200	5	true	0.97	-4.19	1	8.2
+bifid	200	9	nothing		-6.03	0	11.5
+bifid	200	9	true	0.91	-4.67	1	0.1
+bifid	200	9	true	0.96	-4.47	1	3.9
+bifid	200	9	true	1.00	-4.31	1	1.0
+bifid	300	5	nothing		-6.47	0	17.0
+bifid	300	5	true	0.88	-4.57	1	0.0
+bifid	300	5	true	0.93	-4.46	1	0.0
+bifid	300	5	true	1.00	-4.22	1	0.1
+bifid	300	9	nothing		-6.44	0	16.9
+bifid	300	9	true	0.88	-4.68	1	0.0
+bifid	300	9	true	0.93	-4.46	1	0.1
+bifid	300	9	true	0.94	-4.31	1	0.0
+double-transposition	100	5	nothing		-5.25	0	6.2
+double-transposition	100	5	true	1.00	-4.14	1	0.0
+double-transposition	100	5	true	1.00	-4.32	1	0.0
+double-transposition	100	5	true	1.00	-4.35	1	0.0
+double-transposition	100	7	nothing		-5.66	0	6.5
+double-transposition	100	7	true	1.00	-4.22	1	0.0
+double-transposition	100	7	true	1.00	-4.28	1	0.5
+double-transposition	100	7	true	1.00	-4.58	1	2.7
+double-transposition	150	5	nothing		-5.46	0	9.2
+double-transposition	150	5	true	1.00	-4.22	1	0.0
+double-transposition	150	5	true	1.00	-4.24	1	0.6
+double-transposition	150	5	true	1.00	-4.29	1	0.0
+double-transposition	150	7	nothing		-5.30	0	9.2
+double-transposition	150	7	true	1.00	-4.14	1	0.0
+double-transposition	150	7	true	1.00	-4.22	1	0.4
+double-transposition	150	7	true	1.00	-4.26	1	0.8
+double-transposition	200	5	nothing		-5.62	0	13.3
+double-transposition	200	5	true	1.00	-4.15	1	0.1
+double-transposition	200	5	true	1.00	-4.28	1	0.0
+double-transposition	200	5	true	1.00	-4.30	1	0.0
+double-transposition	200	7	nothing		-5.41	0	11.8
+double-transposition	200	7	true	1.00	-4.18	1	0.5
+double-transposition	200	7	true	1.00	-4.21	1	0.1
+double-transposition	200	7	true	1.00	-4.23	1	0.2
+double-transposition	300	5	nothing		-5.82	0	17.4
+double-transposition	300	5	true	1.00	-4.07	1	0.0
+double-transposition	300	5	true	1.00	-4.10	1	0.0
+double-transposition	300	5	true	1.00	-4.19	1	0.0
+double-transposition	300	7	nothing		-5.60	0	16.5
+double-transposition	300	7	true	1.00	-4.21	1	0.2
+double-transposition	300	7	true	1.00	-4.22	1	2.0
+double-transposition	300	7	true	1.00	-4.24	1	0.1
+trifid	100	5	nothing		-5.26	0	17.7
+trifid	100	5	true	0.05	-5.13	0	17.7
+trifid	100	5	true	0.07	-5.38	0	18.0
+trifid	100	5	true	0.07	-5.40	0	17.8
+trifid	100	9	nothing		-5.45	0	18.3
+trifid	100	9	true	0.03	-5.27	0	17.7
+trifid	100	9	true	0.10	-5.42	0	17.6
+trifid	100	9	true	0.15	-5.24	0	18.1
+trifid	150	5	nothing		-5.73	0	26.6
+trifid	150	5	true	0.06	-5.81	0	26.1
+trifid	150	5	true	0.08	-5.81	0	25.8
+trifid	150	5	true	0.22	-5.75	0	26.0
+trifid	150	9	nothing		-5.70	0	25.9
+trifid	150	9	true	0.03	-5.65	0	25.8
+trifid	150	9	true	0.07	-5.53	0	26.9
+trifid	150	9	true	0.08	-5.55	0	26.2
+trifid	200	5	nothing		-6.13	0	32.9
+trifid	200	5	true	0.03	-6.06	0	33.1
+trifid	200	5	true	0.10	-5.99	0	32.6
+trifid	200	5	true	0.10	-6.06	0	35.1
+trifid	200	9	nothing		-6.10	0	33.2
+trifid	200	9	true	0.03	-6.06	0	33.9
+trifid	200	9	true	0.05	-5.94	0	33.6
+trifid	200	9	true	0.92	-4.70	1	9.0
+trifid	300	5	nothing		-6.58	0	44.5
+trifid	300	5	true	0.05	-6.47	0	49.1
+trifid	300	5	true	0.85	-4.65	1	0.2
+trifid	300	5	true	1.00	-4.28	1	0.4
+trifid	300	9	nothing		-6.35	0	45.6
+trifid	300	9	true	0.09	-4.58	1	4.4
+trifid	300	9	true	1.00	-4.10	1	0.4
+trifid	300	9	true	1.00	-4.10	1	2.1
