@@ -79,90 +79,117 @@ export interface LetterSetScorer {
   readonly shifts: number[];
 }
 
+export interface LetterSetPairScorer {
+  /** Fixes the ciphertext alphabet's keyword letters (ascending) for the scores that follow. */
+  setCipherLetters(letters: ArrayLike<number>): void;
+  /**
+   * Log10 likelihood of the ciphertext if the plaintext alphabet's keyword
+   * consists of `plainLetters` (ascending), with every column at its best
+   * shift.
+   */
+  score(plainLetters: ArrayLike<number>): number;
+  /** The best shift per column for the pair scored last. */
+  readonly shifts: number[];
+}
+
 /**
- * Prepares a scorer of keyword letter sets for one ciphertext, variant, and
- * period. The alphabet is the keyword followed by the remaining letters in
- * order, so a set fixes the position of every letter outside it. Those letters
- * are scored cell by cell; a keyword letter sits somewhere in the keyword's
+ * Prepares a scorer of keyword letter sets for one ciphertext and period,
+ * with separate keywords for the plaintext and the ciphertext alphabet. An
+ * alphabet is its keyword followed by the remaining letters in order, so a
+ * letter set fixes the position of every letter outside it. Those letters are
+ * scored cell by cell; a keyword letter sits somewhere in the keyword's
  * positions, so its cells are averaged over them. Without that average, sets
- * that swallow the busiest cipher letters would win. The letters the set
- * deciphers on its own also add how well they pair with their neighbours.
+ * that swallow the busiest cipher letters would win. The letters the two sets
+ * decipher on their own also add how well they pair with their neighbours.
+ * An empty set stands for the unmixed alphabet.
  */
-export function letterSetScorer(
+export function letterSetPairScorer(
   cipher: ArrayLike<number>,
-  variant: KeywordVariant,
   period: number,
-): LetterSetScorer {
+): LetterSetPairScorer {
   const length = cipher.length;
   const { log, plain } = cellLikelihoods(cipher, period);
   const shifts = new Array<number>(period).fill(0);
-  // The letters outside the keyword in order, and each letter's alphabet
-  // position (-1 for a keyword letter, whose position is unknown).
-  const rest = new Int8Array(ALPHABET_SIZE);
-  const position = new Int8Array(ALPHABET_SIZE);
+  // Per alphabet: the letters outside its keyword in order. For the cipher
+  // alphabet also each letter's position (-1 for a keyword letter, whose
+  // position is unknown).
+  const plainRest = new Int8Array(ALPHABET_SIZE);
+  const cipherRest = new Int8Array(ALPHABET_SIZE);
+  const cipherPosition = new Int8Array(ALPHABET_SIZE);
+  let cipherLetters: number[] = [];
   // Per cipher letter: its likelihood averaged over the keyword's plain letters.
   const keywordPlain = new Float64Array(ALPHABET_SIZE);
   const keywordPlainLog = new Float64Array(ALPHABET_SIZE);
   const ring = new Float64Array(ALPHABET_SIZE);
   // window[shift * size + y]: likelihood of keyword cipher letter y averaged
-  // over the keyword's positions at that shift.
+  // over the cipher keyword's positions at that shift.
   const window = new Float64Array(PAIRS);
   const deciphered = new Int8Array(length);
 
-  const score = (letters: ArrayLike<number>): number => {
-    const size = letters.length;
-    const restSize = ALPHABET_SIZE - size;
-    position.fill(-1);
+  /** Writes the letters outside `letters` to `rest`, in order. */
+  const listRest = (letters: ArrayLike<number>, rest: Int8Array): void => {
     for (let letter = 0, inSet = 0, outside = 0; letter < 26; letter += 1) {
-      if (inSet < size && letters[inSet] === letter) {
+      if (inSet < letters.length && letters[inSet] === letter) {
         inSet += 1;
       } else {
-        position[letter] = size + outside;
         rest[outside] = letter;
         outside += 1;
       }
     }
+  };
+
+  const setCipherLetters = (letters: ArrayLike<number>): void => {
+    cipherLetters = Array.from(letters);
+    listRest(letters, cipherRest);
+    cipherPosition.fill(-1);
+    for (let i = 0; i < ALPHABET_SIZE - letters.length; i += 1) {
+      cipherPosition[cipherRest[i]] = letters.length + i;
+    }
+  };
+  setCipherLetters([]);
+
+  const score = (plainLetters: ArrayLike<number>): number => {
+    const plainSize = plainLetters.length;
+    const cipherSize = cipherLetters.length;
+    const cipherRestSize = ALPHABET_SIZE - cipherSize;
+    listRest(plainLetters, plainRest);
 
     let total = 0;
     for (let column = 0; column < period; column += 1) {
       const logCells = log[column];
       const cells = plain[column];
-      if (variant !== 2) {
+      if (plainSize > 0) {
         for (let c = 0; c < ALPHABET_SIZE; c += 1) {
           let sum = 0;
-          for (let y = 0; y < size; y += 1) {
-            sum += cells[c * ALPHABET_SIZE + letters[y]];
+          for (let y = 0; y < plainSize; y += 1) {
+            sum += cells[c * ALPHABET_SIZE + plainLetters[y]];
           }
-          keywordPlain[c] = sum / size;
-          keywordPlainLog[c] = Math.log10(sum / size);
+          keywordPlain[c] = sum / plainSize;
+          keywordPlainLog[c] = Math.log10(sum / plainSize);
         }
       }
-      if (variant !== 1) {
-        for (let y = 0; y < size; y += 1) {
-          const row = letters[y] * ALPHABET_SIZE;
-          // ring[q]: this keyword cipher letter's likelihood if it deciphers
-          // through alphabet position q.
-          for (let q = 0; q < ALPHABET_SIZE; q += 1) {
-            ring[q] =
-              variant === 2
-                ? cells[row + q]
-                : q >= size
-                  ? cells[row + rest[q - size]]
-                  : keywordPlain[letters[y]];
-          }
-          // The keyword's positions 0..size-1 decipher through positions
-          // -shift..size-1-shift: a window that slides round the ring.
-          let sum = 0;
-          for (let q = 0; q < size; q += 1) {
-            sum += ring[q];
-          }
-          for (let shift = 0; shift < ALPHABET_SIZE; shift += 1) {
-            window[shift * size + y] = sum / size;
-            const entering = (2 * ALPHABET_SIZE - shift - 1) % ALPHABET_SIZE;
-            const leaving =
-              (2 * ALPHABET_SIZE + size - 1 - shift) % ALPHABET_SIZE;
-            sum = Math.max(0, sum + ring[entering] - ring[leaving]);
-          }
+      for (let y = 0; y < cipherSize; y += 1) {
+        const row = cipherLetters[y] * ALPHABET_SIZE;
+        // ring[q]: this keyword cipher letter's likelihood if it deciphers
+        // through plaintext alphabet position q.
+        for (let q = 0; q < ALPHABET_SIZE; q += 1) {
+          ring[q] =
+            q >= plainSize
+              ? cells[row + plainRest[q - plainSize]]
+              : keywordPlain[cipherLetters[y]];
+        }
+        // The cipher keyword's positions 0..size-1 decipher through positions
+        // -shift..size-1-shift: a window that slides round the ring.
+        let sum = 0;
+        for (let q = 0; q < cipherSize; q += 1) {
+          sum += ring[q];
+        }
+        for (let shift = 0; shift < ALPHABET_SIZE; shift += 1) {
+          window[shift * cipherSize + y] = sum / cipherSize;
+          const entering = (2 * ALPHABET_SIZE - shift - 1) % ALPHABET_SIZE;
+          const leaving =
+            (2 * ALPHABET_SIZE + cipherSize - 1 - shift) % ALPHABET_SIZE;
+          sum = Math.max(0, sum + ring[entering] - ring[leaving]);
         }
       }
 
@@ -170,38 +197,27 @@ export function letterSetScorer(
       let bestShift = 0;
       for (let shift = 0; shift < ALPHABET_SIZE; shift += 1) {
         let sum = 0;
-        if (variant === 1) {
-          for (let c = 0; c < ALPHABET_SIZE; c += 1) {
-            const q = (c - shift + ALPHABET_SIZE) % ALPHABET_SIZE;
-            sum +=
-              q >= size
-                ? logCells[c * ALPHABET_SIZE + rest[q - size]]
-                : keywordPlainLog[c];
-          }
-        } else {
-          for (let i = 0; i < restSize; i += 1) {
-            const q = (size + i - shift + ALPHABET_SIZE) % ALPHABET_SIZE;
-            const row = rest[i] * ALPHABET_SIZE;
-            sum +=
-              variant === 2
-                ? logCells[row + q]
-                : q >= size
-                  ? logCells[row + rest[q - size]]
-                  : keywordPlainLog[rest[i]];
-          }
-          // The product of the keyword letters' averages, kept clear of
-          // underflow.
-          let product = 1;
-          const offset = shift * size;
-          for (let y = 0; y < size; y += 1) {
-            product *= window[offset + y];
-            if (product < 1e-200) {
-              sum += Math.log10(product);
-              product = 1;
-            }
-          }
-          sum += Math.log10(product);
+        for (let i = 0; i < cipherRestSize; i += 1) {
+          const q = (cipherSize + i - shift + ALPHABET_SIZE) % ALPHABET_SIZE;
+          sum +=
+            q >= plainSize
+              ? logCells[
+                  cipherRest[i] * ALPHABET_SIZE + plainRest[q - plainSize]
+                ]
+              : keywordPlainLog[cipherRest[i]];
         }
+        // The product of the keyword cipher letters' averages, kept clear of
+        // underflow.
+        let product = 1;
+        const offset = shift * cipherSize;
+        for (let y = 0; y < cipherSize; y += 1) {
+          product *= window[offset + y];
+          if (product < 1e-200) {
+            sum += Math.log10(product);
+            product = 1;
+          }
+        }
+        sum += Math.log10(product);
         if (sum > best) {
           best = sum;
           bestShift = shift;
@@ -211,15 +227,15 @@ export function letterSetScorer(
       shifts[column] = bestShift;
     }
 
-    // Letters the ordered tail deciphers without the keyword's order.
+    // Letters the ordered tails decipher without either keyword's order.
     for (let i = 0; i < length; i += 1) {
-      const from = variant === 1 ? cipher[i] : position[cipher[i]];
+      const from = cipherPosition[cipher[i]];
       if (from < 0) {
         deciphered[i] = -1;
         continue;
       }
       const q = (from - shifts[i % period] + ALPHABET_SIZE) % ALPHABET_SIZE;
-      deciphered[i] = variant === 2 ? q : q >= size ? rest[q - size] : -1;
+      deciphered[i] = q >= plainSize ? plainRest[q - plainSize] : -1;
     }
     for (let i = 1; i < length; i += 1) {
       if (deciphered[i] >= 0 && deciphered[i - 1] >= 0) {
@@ -228,7 +244,29 @@ export function letterSetScorer(
     }
     return total;
   };
-  return { score, shifts };
+  return { setCipherLetters, score, shifts };
+}
+
+const NO_LETTERS: number[] = [];
+
+/**
+ * Prepares a scorer of keyword letter sets for one ciphertext, variant, and
+ * period: the keyword mixes the plaintext alphabet (variant I), the
+ * ciphertext alphabet (II), or both (III).
+ */
+export function letterSetScorer(
+  cipher: ArrayLike<number>,
+  variant: KeywordVariant,
+  period: number,
+): LetterSetScorer {
+  const pair = letterSetPairScorer(cipher, period);
+  const score = (letters: ArrayLike<number>): number => {
+    if (variant !== 1) {
+      pair.setCipherLetters(letters);
+    }
+    return pair.score(variant === 2 ? NO_LETTERS : letters);
+  };
+  return { score, shifts: pair.shifts };
 }
 
 export interface ScoredLetterSet {

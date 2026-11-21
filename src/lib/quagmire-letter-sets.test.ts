@@ -9,6 +9,7 @@ import { quagmire } from "./quagmire";
 import {
   bestLetterSets,
   letterSetCount,
+  letterSetPairScorer,
   letterSetScorer,
 } from "./quagmire-letter-sets";
 import { toLetterValues } from "./solve";
@@ -81,6 +82,32 @@ describe("letterSetScorer", () => {
       for (let trial = 0; trial < 300; trial += 1) {
         expect(scorer.score(randomSet(7, rng))).toBeLessThan(truth);
       }
+    }
+  });
+});
+
+describe("letterSetPairScorer", () => {
+  it("scores the true keyword letters of a Quagmire IV text above random pairs", () => {
+    const cipher = toLetterValues(
+      quagmire(
+        PLAIN,
+        {
+          variant: 4,
+          keyword: "MACHINE",
+          keyword2: "JUPITER",
+          key: "WONDER",
+          indicator: "A",
+        },
+        "encrypt",
+      ),
+    );
+    const scorer = letterSetPairScorer(cipher, 6);
+    scorer.setCipherLetters(lettersOf("JUPITER"));
+    const truth = scorer.score(lettersOf("MACHINE"));
+    const rng = seededRng(15);
+    for (let trial = 0; trial < 300; trial += 1) {
+      scorer.setCipherLetters(randomSet(7, rng));
+      expect(scorer.score(randomSet(7, rng))).toBeLessThan(truth);
     }
   });
 });
