@@ -6,6 +6,7 @@ import { anneal, averageLog10, quadgramRaw } from "./anneal";
 import { inverseAlphabet, mixedAlphabet } from "./cipher";
 import { chainScore, ringShifts, shiftTable } from "./quagmire-shifts";
 import { toLetterValues } from "./solve";
+import type { SolverRequirements } from "./solver-requirements";
 import {
   bestFinalist,
   keywordResult,
@@ -34,12 +35,20 @@ const FINAL_ITERATIONS = 10000;
 // Starting temperature in raw quadgram units.
 const TEMPERATURE = 100;
 
-// Average quadgram log10 probability separating English decryptions from
-// overfit pseudo-English.
-const READABLE_QUADGRAM = -4.7;
+// Average quadgram log10 probability from which a decryption counts as found.
+// In bench/results/quagmire-dictionary-joint.tsv, from 60 letters up, wrong
+// decryptions stay below -4.58 and all but one right one score above -4.5.
+const READABLE_QUADGRAM = -4.5;
 
-// Below this many letters wrong keywords anneal to pseudo-English.
+// Below this many letters wrong keywords anneal to pseudo-English as good as
+// the true decryption (wrong ones reach -4.1 at 48 letters), so shorter text
+// is never reported as found.
 const MIN_RELIABLE_LENGTH = 60;
+
+// A period is tried only when it leaves fewer letters per column than this.
+// With more, the per-column dictionary attack already finds the keyword, and
+// the scan here costs time in proportion to the text.
+const MAX_PER_COLUMN = 32;
 
 interface Options {
   /** Try only this key length instead of every length up to the maximum. */
@@ -109,12 +118,25 @@ export function breakQuagmireDictionaryJoint(
     1,
     Math.min(options.maxPeriod ?? MAX_PERIOD, Math.floor(length / 3)),
   );
-  const shortest = Math.min(options.period ?? 1, longest);
-  const cappedLongest = options.period === undefined ? longest : shortest;
+  const periods: number[] = [];
+  if (options.period !== undefined) {
+    periods.push(Math.min(options.period, longest));
+  } else {
+    for (let period = 1; period <= longest; period += 1) {
+      if (length / period < MAX_PER_COLUMN) {
+        periods.push(period);
+      }
+    }
+  }
+  if (periods.length === 0) {
+    throw new Error(
+      `text is too long: every key length up to ${longest} leaves ${MAX_PER_COLUMN} or more letters per column`,
+    );
+  }
 
   // Stage 1: chain score of every alphabet, variant, and period.
   const byPeriod: Candidate[][] = [];
-  for (let period = shortest; period <= cappedLongest; period += 1) {
+  for (const period of periods) {
     byPeriod[period] = [];
   }
   const alphabets = new Set(distinctAlphabets(words));
@@ -123,7 +145,7 @@ export function breakQuagmireDictionaryJoint(
       const alphabet = mixedAlphabet(word);
       for (const plan of variantPlans(alphabet, inverseAlphabet(alphabet))) {
         const shifted = shiftTable(cipher, plan.input, plan.output);
-        for (let period = shortest; period <= cappedLongest; period += 1) {
+        for (const period of periods) {
           byPeriod[period].push({
             word,
             variant: plan.variant,
@@ -143,7 +165,7 @@ export function breakQuagmireDictionaryJoint(
 
   // Stage 2: the exact ring score re-ranks each period's shortlist.
   const survivors: Candidate[] = [];
-  for (let period = shortest; period <= cappedLongest; period += 1) {
+  for (const period of periods) {
     const ring = best(byPeriod[period], CHAIN_KEEP).map((candidate) => {
       const plan = planFor(candidate.word, candidate.variant);
       const shifted = shiftTable(cipher, plan.input, plan.output);
@@ -217,3 +239,26 @@ export function breakQuagmireDictionaryJoint(
     length >= MIN_RELIABLE_LENGTH && winner.fitness >= READABLE_QUADGRAM,
   );
 }
+
+/**
+ * What the joint-shift dictionary attack needs. In
+ * bench/results/quagmire-dictionary-joint.tsv, with the period unknown, it
+ * solves 18 of 18 texts of 60 letters or more at 8 letters per column, 35 of
+ * 36 at 12, and 8 of 9 at 6; below 60 letters it cannot tell a right
+ * decryption from a wrong one.
+ */
+export const QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS: SolverRequirements = {
+  id: "quagmire-dictionary-joint",
+  ciphers: ["Quagmire I", "Quagmire II", "Quagmire III"],
+  assumes: [
+    "periodic",
+    "shared-alphabet",
+    "keyword-alphabet",
+    "keyword-in-word-list",
+  ],
+  minLetters: MIN_RELIABLE_LENGTH,
+  maxLetters: MAX_PER_COLUMN * MAX_PERIOD,
+  minLettersPerColumn: 8,
+  maxPeriod: MAX_PERIOD,
+  basis: "measured",
+};

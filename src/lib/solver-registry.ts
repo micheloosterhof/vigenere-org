@@ -19,6 +19,7 @@ import { FRACTIONATION_REQUIREMENTS } from "./solve-fractionation";
 import { POLYALPHABETIC_REQUIREMENTS } from "./solve-polyalphabetic";
 import { QUAGMIRE_REQUIREMENTS } from "./solve-quagmire";
 import { QUAGMIRE_DICTIONARY_REQUIREMENTS } from "./solve-quagmire-dictionary";
+import { QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS } from "./solve-quagmire-dictionary-joint";
 import { SUBSTITUTION_REQUIREMENTS } from "./solve-substitution";
 import type { SolverRequirements } from "./solver-requirements";
 import { COLUMNAR_REQUIREMENTS } from "./transposition";
@@ -32,6 +33,7 @@ export const SOLVER_REQUIREMENTS: readonly SolverRequirements[] = [
   POLYALPHABETIC_REQUIREMENTS,
   QUAGMIRE_REQUIREMENTS,
   QUAGMIRE_DICTIONARY_REQUIREMENTS,
+  QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS,
   CIPHERTEXT_AUTOKEY_REQUIREMENTS,
   PLAINTEXT_AUTOKEY_REQUIREMENTS,
   RAIL_FENCE_REQUIREMENTS,

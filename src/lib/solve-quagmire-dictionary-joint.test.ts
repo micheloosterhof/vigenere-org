@@ -86,6 +86,12 @@ describe("breakQuagmireDictionaryJoint", () => {
     expect(seen[seen.length - 1]).toBe(words.length);
   });
 
+  it("refuses text whose columns all hold enough letters for the per-column attack", () => {
+    expect(() =>
+      breakQuagmireDictionaryJoint(KRYPTOS_K1.repeat(7), WORDS, TABLE),
+    ).toThrow(/too long/);
+  });
+
   it("throws on text with too few letters", () => {
     expect(() => breakQuagmireDictionaryJoint("ABC", WORDS, TABLE)).toThrow();
   });

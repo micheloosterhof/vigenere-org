@@ -24,6 +24,7 @@ describe("SOLVER_REQUIREMENTS", () => {
         "polyalphabetic",
         "quagmire-shared-alphabet",
         "quagmire-dictionary",
+        "quagmire-dictionary-joint",
         "ciphertext-autokey",
         "plaintext-autokey",
         "rail-fence",
