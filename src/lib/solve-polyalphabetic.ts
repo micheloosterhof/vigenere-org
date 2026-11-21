@@ -109,7 +109,7 @@ function shuffled(rng: () => number): number[] {
 
 /**
  * Recovers a general periodic polyalphabetic cipher from ciphertext alone.
- * Needs roughly a hundred letters per key position; the table is the
+ * Needs roughly two hundred letters per key position; the table is the
  * quantized quadgram data served at QUADGRAM_TABLE_URL.
  */
 export function breakPolyalphabetic(
@@ -172,12 +172,20 @@ export function breakPolyalphabetic(
   };
 }
 
-/** What the general polyalphabetic attack needs: enough text to fit a separate alphabet to each column. */
+/**
+ * What the general polyalphabetic attack needs: enough text to fit a separate
+ * alphabet to each column. In bench/results/polyalphabetic.tsv, with the
+ * period given, it recovers 45 of 50 texts at 200 letters per column, 24 of 50
+ * at 150 and 2 of 50 at 100. Below 75 per column the free alphabets fit random
+ * letters to pseudo-English (-4.0 at 25 per column, -4.7 at 50, under -5.2
+ * from 75), so an answer there cannot be believed.
+ */
 export const POLYALPHABETIC_REQUIREMENTS: SolverRequirements = {
   id: "polyalphabetic",
   ciphers: ["Polyalphabetic"],
   assumes: ["periodic"],
+  minLettersPerColumn: 75,
   reliableLettersPerColumn: 200,
   maxPeriod: MAX_PERIOD,
-  basis: "estimate",
+  basis: "measured",
 };
