@@ -53,6 +53,28 @@ export interface QuagmireIvResult {
   fitness: number;
 }
 
+/** One part of the search: a period and the size of each keyword. */
+export interface QuagmireIvJob {
+  period: number;
+  /** The number of different letters in the plaintext keyword. */
+  plainSize: number;
+  /** The number of different letters in the ciphertext keyword. */
+  cipherSize: number;
+  /** Annealing runs; 300 by default. */
+  runs?: number;
+}
+
+export interface QuagmireIvSolution extends QuagmireIvJob {
+  /** The plaintext alphabet as letter values: its keyword, then the remaining letters in order. */
+  plainAlphabet: number[];
+  cipherAlphabet: number[];
+  offsets: number[];
+  /** Average quadgram log10 probability of the decryption. */
+  fitness: number;
+  /** The best score of a pair of letter sets that the annealing reached. */
+  score: number;
+}
+
 interface Options {
   /** Periods to try, in this order. */
   periods: number[];
@@ -183,17 +205,84 @@ function annealLetterSetPairs(
   return pairs.sort((a, b) => b.score - a.score);
 }
 
+const UNMIXED = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
+
+/**
+ * Runs one part of the search: anneals the two keyword letter sets together
+ * at the job's period and sizes, then completes the pairs found, best score
+ * first, by local search over both keywords' order and letters and the column
+ * shifts. Returns the completion with the best quadgram fitness, and stops at
+ * the first one that reads as English.
+ */
+export function runQuagmireIvJob(
+  cipher: number[],
+  job: QuagmireIvJob,
+  table: Uint8Array,
+  rng: () => number,
+): QuagmireIvSolution {
+  const { period } = job;
+  const length = cipher.length;
+  const readable = readableFitness(length);
+  const scorer = letterSetPairScorer(cipher, period);
+  const pairs = annealLetterSetPairs(
+    scorer,
+    job.plainSize,
+    job.cipherSize,
+    job.runs ?? RUNS,
+    rng,
+  );
+  let best: QuagmireIvSolution = {
+    ...job,
+    plainAlphabet: UNMIXED,
+    cipherAlphabet: UNMIXED,
+    offsets: new Array<number>(period).fill(0),
+    fitness: -Infinity,
+    score: pairs.length > 0 ? pairs[0].score : -Infinity,
+  };
+  for (const pair of pairs) {
+    scorer.setCipherLetters(pair.cipher);
+    scorer.score(pair.plain);
+    const key = completeKey(
+      cipher,
+      period,
+      { plain: pair.plain, cipher: pair.cipher, shared: false },
+      scorer.shifts,
+      table,
+      rng,
+    );
+    const fitness = averageLog10(
+      quadgramRaw(
+        decryptWithAlphabets(
+          cipher,
+          key.plainAlphabet,
+          key.cipherAlphabet,
+          key.offsets,
+        ),
+        length,
+        table,
+      ),
+      length - 3,
+    );
+    if (fitness > best.fitness) {
+      best = { ...best, ...key, fitness };
+    }
+    if (best.fitness >= readable) {
+      break;
+    }
+  }
+  return best;
+}
+
 const text = (values: number[]): string =>
   values.map((value) => String.fromCharCode(CODE_A + value)).join("");
 
 /**
  * Breaks a Quagmire IV. Each alphabet is its keyword followed by the
  * remaining letters in order, so the two sets of keyword letters place every
- * other letter. Scoring every pair of sets is out of reach, so for each
- * period and pair of keyword sizes the two sets are annealed together; the
- * pairs found are completed by local search over both keywords' order and
- * letters and the column shifts. The search stops at the first decryption
- * that reads as English. Check `found`.
+ * other letter. Scoring every pair of sets is out of reach, so each period
+ * and pair of keyword sizes is a job that anneals the two sets together and
+ * completes the pairs found. The search stops at the first decryption that
+ * reads as English. Check `found`.
  */
 export function breakQuagmireIv(
   ciphertext: string,
@@ -208,53 +297,26 @@ export function breakQuagmireIv(
   const steps = options.periods.length * options.sizes.length;
   let done = 0;
 
-  let best = {
+  let best: Pick<
+    QuagmireIvSolution,
+    "fitness" | "period" | "plainAlphabet" | "cipherAlphabet" | "offsets"
+  > = {
     fitness: -Infinity,
     period: 1,
-    plainAlphabet: Array.from({ length: ALPHABET_SIZE }, (_, i) => i),
-    cipherAlphabet: Array.from({ length: ALPHABET_SIZE }, (_, i) => i),
+    plainAlphabet: UNMIXED,
+    cipherAlphabet: UNMIXED,
     offsets: [0],
   };
   search: for (const period of options.periods) {
-    const scorer = letterSetPairScorer(cipher, period);
     for (const [plainSize, cipherSize] of options.sizes) {
-      const pairs = annealLetterSetPairs(
-        scorer,
-        plainSize,
-        cipherSize,
-        options.runs ?? RUNS,
+      const solution = runQuagmireIvJob(
+        cipher,
+        { period, plainSize, cipherSize, runs: options.runs },
+        table,
         rng,
       );
-      for (const pair of pairs) {
-        scorer.setCipherLetters(pair.cipher);
-        scorer.score(pair.plain);
-        const key = completeKey(
-          cipher,
-          period,
-          { plain: pair.plain, cipher: pair.cipher, shared: false },
-          scorer.shifts,
-          table,
-          rng,
-        );
-        const fitness = averageLog10(
-          quadgramRaw(
-            decryptWithAlphabets(
-              cipher,
-              key.plainAlphabet,
-              key.cipherAlphabet,
-              key.offsets,
-            ),
-            length,
-            table,
-          ),
-          length - 3,
-        );
-        if (fitness > best.fitness) {
-          best = { fitness, period, ...key };
-        }
-        if (best.fitness >= readable) {
-          break;
-        }
+      if (solution.fitness > best.fitness) {
+        best = solution;
       }
       done += 1;
       options.onProgress?.(done, steps);

@@ -6,7 +6,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
 import { quagmire } from "./quagmire";
-import { breakQuagmireIv } from "./solve-quagmire-iv";
+import { toLetterValues } from "./solve";
+import { breakQuagmireIv, runQuagmireIvJob } from "./solve-quagmire-iv";
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -32,6 +33,41 @@ const CIPHERTEXT = quagmire(
   },
   "encrypt",
 );
+
+describe("runQuagmireIvJob", () => {
+  it("solves one period and pair of keyword sizes", { timeout: 120000 }, () => {
+    const job = { period: 6, plainSize: 7, cipherSize: 7, runs: 30 };
+    const solution = runQuagmireIvJob(
+      toLetterValues(CIPHERTEXT),
+      job,
+      TABLE,
+      seededRng(1),
+    );
+    expect(solution).toMatchObject(job);
+    expect(solution.fitness).toBeGreaterThan(-4.5);
+    expect(solution.offsets).toHaveLength(6);
+    expect(Number.isFinite(solution.score)).toBe(true);
+  });
+
+  it("scores a wrong period below the true one", { timeout: 120000 }, () => {
+    const cipher = toLetterValues(CIPHERTEXT);
+    const sizes = { plainSize: 7, cipherSize: 7, runs: 10 };
+    const right = runQuagmireIvJob(
+      cipher,
+      { period: 6, ...sizes },
+      TABLE,
+      seededRng(4),
+    );
+    const wrong = runQuagmireIvJob(
+      cipher,
+      { period: 5, ...sizes },
+      TABLE,
+      seededRng(4),
+    );
+    expect(wrong.fitness).toBeLessThan(-4.5);
+    expect(wrong.score).toBeLessThan(right.score);
+  });
+});
 
 describe("breakQuagmireIv", () => {
   it(
