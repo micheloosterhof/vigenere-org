@@ -32,6 +32,11 @@ const TEMPERATURE = 3;
 // score changes little; the other moves replace a keyword letter at random.
 const SLIDE_SHARE = 0.8;
 
+// The best-scoring pairs a job completes into keys. In
+// bench/results/quagmire-iv-jobs.tsv the pair that solved was among the first
+// 20 in 494 of 500 solved jobs, and the very first in 431.
+const PAIRS_COMPLETED = 20;
+
 // Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
 
@@ -211,10 +216,10 @@ const UNMIXED = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
 
 /**
  * Runs one part of the search: anneals the two keyword letter sets together
- * at the job's period and sizes, then completes the pairs found, best score
- * first, by local search over both keywords' order and letters and the column
- * shifts. Returns the completion with the best quadgram fitness, and stops at
- * the first one that reads as English.
+ * at the job's period and sizes, then completes the best-scoring pairs found,
+ * best first, by local search over both keywords' order and letters and the
+ * column shifts. Returns the completion with the best quadgram fitness, and
+ * stops at the first one that reads as English.
  */
 export function runQuagmireIvJob(
   cipher: number[],
@@ -242,7 +247,7 @@ export function runQuagmireIvJob(
     score: pairs.length > 0 ? pairs[0].score : -Infinity,
     pairsCompleted: 0,
   };
-  for (const pair of pairs) {
+  for (const pair of pairs.slice(0, PAIRS_COMPLETED)) {
     scorer.setCipherLetters(pair.cipher);
     scorer.score(pair.plain);
     const key = completeKey(

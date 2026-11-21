@@ -69,6 +69,16 @@ describe("runQuagmireIvJob", () => {
     expect(wrong.fitness).toBeLessThan(-4.5);
     expect(wrong.score).toBeLessThan(right.score);
   });
+
+  it("completes only the best-scoring pairs", { timeout: 120000 }, () => {
+    const solution = runQuagmireIvJob(
+      toLetterValues(CIPHERTEXT),
+      { period: 5, plainSize: 7, cipherSize: 7, runs: 40 },
+      TABLE,
+      seededRng(5),
+    );
+    expect(solution.pairsCompleted).toBe(20);
+  });
 });
 
 describe("breakQuagmireIv", () => {
