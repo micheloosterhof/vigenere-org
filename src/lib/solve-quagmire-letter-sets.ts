@@ -1,11 +1,10 @@
 // ABOUTME: Breaks Quagmire I-III without a word list by scanning which letters form the alphabet keyword.
-// ABOUTME: The best letter sets are completed by a local search over the keyword's order, its letters, and the column shifts.
+// ABOUTME: A quick pass over every period, variant and keyword size completes the best sets; the best-scoring combinations then get a full search.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { averageLog10, quadgramRaw } from "./anneal";
-import { ENGLISH_BIGRAM_LOGPROBS } from "./data/english-bigrams";
-import { ENGLISH_FREQUENCIES } from "./diagnostics";
 import { columnIoc } from "./period";
+import { completeKey, decryptWithAlphabets } from "./quagmire-key-climb";
 import {
   bestLetterSets,
   letterSetCount,
@@ -22,8 +21,6 @@ import {
 
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
-const BIGRAMS = Float64Array.from(ENGLISH_BIGRAM_LOGPROBS);
-const LETTERS = Float64Array.from(ENGLISH_FREQUENCIES, Math.log10);
 
 // Letter sets completed per variant, period, and keyword size.
 const SETS_COMPLETED = 300;
@@ -31,10 +28,6 @@ const SETS_COMPLETED = 300;
 // scored: near-miss sets are repaired during completion, so a sample is enough.
 const SAMPLE = 0.02;
 const MIN_SETS_SCORED = 15000;
-// Starts of the completion search per letter set: the set as given, then
-// random orders of its letters.
-const STARTS = 4;
-
 // The quick pass scores this many sets per variant and keyword size and
 // completes the best few: in bench/results/quagmire-letter-sets-search.tsv
 // nine solutions in ten come from the ten best sets.
@@ -62,9 +55,6 @@ const PEAK_SHARE = 0.6;
 // Average quadgram log10 probability from which a decryption counts as found;
 // the search stops at the first completion that reaches it.
 const READABLE_QUADGRAM = -4.5;
-// A completion at least this good is close enough to English to be searched
-// again from its turned forms.
-const NEARLY_READABLE_QUADGRAM = -5;
 // Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
 
@@ -113,211 +103,21 @@ export function keywordOfAlphabet(alphabet: string): string {
   return alphabet.slice(0, tail);
 }
 
-/**
- * Completes a keyword letter set into a full key by local search: change one
- * column's shift, swap two keyword letters, or replace a keyword letter by
- * one from outside. The replacement repairs a set that is one or two letters
- * off, so the scan need not find the exact set. The search runs on unigram
- * plus bigram score from several starts, which finds the right region, and
- * the best start is finished on quadgram score, which settles letters that
- * pair up plausibly either way (I for O).
- */
-function completeLetterSet(
-  cipher: number[],
-  variant: KeywordVariant,
-  period: number,
-  letters: number[],
-  startShifts: number[],
-  table: Uint8Array,
-  rng: () => number,
-): { alphabet: number[]; offsets: number[] } {
-  const length = cipher.length;
-  const size = letters.length;
-  const alphabet = new Array<number>(ALPHABET_SIZE);
-  const index = new Array<number>(ALPHABET_SIZE);
-  const used = new Uint8Array(ALPHABET_SIZE);
-  const plain = new Array<number>(length).fill(0);
-  let keyword = [...letters];
-  let shifts = [...startShifts];
+const UNMIXED = Array.from({ length: ALPHABET_SIZE }, (_, i) => i);
 
-  const build = (): void => {
-    used.fill(0);
-    for (let i = 0; i < size; i += 1) {
-      alphabet[i] = keyword[i];
-      used[keyword[i]] = 1;
-    }
-    let next = size;
-    for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
-      if (!used[letter]) {
-        alphabet[next] = letter;
-        next += 1;
-      }
-    }
-    for (let i = 0; i < ALPHABET_SIZE; i += 1) {
-      index[alphabet[i]] = i;
-    }
-  };
-  const decipher = (): void => {
-    for (let i = 0; i < length; i += 1) {
-      const shift = shifts[i % period];
-      const c = cipher[i];
-      plain[i] =
-        variant === 1
-          ? alphabet[(c - shift + ALPHABET_SIZE) % ALPHABET_SIZE]
-          : variant === 2
-            ? (index[c] - shift + ALPHABET_SIZE) % ALPHABET_SIZE
-            : alphabet[(index[c] - shift + ALPHABET_SIZE) % ALPHABET_SIZE];
-    }
-  };
-  const bigramScore = (): number => {
-    decipher();
-    let sum = LETTERS[plain[0]];
-    for (let i = 1; i < length; i += 1) {
-      sum +=
-        LETTERS[plain[i]] + BIGRAMS[plain[i - 1] * ALPHABET_SIZE + plain[i]];
-    }
-    return sum;
-  };
-  const quadgramScore = (): number => {
-    decipher();
-    return quadgramRaw(plain, length, table);
-  };
-
-  /** Applies improving moves until none is left; returns the score reached. */
-  const climb = (score: () => number): number => {
-    build();
-    let current = score();
-    let improved = true;
-    while (improved) {
-      improved = false;
-      for (let column = 0; column < period; column += 1) {
-        let bestShift = shifts[column];
-        for (let shift = 0; shift < ALPHABET_SIZE; shift += 1) {
-          shifts[column] = shift;
-          const changed = score();
-          if (changed > current) {
-            current = changed;
-            bestShift = shift;
-            improved = true;
-          }
-        }
-        shifts[column] = bestShift;
-      }
-      for (let a = 0; a < size; a += 1) {
-        for (let b = a + 1; b < size; b += 1) {
-          [keyword[a], keyword[b]] = [keyword[b], keyword[a]];
-          build();
-          const changed = score();
-          if (changed > current) {
-            current = changed;
-            improved = true;
-          } else {
-            [keyword[a], keyword[b]] = [keyword[b], keyword[a]];
-          }
-        }
-      }
-      for (let a = 0; a < size; a += 1) {
-        let bestLetter = keyword[a];
-        for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
-          if (keyword.includes(letter)) {
-            continue;
-          }
-          keyword[a] = letter;
-          build();
-          const changed = score();
-          if (changed > current) {
-            current = changed;
-            bestLetter = letter;
-            improved = true;
-          }
-          keyword[a] = bestLetter;
-        }
-      }
-      build();
-    }
-    return current;
-  };
-
-  let best = { score: -Infinity, keyword: [...keyword], shifts: [...shifts] };
-  for (let start = 0; start < STARTS; start += 1) {
-    keyword = [...letters];
-    shifts = [...startShifts];
-    if (start > 0) {
-      for (let i = size - 1; i > 0; i -= 1) {
-        const j = Math.floor(rng() * (i + 1));
-        [keyword[i], keyword[j]] = [keyword[j], keyword[i]];
-      }
-    }
-    const reached = climb(bigramScore);
-    if (reached > best.score) {
-      best = { score: reached, keyword: [...keyword], shifts: [...shifts] };
-    }
-  }
-  keyword = best.keyword;
-  shifts = best.shifts;
-  let reached = climb(quadgramScore);
-
-  // Turning the whole alphabet one place, with every shift turned to match,
-  // is the same key. It reads as another keyword, though: XYUGOSLIV followed
-  // by A is YUGOSLIVA with X sent to the tail, and only the second form can
-  // reach YUGOSLAVI by swapping two keyword letters. A key that is close to
-  // English is therefore also searched from both turned forms.
-  const turn = (places: 1 | -1): void => {
-    const tail = alphabet.slice(size);
-    if (places === 1) {
-      const dropped = keyword[0];
-      keyword = [...keyword.slice(1), Math.min(dropped, tail[0])];
-    } else {
-      const dropped = keyword[size - 1];
-      keyword = [
-        Math.max(dropped, tail[tail.length - 1]),
-        ...keyword.slice(0, size - 1),
-      ];
-    }
-    const shiftTurn = variant === 1 ? places : variant === 2 ? -places : 0;
-    shifts = shifts.map(
-      (shift) => (shift + shiftTurn + ALPHABET_SIZE) % ALPHABET_SIZE,
-    );
-  };
-  if (averageLog10(reached, length - 3) >= NEARLY_READABLE_QUADGRAM) {
-    let improved = true;
-    while (improved) {
-      improved = false;
-      for (const places of [1, -1] as const) {
-        const before = { keyword: [...keyword], shifts: [...shifts] };
-        turn(places);
-        const turned = climb(quadgramScore);
-        if (turned > reached) {
-          reached = turned;
-          improved = true;
-        } else {
-          keyword = before.keyword;
-          shifts = before.shifts;
-          build();
-        }
-      }
-    }
-  }
-  return { alphabet: [...alphabet], offsets: shifts };
-}
-
-/** The plaintext letter values of `cipher` under a mixed alphabet and column offsets. */
+/** The plaintext letter values of `cipher` under one keyword alphabet and column offsets. */
 export function decryptWithAlphabet(
   cipher: number[],
   variant: KeywordVariant,
   alphabet: number[],
   offsets: number[],
 ): number[] {
-  const index = new Array<number>(ALPHABET_SIZE);
-  alphabet.forEach((letter, i) => {
-    index[letter] = i;
-  });
-  return cipher.map((c, i) => {
-    const from = variant === 1 ? c : index[c];
-    const position =
-      (from - offsets[i % offsets.length] + ALPHABET_SIZE) % ALPHABET_SIZE;
-    return variant === 2 ? position : alphabet[position];
-  });
+  return decryptWithAlphabets(
+    cipher,
+    variant === 2 ? UNMIXED : alphabet,
+    variant === 1 ? UNMIXED : alphabet,
+    offsets,
+  );
 }
 
 /** Completes the given letter sets in turn; returns the completion with the best quadgram fitness. */
@@ -339,15 +139,20 @@ function completeSets(
   };
   for (const [completed, set] of sets.entries()) {
     scorer.score(set.letters);
-    const { alphabet, offsets } = completeLetterSet(
+    const key = completeKey(
       cipher,
-      variant,
       period,
-      set.letters,
+      {
+        plain: variant === 2 ? [] : set.letters,
+        cipher: variant === 1 ? [] : set.letters,
+        shared: variant === 3,
+      },
       scorer.shifts,
       table,
       rng,
     );
+    const alphabet = variant === 2 ? key.cipherAlphabet : key.plainAlphabet;
+    const { offsets } = key;
     const fitness = averageLog10(
       quadgramRaw(
         decryptWithAlphabet(cipher, variant, alphabet, offsets),
