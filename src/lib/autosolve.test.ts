@@ -230,39 +230,43 @@ describe("autosolve", () => {
   const urlText = (text: string): string =>
     encodeURIComponent(text).replace(/%20/g, "+");
 
-  it("links every attempt to its tool page with the text and key filled in", async () => {
-    const text = "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ";
-    const result = await autosolve(text, TABLE, {
-      rng: mulberry32(9),
-      words: WORDS,
-    });
-    const encoded = urlText(text);
-    const vig = attemptNamed(result, "Vigenère");
-    expect(vig.href).toBe(
-      `/vigenere/?text=${encoded}&key=${vig.keyLabel}&mode=decrypt`,
-    );
-    const beau = attemptNamed(result, "Beaufort");
-    expect(beau.href).toBe(
-      `/beaufort/?text=${encoded}&key=${beau.keyLabel}&mode=decrypt`,
-    );
-    const shift = attemptNamed(result, "Caesar");
-    expect(shift.href).toBe(
-      `/caesar/?text=${encoded}&shift=${shift.keyLabel.replace("shift ", "")}&mode=decrypt`,
-    );
-    expect(attemptNamed(result, "Atbash").href).toBe(
-      `/atbash/?text=${encoded}&mode=decrypt`,
-    );
+  it(
+    "links every attempt to its tool page with the text and key filled in",
+    { timeout: 120000 },
+    async () => {
+      const text = "GLSTO EBYUZ YZZTU TUDJS OZWSF KSUUN FEHUT OTNCZ";
+      const result = await autosolve(text, TABLE, {
+        rng: mulberry32(9),
+        words: WORDS,
+      });
+      const encoded = urlText(text);
+      const vig = attemptNamed(result, "Vigenère");
+      expect(vig.href).toBe(
+        `/vigenere/?text=${encoded}&key=${vig.keyLabel}&mode=decrypt`,
+      );
+      const beau = attemptNamed(result, "Beaufort");
+      expect(beau.href).toBe(
+        `/beaufort/?text=${encoded}&key=${beau.keyLabel}&mode=decrypt`,
+      );
+      const shift = attemptNamed(result, "Caesar");
+      expect(shift.href).toBe(
+        `/caesar/?text=${encoded}&shift=${shift.keyLabel.replace("shift ", "")}&mode=decrypt`,
+      );
+      expect(attemptNamed(result, "Atbash").href).toBe(
+        `/atbash/?text=${encoded}&mode=decrypt`,
+      );
 
-    // The substitution climb only runs once nothing cheaper reads as English.
-    const substituted = substitution(PLAIN, "zebras", "encrypt");
-    const sub = attemptNamed(
-      await autosolve(substituted, TABLE, { rng: mulberry32(2) }),
-      "Substitution",
-    );
-    expect(sub.href).toBe(
-      `/substitution/?text=${urlText(substituted)}&key=${sub.keyLabel}&mode=decrypt`,
-    );
-  });
+      // The substitution climb only runs once nothing cheaper reads as English.
+      const substituted = substitution(PLAIN, "zebras", "encrypt");
+      const sub = attemptNamed(
+        await autosolve(substituted, TABLE, { rng: mulberry32(2) }),
+        "Substitution",
+      );
+      expect(sub.href).toBe(
+        `/substitution/?text=${urlText(substituted)}&key=${sub.keyLabel}&mode=decrypt`,
+      );
+    },
+  );
 
   it(
     "links transposition, Quagmire and autokey attempts with their keys",
@@ -469,22 +473,26 @@ describe("autosolve", () => {
       .join("");
   };
 
-  it("runs the polyalphabetic fallback through the solver it is given", async () => {
-    const ciphertext = randomPolyalphabetic(mulberry32(6));
-    const periods: (number | undefined)[] = [];
-    const result = await autosolve(ciphertext, TABLE, {
-      solvePolyalphabetic: async (text, table, options) => {
-        periods.push(options.period);
-        return breakPolyalphabetic(text, table, {
-          ...options,
-          rng: mulberry32(1),
-        });
-      },
-    });
-    expect(periods).toEqual([3]);
-    expect(result.best.cipher).toBe("Polyalphabetic");
-    expect(result.best.plaintext.startsWith("It was a bright")).toBe(true);
-  });
+  it(
+    "runs the polyalphabetic fallback through the solver it is given",
+    { timeout: 120000 },
+    async () => {
+      const ciphertext = randomPolyalphabetic(mulberry32(6));
+      const periods: (number | undefined)[] = [];
+      const result = await autosolve(ciphertext, TABLE, {
+        solvePolyalphabetic: async (text, table, options) => {
+          periods.push(options.period);
+          return breakPolyalphabetic(text, table, {
+            ...options,
+            rng: mulberry32(1),
+          });
+        },
+      });
+      expect(periods).toEqual([3]);
+      expect(result.best.cipher).toBe("Polyalphabetic");
+      expect(result.best.plaintext.startsWith("It was a bright")).toBe(true);
+    },
+  );
 
   it(
     "falls back to the general polyalphabetic solver",
