@@ -426,11 +426,19 @@ export function decryptWithGrid(
   };
 }
 
-/** What the Bifid and Trifid annealing attack needs. */
+/**
+ * What the Bifid and Trifid annealing attack needs. The code refuses text
+ * under MIN_LETTERS letters. In bench/results/annealing-solvers.tsv (six texts
+ * per length) Bifid comes out at least 86% right on 5 of 6 texts at 150
+ * letters and on all at 200 and 300; Trifid on none at 150, 1 of 6 at 200 and
+ * 5 of 6 at 300, which is the figure stated. Random letters never came out
+ * reading as English.
+ */
 export const FRACTIONATION_REQUIREMENTS: SolverRequirements = {
   id: "fractionation",
   ciphers: ["Bifid", "Trifid"],
   assumes: ["fractionation", "periodic"],
   minLetters: MIN_LETTERS,
-  basis: "enforced",
+  reliableLetters: 300,
+  basis: "measured",
 };

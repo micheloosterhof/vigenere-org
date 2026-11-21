@@ -266,11 +266,17 @@ export function breakDoubleTransposition(
   return best;
 }
 
-/** What the double transposition annealing attack needs. */
+/**
+ * What the double transposition annealing attack needs. The code refuses text
+ * under MIN_LETTERS letters. In bench/results/annealing-solvers.tsv, with both
+ * key lengths given (5 and 7, or 7 and 9), it recovers all 24 texts of 100 to
+ * 300 letters, and shuffled letters never came out reading as English.
+ */
 export const DOUBLE_TRANSPOSITION_REQUIREMENTS: SolverRequirements = {
   id: "double-transposition",
   ciphers: ["Double transposition"],
   assumes: ["transposition"],
   minLetters: MIN_LETTERS,
-  basis: "enforced",
+  reliableLetters: 100,
+  basis: "measured",
 };
