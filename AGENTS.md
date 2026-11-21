@@ -67,6 +67,12 @@ building the commit CI tested), or on a manual run.
   - `data/` — generated English n-gram tables (bigrams inline; quadgrams
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily
     fetched via `quadgrams.ts`).
+- `bench/` — solver benchmarks (`*.bench.ts`): grids of trials over period,
+  key size and letters per column, on plaintext cut from
+  `bench/data/english-plaintext.txt` with seeded random keys (`trials.ts`).
+  `make bench BENCH=<name>` runs one over several processes and writes
+  `bench/results/<name>.tsv`, which is committed: it is the evidence behind
+  each solver's `measured` requirements. Not part of `make test`.
 - `src/pages/` — the auto-solver landing page and one page per tool
   (`/vigenere`, `/beaufort`, `/gronsfeld`, `/porta`, `/caesar`, `/rot13`,
   `/atbash`, `/affine`, `/autokey`, `/quagmire`, `/playfair`, `/bifid`,
@@ -94,7 +100,8 @@ building the commit CI tested), or on a manual run.
 ## Commands
 
 Use the Makefile: `make build`, `make test`, `make e2e`, `make lint`,
-`make fmt`, `make check`, `make dev`, `make clean`.
+`make fmt`, `make check`, `make dev`, `make clean`,
+`make bench BENCH=<name> [SHARDS=8]`.
 
 ## Conventions
 

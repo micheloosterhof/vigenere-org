@@ -4,3 +4,5 @@ dist/
 npm-debug.log*
 playwright-report/
 test-results/
+bench/results/*.part.tsv
+bench/results/*.log
