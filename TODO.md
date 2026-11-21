@@ -21,9 +21,6 @@
 - Quagmire IV breaker (`solve-quagmire-iv.ts`) is not on the page: it needs
   the period and both keyword sizes, about half a minute per combination, so
   it wants a worker pool and a benchmark with the sizes unknown.
-- The Bifid/Trifid breaker's error message says about 200 letters make a
-  reliable solve; `bench/results/annealing-solvers.tsv` agrees for Bifid but
-  shows Trifid at 1 of 6 texts with 200 letters and 5 of 6 with 300.
 - The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
   seconds); its word scan could be shared among workers.
 - `EARLY_EXIT_FITNESS` in `solve-polyalphabetic.ts` is -3.6, which no right

@@ -63,6 +63,15 @@ describe("rankPeriods", () => {
       /at least 100 letters/,
     );
   });
+
+  it("names the reliable length of each cipher when it rejects text", () => {
+    expect(() => rankPeriods("bifid", LETTERS.slice(0, 80))).toThrow(
+      /about 200 are needed/,
+    );
+    expect(() => rankPeriods("trifid", LETTERS.slice(0, 80))).toThrow(
+      /about 300 are needed/,
+    );
+  });
 });
 
 describe("decryptWithGrid", () => {

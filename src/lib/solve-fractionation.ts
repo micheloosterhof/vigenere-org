@@ -266,6 +266,25 @@ export const ENGLISH_FITNESS = -4.7;
 // rather than risk reporting a false key.
 export const MIN_LETTERS = 100;
 
+// The length from which the search solves at least 5 texts in 6 in
+// bench/results/annealing-solvers.tsv.
+const RELIABLE_LETTERS: Record<FractionationCipher, number> = {
+  bifid: 200,
+  trifid: 300,
+};
+
+/** Throws when `letters` is too few for the search to be trusted. */
+function requireEnoughLetters(
+  cipher: FractionationCipher,
+  letters: number,
+): void {
+  if (letters < MIN_LETTERS) {
+    throw new Error(
+      `text must contain at least ${MIN_LETTERS} letters (it has ${letters}); about ${RELIABLE_LETTERS[cipher]} are needed for a reliable solve`,
+    );
+  }
+}
+
 const GEOMETRY: Record<FractionationCipher, Geometry> = {
   bifid: BIFID,
   trifid: TRIFID,
@@ -297,11 +316,7 @@ export function rankPeriods(
 ): number[] {
   const values = cipherValues(cipher, text);
   const n = values.length;
-  if (n < MIN_LETTERS) {
-    throw new Error(
-      `text must contain at least ${MIN_LETTERS} letters (it has ${n}); about 200 are needed for a reliable solve`,
-    );
-  }
+  requireEnoughLetters(cipher, n);
   const usable = [
     ...new Set(periods.filter((p) => p === 0 || (p >= 2 && p < n))),
   ];
@@ -331,11 +346,7 @@ export function annealFractionation(
   const geometry = GEOMETRY[cipher];
   const values = cipherValues(cipher, text);
   const n = values.length;
-  if (n < MIN_LETTERS) {
-    throw new Error(
-      `text must contain at least ${MIN_LETTERS} letters (it has ${n}); about 200 are needed for a reliable solve`,
-    );
-  }
+  requireEnoughLetters(cipher, n);
   const quadgrams = n - 3;
   const target =
     ((ENGLISH_FITNESS - QUADGRAM_MIN_LOG10) / QUADGRAM_LOG10_SCALE) * quadgrams;
@@ -439,6 +450,6 @@ export const FRACTIONATION_REQUIREMENTS: SolverRequirements = {
   ciphers: ["Bifid", "Trifid"],
   assumes: ["fractionation", "periodic"],
   minLetters: MIN_LETTERS,
-  reliableLetters: 300,
+  reliableLetters: RELIABLE_LETTERS.trifid,
   basis: "measured",
 };
