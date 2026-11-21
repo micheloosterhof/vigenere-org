@@ -116,6 +116,34 @@ describe("breakQuagmireLetterSets", () => {
   );
 
   it(
+    "finds a keyword it first reaches as a turned alphabet",
+    { timeout: 120000 },
+    () => {
+      // Under YUGOSLAVIA the search first settles on XYUGOSLIV followed by A:
+      // the alphabet turned one place, with I and A exchanged. Only read as
+      // YUGOSLIVA can a swap of two keyword letters put that right.
+      const plain =
+        "NDTHEPURSUITOFHAPPINESSTHATTOSECURETHESERIGHTSGOVERNMENTSAREINSTITUTED" +
+        "AMONGMENDERIVINGTHEIRJUSTPOWERSFROMTHECONSENTOFTHEGOVERNEDTHATWHENEVER" +
+        "ANYFORMOFGOVERNMENTBECOMESDESTRUCTIVEOFTHESEENDSITISTHERIGHTOFTHEPEOPLE" +
+        "TOALTERORTOABOLISHITANDTOINSTITUTENEWGOVERNMEN";
+      const ciphertext = quagmire(
+        plain,
+        { variant: 1, keyword: "YUGOSLAVIA", key: "JEEYLGMO", indicator: "A" },
+        "encrypt",
+      );
+      const result = breakQuagmireLetterSets(ciphertext, TABLE, {
+        variants: [1],
+        periods: [8],
+        sizes: [9],
+        rng: seededRng(1),
+      });
+      expect(result.found).toBe(true);
+      expect(result.plaintext).toBe(plain);
+    },
+  );
+
+  it(
     "tries the variants, periods and sizes it is given in turn",
     { timeout: 120000 },
     () => {

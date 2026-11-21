@@ -36,6 +36,9 @@ const STARTS = 4;
 // the search stops at the first completion that reaches it.
 const READABLE_QUADGRAM = -4.5;
 // Below this many letters the search fits wrong keys to pseudo-English.
+// A completion at least this good is close enough to English to be searched
+// again from its turned forms.
+const NEARLY_READABLE_QUADGRAM = -5;
 const MIN_RELIABLE_LENGTH = 64;
 
 /** One part of the search: a variant, period, and number of keyword letters. */
@@ -219,8 +222,49 @@ function completeLetterSet(
   }
   keyword = best.keyword;
   shifts = best.shifts;
-  climb(quadgramScore);
+  let reached = climb(quadgramScore);
 
+  // Turning the whole alphabet one place, with every shift turned to match,
+  // is the same key. It reads as another keyword, though: XYUGOSLIV followed
+  // by A is YUGOSLIVA with X sent to the tail, and only the second form can
+  // reach YUGOSLAVI by swapping two keyword letters. A key that is close to
+  // English is therefore also searched from both turned forms.
+  const turn = (places: 1 | -1): void => {
+    const tail = alphabet.slice(size);
+    if (places === 1) {
+      const dropped = keyword[0];
+      keyword = [...keyword.slice(1), Math.min(dropped, tail[0])];
+    } else {
+      const dropped = keyword[size - 1];
+      keyword = [
+        Math.max(dropped, tail[tail.length - 1]),
+        ...keyword.slice(0, size - 1),
+      ];
+    }
+    const shiftTurn = variant === 1 ? places : variant === 2 ? -places : 0;
+    shifts = shifts.map(
+      (shift) => (shift + shiftTurn + ALPHABET_SIZE) % ALPHABET_SIZE,
+    );
+  };
+  if (averageLog10(reached, length - 3) >= NEARLY_READABLE_QUADGRAM) {
+    let improved = true;
+    while (improved) {
+      improved = false;
+      for (const places of [1, -1] as const) {
+        const before = { keyword: [...keyword], shifts: [...shifts] };
+        turn(places);
+        const turned = climb(quadgramScore);
+        if (turned > reached) {
+          reached = turned;
+          improved = true;
+        } else {
+          keyword = before.keyword;
+          shifts = before.shifts;
+          build();
+        }
+      }
+    }
+  }
   return { alphabet: [...alphabet], offsets: shifts };
 }
 
