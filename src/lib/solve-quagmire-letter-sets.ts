@@ -338,7 +338,7 @@ export function keywordForm(
 }
 
 /** The shortest period that the offsets repeat with. */
-function shortestPeriod(offsets: number[]): number {
+export function shortestPeriod(offsets: number[]): number {
   for (let period = 1; period < offsets.length; period += 1) {
     if (
       offsets.length % period === 0 &&

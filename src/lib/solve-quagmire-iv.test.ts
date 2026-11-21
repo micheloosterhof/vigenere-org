@@ -7,7 +7,13 @@ import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
 import { quagmire } from "./quagmire";
 import { toLetterValues } from "./solve";
-import { breakQuagmireIv, runQuagmireIvJob } from "./solve-quagmire-iv";
+import {
+  breakQuagmireIv,
+  planQuagmireIvJobs,
+  quagmireIvPeriods,
+  quagmireIvResult,
+  runQuagmireIvJob,
+} from "./solve-quagmire-iv";
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -81,7 +87,136 @@ describe("runQuagmireIvJob", () => {
   });
 });
 
+describe("planQuagmireIvJobs", () => {
+  const cipher = toLetterValues(CIPHERTEXT);
+
+  it("plans the quick jobs of every period before any longer one", () => {
+    const jobs = planQuagmireIvJobs(cipher, {
+      periods: [5, 7],
+      sizes: [
+        [6, 6],
+        [8, 8],
+      ],
+      rounds: [10, 40],
+    });
+    expect(jobs.map((job) => [job.runs, job.period])).toEqual([
+      [10, 5],
+      [10, 5],
+      [10, 7],
+      [10, 7],
+      [40, 5],
+      [40, 5],
+      [40, 7],
+      [40, 7],
+    ]);
+    expect(jobs[1]).toEqual({
+      period: 5,
+      plainSize: 8,
+      cipherSize: 8,
+      runs: 10,
+    });
+  });
+
+  it("by default tries the likeliest periods that leave enough letters per column", () => {
+    const periods = quagmireIvPeriods(cipher);
+    expect(periods[0]).toBe(6);
+    expect(periods.length).toBeLessThanOrEqual(2);
+    for (const period of periods) {
+      expect(cipher.length / period).toBeGreaterThanOrEqual(24);
+    }
+    const jobs = planQuagmireIvJobs(cipher);
+    expect(new Set(jobs.map((job) => job.period))).toEqual(new Set(periods));
+    expect(jobs[0].runs).toBeLessThan(jobs[jobs.length - 1].runs);
+  });
+});
+
+describe("quagmireIvResult", () => {
+  const solved = breakQuagmireIv(CIPHERTEXT, TABLE, {
+    periods: [6],
+    sizes: [[7, 7]],
+    rounds: [30],
+    rng: seededRng(1),
+  });
+  const values = (letters: string): number[] =>
+    [...letters].map((letter) => letter.charCodeAt(0) - 65);
+  const solution = {
+    plainAlphabet: values(solved.plainAlphabet),
+    cipherAlphabet: values(solved.cipherAlphabet),
+    offsets: solved.offsets,
+    fitness: solved.fitness,
+  };
+
+  it("reports the period itself for a solution at a multiple of it", () => {
+    const result = quagmireIvResult(CIPHERTEXT, {
+      ...solution,
+      offsets: [...solved.offsets, ...solved.offsets],
+    });
+    expect(result.period).toBe(6);
+    expect(result.key).toBe("WONDER");
+    expect(result.plaintext).toBe(PLAIN);
+  });
+
+  it("names the keywords of alphabets that came out turned", () => {
+    // Either alphabet turned by some places decrypts the same once every
+    // shift is turned to match: with the plaintext alphabet, against the
+    // ciphertext alphabet.
+    const turned = (alphabet: number[], places: number): number[] =>
+      alphabet.map((_, i) => alphabet[(i + places) % 26]);
+    const result = quagmireIvResult(CIPHERTEXT, {
+      ...solution,
+      plainAlphabet: turned(solution.plainAlphabet, 25),
+      cipherAlphabet: turned(solution.cipherAlphabet, 24),
+      offsets: solved.offsets.map((offset) => (offset + 25 - 24 + 26) % 26),
+    });
+    expect(result.plaintext).toBe(PLAIN);
+    expect(result.plainKeyword).toBe("MACHINE");
+    expect(result.cipherKeyword).toBe("JUPITER");
+    expect(result.key).toBe("WONDER");
+  });
+});
+
 describe("breakQuagmireIv", () => {
+  it(
+    "finds the period and the keyword sizes itself",
+    { timeout: 120000 },
+    () => {
+      const result = breakQuagmireIv(CIPHERTEXT, TABLE, { rng: seededRng(7) });
+      expect(result.found).toBe(true);
+      expect(result.plainKeyword).toBe("MACHINE");
+      expect(result.cipherKeyword).toBe("JUPITER");
+      expect(result.period).toBe(6);
+      expect(result.key).toBe("WONDER");
+      expect(result.plaintext).toBe(PLAIN);
+    },
+  );
+
+  it(
+    "decrypts the whole of a text longer than it searches",
+    { timeout: 120000 },
+    () => {
+      const long = Array.from({ length: 5 }, () => PLAIN).join(" ");
+      const ciphertext = quagmire(
+        long,
+        {
+          variant: 4,
+          keyword: "MACHINE",
+          keyword2: "JUPITER",
+          key: "WONDER",
+          indicator: "A",
+        },
+        "encrypt",
+      );
+      const result = breakQuagmireIv(ciphertext, TABLE, {
+        periods: [6],
+        sizes: [[7, 7]],
+        rounds: [30],
+        rng: seededRng(1),
+      });
+      expect(result.found).toBe(true);
+      expect(result.plaintext).toBe(long);
+    },
+  );
+
   it(
     "recovers both keywords, the key and the plaintext",
     { timeout: 120000 },
@@ -89,7 +224,7 @@ describe("breakQuagmireIv", () => {
       const result = breakQuagmireIv(CIPHERTEXT, TABLE, {
         periods: [6],
         sizes: [[7, 7]],
-        runs: 30,
+        rounds: [30],
         rng: seededRng(1),
       });
       expect(result.found).toBe(true);
@@ -108,7 +243,7 @@ describe("breakQuagmireIv", () => {
     const result = breakQuagmireIv(CIPHERTEXT, TABLE, {
       periods: [5],
       sizes: [[7, 7]],
-      runs: 10,
+      rounds: [10],
       rng: seededRng(2),
     });
     expect(result.found).toBe(false);
@@ -119,7 +254,7 @@ describe("breakQuagmireIv", () => {
     breakQuagmireIv(CIPHERTEXT, TABLE, {
       periods: [5, 7],
       sizes: [[7, 7]],
-      runs: 4,
+      rounds: [4],
       rng: seededRng(3),
       onProgress: (done, total) => seen.push([done, total]),
     });

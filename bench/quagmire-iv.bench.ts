@@ -75,6 +75,7 @@ it("quagmire IV breaker grid", () => {
     const result = breakQuagmireIv(ciphertext, TABLE, {
       periods: [period],
       sizes: [[plainSize + guess, cipherSize + guess]],
+      rounds: [300],
       rng,
     });
     record("quagmire-iv", {

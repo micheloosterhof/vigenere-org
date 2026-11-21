@@ -1,5 +1,5 @@
 // ABOUTME: Breaks Quagmire IV, whose plaintext and ciphertext alphabets are mixed by two different keywords.
-// ABOUTME: Anneals the two keyword letter sets together, then completes the candidate pairs into keys by local search.
+// ABOUTME: Jobs anneal the two keyword letter sets together at a period and pair of keyword sizes, quick jobs first, and complete the best pairs into keys.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { averageLog10, quadgramRaw } from "./anneal";
@@ -12,8 +12,11 @@ import {
 } from "./quagmire-letter-sets";
 import { toLetterValues } from "./solve";
 import {
+  keywordForm,
   keywordOfAlphabet,
+  letterSetPeriods,
   readableFitness,
+  shortestPeriod,
 } from "./solve-quagmire-letter-sets";
 import type { SolverRequirements } from "./solver-requirements";
 
@@ -21,9 +24,7 @@ const ALPHABET_SIZE = 26;
 const CODE_A = 65;
 const SET_SPACE = 2 ** ALPHABET_SIZE;
 
-// Annealing runs per period and pair of keyword sizes, and steps per run.
-// Each run contributes its best pair of letter sets.
-const RUNS = 300;
+// Steps per annealing run. Each run contributes its best pair of letter sets.
 const STEPS = 3000;
 // Starting temperature in log10 likelihood; it falls linearly to zero.
 const TEMPERATURE = 3;
@@ -37,8 +38,31 @@ const SLIDE_SHARE = 0.8;
 // 20 in 494 of 500 solved jobs, and the very first in 431.
 const PAIRS_COMPLETED = 20;
 
+// Keyword sizes tried when none are given, as pairs for the plaintext and the
+// ciphertext keyword. A size up to three letters too large mostly still finds
+// the keyword, one too small does not, so 6 and 8 cover keywords of 3 to 8
+// different letters.
+const SIZES: readonly [plain: number, cipher: number][] = [
+  [6, 6],
+  [6, 8],
+  [8, 6],
+  [8, 8],
+];
+// Annealing runs per job in each round. In bench/results/quagmire-iv-jobs.tsv
+// 30 runs solve 45 of 54 texts with keywords of up to 8 different letters and
+// 48 or more letters per column, at a third of the cost of 100 runs, which
+// solve 53.
+const ROUNDS: readonly number[] = [30, 100];
+// How many of the likeliest periods are tried, and the letters per column a
+// period must leave.
+const PERIODS_TRIED = 2;
+const MIN_PER_COLUMN = 24;
+
 // Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
+// The search reads at most this many letters: enough for 64 per column at the
+// longest period, and completions cost time in proportion to the text.
+const SEARCH_LETTERS = 800;
 
 export interface QuagmireIvResult {
   /** True when the best decryption reads as English. */
@@ -65,8 +89,8 @@ export interface QuagmireIvJob {
   plainSize: number;
   /** The number of different letters in the ciphertext keyword. */
   cipherSize: number;
-  /** Annealing runs; 300 by default. */
-  runs?: number;
+  /** Annealing runs. */
+  runs: number;
 }
 
 export interface QuagmireIvSolution extends QuagmireIvJob {
@@ -82,13 +106,16 @@ export interface QuagmireIvSolution extends QuagmireIvJob {
   pairsCompleted: number;
 }
 
-interface Options {
-  /** Periods to try, in this order. */
-  periods: number[];
-  /** Pairs of keyword sizes to try: the number of different letters in the plaintext keyword and in the ciphertext keyword. */
-  sizes: [plain: number, cipher: number][];
-  /** Annealing runs per period and size pair. */
-  runs?: number;
+export interface QuagmireIvPlan {
+  /** Periods to try, in this order; by default the two likeliest that leave enough letters per column. */
+  periods?: number[];
+  /** Pairs of keyword sizes to try: the number of different letters in the plaintext keyword and in the ciphertext keyword. By default pairs that cover keywords of up to 8 different letters. */
+  sizes?: readonly [plain: number, cipher: number][];
+  /** Annealing runs per job, one number per round; 30 then 100 by default. */
+  rounds?: readonly number[];
+}
+
+export interface QuagmireIvOptions extends QuagmireIvPlan {
   rng?: () => number;
   onProgress?: (done: number, total: number) => void;
 }
@@ -235,7 +262,7 @@ export function runQuagmireIvJob(
     scorer,
     job.plainSize,
     job.cipherSize,
-    job.runs ?? RUNS,
+    job.runs,
     rng,
   );
   let best: QuagmireIvSolution = {
@@ -282,86 +309,131 @@ export function runQuagmireIvJob(
   return best;
 }
 
+/** The letters of `text` that the search reads, as values. */
+export function searchedLetters(text: string): number[] {
+  return toLetterValues(text).slice(0, SEARCH_LETTERS);
+}
+
+/** Whether a decryption of `letters` letters with this fitness counts as found. */
+export function quagmireIvFound(letters: number, fitness: number): boolean {
+  return letters >= MIN_RELIABLE_LENGTH && fitness >= readableFitness(letters);
+}
+
+/**
+ * The periods tried when none are given: the likeliest by the columns' index
+ * of coincidence, out of those that leave enough letters per column.
+ */
+export function quagmireIvPeriods(cipher: number[]): number[] {
+  return letterSetPeriods(cipher)
+    .filter((period) => cipher.length / period >= MIN_PER_COLUMN)
+    .slice(0, PERIODS_TRIED);
+}
+
+/**
+ * The jobs of a search, in the order to run them: round by round, so that the
+ * quick jobs of every period and size pair come before any longer one.
+ */
+export function planQuagmireIvJobs(
+  cipher: number[],
+  plan: QuagmireIvPlan = {},
+): QuagmireIvJob[] {
+  const periods = plan.periods ?? quagmireIvPeriods(cipher);
+  const jobs: QuagmireIvJob[] = [];
+  for (const runs of plan.rounds ?? ROUNDS) {
+    for (const period of periods) {
+      for (const [plainSize, cipherSize] of plan.sizes ?? SIZES) {
+        jobs.push({ period, plainSize, cipherSize, runs });
+      }
+    }
+  }
+  return jobs;
+}
+
 const text = (values: number[]): string =>
   values.map((value) => String.fromCharCode(CODE_A + value)).join("");
+
+/**
+ * The result a solution stands for: both alphabets in keyword form, the
+ * shortest period the shifts repeat with, the key named, and the whole of
+ * `ciphertext` decrypted.
+ */
+export function quagmireIvResult(
+  ciphertext: string,
+  solution: Pick<
+    QuagmireIvSolution,
+    "plainAlphabet" | "cipherAlphabet" | "offsets" | "fitness"
+  >,
+): QuagmireIvResult {
+  // The search can end on either alphabet turned by some places; the turn
+  // with the longest ordered tail is the keyword form.
+  const plain = keywordForm(1, solution.plainAlphabet, solution.offsets);
+  const cipher = keywordForm(2, solution.cipherAlphabet, plain.offsets);
+  // A multiple of the true period decrypts as well; report the period itself.
+  const period = shortestPeriod(cipher.offsets);
+  const offsets = cipher.offsets.slice(0, period);
+  const plainAlphabet = text(plain.alphabet);
+  const cipherAlphabet = text(cipher.alphabet);
+  const index = new Array<number>(ALPHABET_SIZE);
+  cipher.alphabet.forEach((letter, i) => {
+    index[letter] = i;
+  });
+  const named = nameQuagmireKey(plainAlphabet, cipherAlphabet, offsets);
+  return {
+    found: quagmireIvFound(
+      searchedLetters(ciphertext).length,
+      solution.fitness,
+    ),
+    plainKeyword: keywordOfAlphabet(plainAlphabet),
+    cipherKeyword: keywordOfAlphabet(cipherAlphabet),
+    plainAlphabet,
+    cipherAlphabet,
+    period,
+    offsets,
+    key: named.key,
+    indicator: named.indicator,
+    plaintext: substituteLetters(
+      ciphertext,
+      offsets,
+      (letter, offset) =>
+        plain.alphabet[
+          (index[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
+        ],
+    ),
+    fitness: solution.fitness,
+  };
+}
 
 /**
  * Breaks a Quagmire IV. Each alphabet is its keyword followed by the
  * remaining letters in order, so the two sets of keyword letters place every
  * other letter. Scoring every pair of sets is out of reach, so each period
  * and pair of keyword sizes is a job that anneals the two sets together and
- * completes the pairs found. The search stops at the first decryption that
- * reads as English. Check `found`.
+ * completes the best pairs found. The jobs run quick ones first, and the
+ * search stops at the first decryption that reads as English. Check `found`.
  */
 export function breakQuagmireIv(
   ciphertext: string,
   table: Uint8Array,
-  options: Options,
+  options: QuagmireIvOptions = {},
 ): QuagmireIvResult {
-  const cipher = toLetterValues(ciphertext);
-  const length = cipher.length;
+  const cipher = searchedLetters(ciphertext);
   const rng = options.rng ?? Math.random;
-  // The search stops at the first key whose decryption reads as English.
-  const readable = readableFitness(length);
-  const steps = options.periods.length * options.sizes.length;
-  let done = 0;
-
-  let best: Pick<
-    QuagmireIvSolution,
-    "fitness" | "period" | "plainAlphabet" | "cipherAlphabet" | "offsets"
-  > = {
-    fitness: -Infinity,
-    period: 1,
-    plainAlphabet: UNMIXED,
-    cipherAlphabet: UNMIXED,
-    offsets: [0],
-  };
-  search: for (const period of options.periods) {
-    for (const [plainSize, cipherSize] of options.sizes) {
-      const solution = runQuagmireIvJob(
-        cipher,
-        { period, plainSize, cipherSize, runs: options.runs },
-        table,
-        rng,
-      );
-      if (solution.fitness > best.fitness) {
-        best = solution;
-      }
-      done += 1;
-      options.onProgress?.(done, steps);
-      if (best.fitness >= readable) {
-        break search;
-      }
+  const jobs = planQuagmireIvJobs(cipher, options);
+  let best: QuagmireIvSolution | undefined;
+  for (const [done, job] of jobs.entries()) {
+    const solution = runQuagmireIvJob(cipher, job, table, rng);
+    if (best === undefined || solution.fitness > best.fitness) {
+      best = solution;
+    }
+    options.onProgress?.(done + 1, jobs.length);
+    if (quagmireIvFound(cipher.length, best.fitness)) {
+      break;
     }
   }
-
-  const plainAlphabet = text(best.plainAlphabet);
-  const cipherAlphabet = text(best.cipherAlphabet);
-  const index = new Array<number>(ALPHABET_SIZE);
-  best.cipherAlphabet.forEach((letter, i) => {
-    index[letter] = i;
-  });
-  const named = nameQuagmireKey(plainAlphabet, cipherAlphabet, best.offsets);
-  return {
-    found: length >= MIN_RELIABLE_LENGTH && best.fitness >= readable,
-    plainKeyword: keywordOfAlphabet(plainAlphabet),
-    cipherKeyword: keywordOfAlphabet(cipherAlphabet),
-    plainAlphabet,
-    cipherAlphabet,
-    period: best.period,
-    offsets: best.offsets,
-    key: named.key,
-    indicator: named.indicator,
-    plaintext: substituteLetters(
-      ciphertext,
-      best.offsets,
-      (letter, offset) =>
-        best.plainAlphabet[
-          (index[letter] - offset + ALPHABET_SIZE) % ALPHABET_SIZE
-        ],
-    ),
-    fitness: best.fitness,
-  };
+  if (best === undefined) {
+    throw new Error("text is too short for any key length");
+  }
+  return quagmireIvResult(ciphertext, best);
 }
 
 /**

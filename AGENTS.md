@@ -74,9 +74,11 @@ building the commit CI tested), or on a manual run.
     local search over keyword order, letters and shifts (bigrams from
     several starts, then quadgrams, then again from the alphabet turned one
     place); handles one keyword or two.
-  - `solve-quagmire-iv.ts` — Quagmire IV: anneals the two keyword letter
-    sets together, then completes the pairs. Needs the period and both
-    keyword sizes from the caller; not wired into a page.
+  - `solve-quagmire-iv.ts` — Quagmire IV: each period and pair of keyword
+    sizes is a job that anneals the two keyword letter sets together and
+    completes the best pairs. With nothing given it tries the two likeliest
+    periods and sizes 6 and 8 (keywords of up to 8 different letters),
+    30-run jobs before 100-run ones; not wired into a page.
   - `solve-autokey.ts` — primer recovery for both autokey variants on
     the Vigenère, Beaufort and variant Beaufort tableaux.
   - `solver-requirements.ts` / `solver-registry.ts` — each solver module
