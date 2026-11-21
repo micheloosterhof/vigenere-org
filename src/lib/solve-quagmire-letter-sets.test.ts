@@ -6,8 +6,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
 import { quagmire } from "./quagmire";
+import { toLetterValues } from "./solve";
 import {
   breakQuagmireLetterSets,
+  decryptWithAlphabet,
+  keywordForm,
   keywordOfAlphabet,
 } from "./solve-quagmire-letter-sets";
 
@@ -42,6 +45,30 @@ describe("keywordOfAlphabet", () => {
   it("stops where the keyword runs into the ordered tail", () => {
     // ZEBRA and ZEBR build the same alphabet.
     expect(keywordOfAlphabet("ZEBRACDFGHIJKLMNOPQSTUVWXY")).toBe("ZEBR");
+  });
+});
+
+describe("keywordForm", () => {
+  const turned = toLetterValues("ZVORTIGENABCDFHJKLMPQSUWXY");
+  const cipher = toLetterValues(
+    "THEQUICKBROWNFOXJUMPSOVERTHELAZYDOGANDRUNSAWAYQUITEFAST",
+  );
+  const offsets = [3, 14, 0, 25, 7];
+
+  it("turns an alphabet so its keyword leads and the ordered tail ends it", () => {
+    const { alphabet } = keywordForm(3, turned, offsets);
+    expect(alphabet.map((v) => String.fromCharCode(65 + v)).join("")).toBe(
+      "VORTIGENABCDFHJKLMPQSUWXYZ",
+    );
+  });
+
+  it("leaves the decryption unchanged in every variant", () => {
+    for (const variant of [1, 2, 3] as const) {
+      const form = keywordForm(variant, turned, offsets);
+      expect(
+        decryptWithAlphabet(cipher, variant, form.alphabet, form.offsets),
+      ).toEqual(decryptWithAlphabet(cipher, variant, turned, offsets));
+    }
   });
 });
 

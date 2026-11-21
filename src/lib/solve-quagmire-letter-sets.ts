@@ -300,6 +300,43 @@ export function letterSetPeriods(cipher: number[]): number[] {
   ];
 }
 
+/**
+ * Rewrites a solved key in keyword form. The search can end on the alphabet
+ * turned by some places, which decrypts the same once the shifts are turned
+ * to match but reads as a longer keyword (ZVORTIGEN for VORTIGEN). The turn
+ * with the longest ordered tail is the keyword form.
+ */
+export function keywordForm(
+  variant: KeywordVariant,
+  alphabet: number[],
+  offsets: number[],
+): { alphabet: number[]; offsets: number[] } {
+  let best = { tail: 0, places: 0 };
+  for (let places = 0; places < ALPHABET_SIZE; places += 1) {
+    let tail = 1;
+    while (
+      tail < ALPHABET_SIZE &&
+      alphabet[(places + ALPHABET_SIZE - tail - 1) % ALPHABET_SIZE] <
+        alphabet[(places + ALPHABET_SIZE - tail) % ALPHABET_SIZE]
+    ) {
+      tail += 1;
+    }
+    if (tail > best.tail) {
+      best = { tail, places };
+    }
+  }
+  const { places } = best;
+  // Turning the plaintext alphabet moves every shift the same way, the
+  // ciphertext alphabet the other way, and a shared alphabet not at all.
+  const shiftTurn = variant === 1 ? places : variant === 2 ? -places : 0;
+  return {
+    alphabet: alphabet.map((_, i) => alphabet[(i + places) % ALPHABET_SIZE]),
+    offsets: offsets.map(
+      (offset) => (offset + shiftTurn + ALPHABET_SIZE) % ALPHABET_SIZE,
+    ),
+  };
+}
+
 /** The shortest period that the offsets repeat with. */
 function shortestPeriod(offsets: number[]): number {
   for (let period = 1; period < offsets.length; period += 1) {
@@ -388,9 +425,10 @@ export function breakQuagmireLetterSets(
     throw new Error("no period to try");
   }
   const solved: LetterSetSolution = best;
+  const form = keywordForm(solved.variant, solved.alphabet, solved.offsets);
   // A multiple of the true period decrypts as well; report the period itself.
-  const period = shortestPeriod(solved.offsets);
-  const alphabetText = solved.alphabet
+  const period = shortestPeriod(form.offsets);
+  const alphabetText = form.alphabet
     .map((value) => String.fromCharCode(CODE_A + value))
     .join("");
   return keywordResult(
@@ -399,7 +437,7 @@ export function breakQuagmireLetterSets(
       word: keywordOfAlphabet(alphabetText),
       variant: solved.variant,
       period,
-      offsets: solved.offsets.slice(0, period),
+      offsets: form.offsets.slice(0, period),
       fitness: solved.fitness,
     },
     cipher.length >= MIN_RELIABLE_LENGTH &&
