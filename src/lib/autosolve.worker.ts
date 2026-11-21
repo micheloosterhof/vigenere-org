@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { autosolve } from "./autosolve";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
+import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
 import {
   breakPolyalphabeticParallel,
   canSpawnWorkers,
@@ -34,6 +35,7 @@ scope.onmessage = async (event) => {
       solveLetterSets: canSpawnWorkers()
         ? breakQuagmireLetterSetsParallel
         : undefined,
+      solveQuagmireIv: canSpawnWorkers() ? breakQuagmireIvParallel : undefined,
     });
     scope.postMessage({ type: "result", result });
   } catch (cause) {

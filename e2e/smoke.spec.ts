@@ -274,6 +274,8 @@ test("the quagmire breaker recovers the two keywords of a Quagmire IV", async ({
 
   const breaker = page.locator("[data-quagmire-breaker]");
   await breaker.locator("[data-input]").fill(ciphertext);
+  // With the key length given the single-keyword searches give up sooner.
+  await breaker.locator("[data-period]").fill("6");
   await breaker.locator("[data-solve]").click();
   await expect(breaker.locator("[data-summary]")).toContainText(
     "Quagmire IV: plaintext keyword MAPLE and ciphertext keyword FROST recovered from the ciphertext alone; key WONDER",
@@ -283,6 +285,29 @@ test("the quagmire breaker recovers the two keywords of a Quagmire IV", async ({
   await expect(breaker.locator("[data-alphabet]")).toHaveText(
     "MAPLEBCDFGHIJKNOQRSTUVWXYZ (plaintext)\nFROSTABCDEGHIJKLMNPQUVWXYZ (ciphertext)",
   );
+});
+
+test("the home page solver recovers the two keywords of a Quagmire IV", async ({
+  page,
+}) => {
+  test.setTimeout(400_000);
+  await page.goto(
+    `/quagmire/?text=${encodeURIComponent(ORWELL_WORDS)}&variant=4&keyword=MAPLE&keyword2=FROST&key=WONDER&indicator=A&mode=encrypt`,
+  );
+  const ciphertext = await page
+    .locator("[data-quagmire] [data-output]")
+    .inputValue();
+  expect(ciphertext).not.toBe(ORWELL_WORDS);
+
+  await page.goto("/");
+  const solver = page.locator("[data-lucky]");
+  await solver.locator("[data-input]").fill(ciphertext);
+  await solver.locator("[data-solve]").click();
+  await expect(solver.locator("[data-summary]")).toContainText(
+    "Quagmire IV cipher (keywords MAPLE and FROST, key WONDER)",
+    { timeout: 340_000 },
+  );
+  await expect(solver.locator("[data-output]")).toHaveValue(ORWELL_WORDS);
 });
 
 test("the kryptos page decrypts K1 with one click", async ({ page }) => {

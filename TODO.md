@@ -22,9 +22,9 @@
   different letters are outside the sizes it tries (0 of 24 texts in
   `bench/results/quagmire-iv-unknown.tsv`); with the sizes given exactly and
   300 runs it solves them from 64 letters per column, so size fields on the
-  page or a slower last round could cover them. The auto-solver does not run
-  it. A long Quagmire IV text is solved by the statistical attack before the
-  search runs, so its keywords are not named.
+  page or a slower last round could cover them. A long Quagmire IV text is
+  solved by the statistical attack before the search runs, so its keywords
+  are not named.
 - Trifid: the true period is among the four periods the breaker tries in
   92 to 94% of texts of 300 to 400 letters and in 66% at 200 (scratch
   measurement, 50 texts per length); more finalists or a better period

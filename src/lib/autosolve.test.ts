@@ -19,7 +19,10 @@ import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
 import { quagmire } from "./quagmire";
 import { autosolve } from "./autosolve";
+import type { LetterSetsSolver } from "./letter-sets-pool";
 import { breakPolyalphabetic } from "./solve-polyalphabetic";
+import { breakQuagmireIv } from "./solve-quagmire-iv";
+import { breakQuagmireLetterSets } from "./solve-quagmire-letter-sets";
 
 const WORDS = readFileSync(
   new URL("../../public/data/english-words.txt", import.meta.url),
@@ -392,6 +395,71 @@ describe("autosolve", () => {
       expect(result.solved).toBe(true);
     },
   );
+
+  describe("on a Quagmire IV", () => {
+    const ciphertext = quagmire(
+      PLAIN,
+      {
+        variant: 4,
+        keyword: "MAPLE",
+        keyword2: "FROST",
+        key: "WONDER",
+        indicator: "A",
+      },
+      "encrypt",
+    );
+    // The full letter-set scan takes a minute to give up on two keywords.
+    // One period and no in-depth search is the same attack, cut short.
+    const quickLetterSets =
+      (rng: () => number): LetterSetsSolver =>
+      async (text, table) =>
+        breakQuagmireLetterSets(text, table, {
+          periods: [6],
+          sizes: [6],
+          deepJobs: 0,
+          rng,
+        });
+
+    it(
+      "recovers both keywords and links to the tool with them filled in",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(15);
+        const result = await autosolve(ciphertext, TABLE, {
+          rng,
+          solveLetterSets: quickLetterSets(rng),
+        });
+        expect(result.best.cipher).toBe("Quagmire IV");
+        expect(result.best.keyLabel).toBe(
+          "keywords MAPLE and FROST, key WONDER",
+        );
+        expect(result.best.plaintext).toBe(PLAIN);
+        expect(result.best.href).toBe(
+          `/quagmire/?text=${urlText(ciphertext)}&variant=4&keyword=MAPLE&keyword2=FROST&key=WONDER&indicator=A&mode=decrypt`,
+        );
+        expect(result.solved).toBe(true);
+      },
+    );
+
+    it(
+      "runs the two-keyword search through the solver it is given",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(16);
+        let calls = 0;
+        const result = await autosolve(ciphertext, TABLE, {
+          rng,
+          solveLetterSets: quickLetterSets(rng),
+          solveQuagmireIv: async (text, table, options) => {
+            calls += 1;
+            return breakQuagmireIv(text, table, { ...options, rng });
+          },
+        });
+        expect(calls).toBe(1);
+        expect(result.best.cipher).toBe("Quagmire IV");
+      },
+    );
+  });
 
   it("identifies Beaufort ciphertext and recovers the key", async () => {
     const result = await autosolve(beaufort(PLAIN, "SECRET"), TABLE, {

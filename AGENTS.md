@@ -81,7 +81,7 @@ building the commit CI tested), or on a manual run.
     30-run jobs before 100-run ones. `quagmire-iv-pool.ts` /
     `quagmire-iv.worker.ts` run the jobs on the job pool. The quagmire
     worker runs it last, when the statistical answer cannot be believed;
-    the auto-solver does not run it.
+    the auto-solver runs it after its single-keyword searches.
   - `solve-autokey.ts` — primer recovery for both autokey variants on
     the Vigenère, Beaufort and variant Beaufort tableaux.
   - `solver-requirements.ts` / `solver-registry.ts` — each solver module

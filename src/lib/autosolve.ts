@@ -42,6 +42,8 @@ import {
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
 import type { LetterSetsSolver } from "./letter-sets-pool";
+import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
+import type { QuagmireIvSolver } from "./quagmire-iv-pool";
 import {
   SUBSTITUTION_REQUIREMENTS,
   breakSubstitution,
@@ -96,6 +98,7 @@ const COMPLEXITY: Record<string, number> = {
   "Quagmire I": 2,
   "Quagmire II": 2,
   "Quagmire III": 2,
+  "Quagmire IV": 2,
   "Ciphertext autokey": 2,
   "Plaintext autokey": 3,
   Polyalphabetic: 3,
@@ -147,6 +150,8 @@ interface Options {
   solvePolyalphabetic?: PolyalphabeticSolver;
   /** Runs the Quagmire letter-set scan; defaults to the sequential solver on this thread. */
   solveLetterSets?: LetterSetsSolver;
+  /** Runs the Quagmire IV search for two keywords; defaults to the sequential solver on this thread. */
+  solveQuagmireIv?: QuagmireIvSolver;
 }
 
 const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
@@ -539,6 +544,39 @@ export async function autosolve(
   for (const search of searches) {
     if (period > 1 && !readable()) {
       await search();
+    }
+  }
+
+  // Two different keywords (Quagmire IV) are the last keyword search: no
+  // single keyword fits, and the general attack has not read the text.
+  if (
+    period > 1 &&
+    !readable() &&
+    meetsRequirements(QUAGMIRE_IV_REQUIREMENTS, shape)
+  ) {
+    const solve: QuagmireIvSolver =
+      options.solveQuagmireIv ??
+      (async (t, tb, o) => breakQuagmireIv(t, tb, { ...o, rng: options.rng }));
+    const solved = await solve(text, table, {});
+    if (solved.found) {
+      add({
+        cipher: "Quagmire IV",
+        keyLabel: `keywords ${solved.plainKeyword} and ${solved.cipherKeyword}, key ${solved.key}`,
+        fitness: scoreText(solved.plaintext),
+        plaintext: solved.plaintext,
+        href: deepLink(
+          "quagmire",
+          text,
+          [
+            ["variant", "4"],
+            ["keyword", solved.plainKeyword],
+            ["keyword2", solved.cipherKeyword],
+            ["key", solved.key],
+            ["indicator", solved.indicator],
+          ],
+          "decrypt",
+        ),
+      });
     }
   }
 
