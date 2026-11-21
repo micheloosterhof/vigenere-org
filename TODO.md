@@ -26,9 +26,11 @@
   solved by the statistical attack before the search runs, so its keywords
   are not named.
 - Trifid: the true period is among the four periods the breaker tries in
-  92 to 94% of texts of 300 to 400 letters and in 66% at 200 (scratch
-  measurement, 50 texts per length); more finalists or a better period
-  statistic would lift the solve rate when the period is not given.
+  92% of texts of 300 letters, 95% of 400 and 78% of 200 (scratch
+  measurement, 220 texts per length over periods 3 to 15). Six finalists
+  would make that 96%, 98% and 90%, at half as much time again on a text
+  that cannot be solved; a better period statistic would cost nothing. The
+  misses are mostly a multiple or a divisor of the period ranked first.
 - The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
   seconds); its word scan could be shared among workers.
 - The statistical Quagmire III solver misses the shared alphabet when every
