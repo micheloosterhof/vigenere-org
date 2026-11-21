@@ -206,6 +206,27 @@ for (const variant of ["1", "3"]) {
   });
 }
 
+test("the quagmire breaker breaks Kryptos K1 from the ciphertext alone", async ({
+  page,
+}) => {
+  // 63 letters at period 10: too few per column for the first dictionary
+  // pass, so this needs the pass that solves the shifts together.
+  test.setTimeout(300_000);
+  await page.goto("/quagmire/");
+  const breaker = page.locator("[data-quagmire-breaker]");
+  await breaker
+    .locator("[data-input]")
+    .fill("EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD");
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Quagmire III: keyword KRYPTOS found in the dictionary; key PALIMPSEST",
+    { timeout: 240_000 },
+  );
+  await expect(breaker.locator("[data-output]")).toHaveValue(
+    "BETWEENSUBTLESHADINGANDTHEABSENCEOFLIGHTLIESTHENUANCEOFIQLUSION",
+  );
+});
+
 test("the kryptos page decrypts K1 with one click", async ({ page }) => {
   await page.goto("/kryptos/");
   await page.getByRole("link", { name: /Decrypt K1/ }).click();

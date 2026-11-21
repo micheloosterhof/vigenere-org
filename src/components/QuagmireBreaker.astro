@@ -91,6 +91,7 @@ import WordSplitToggle from "./WordSplitToggle.astro";
 
   type WorkerMessage =
     | { type: "progress"; phase: "dictionary"; done: number; total: number }
+    | { type: "progress"; phase: "shifts"; done: number; total: number }
     | ({ type: "progress"; phase: "general" } & PolyalphabeticProgress)
     | {
         type: "result";
@@ -170,6 +171,11 @@ import WordSplitToggle from "./WordSplitToggle.astro";
             if (message.phase === "dictionary") {
               setProgress(
                 `Trying ${message.total.toLocaleString()} dictionary keywords…`,
+                message.done / message.total,
+              );
+            } else if (message.phase === "shifts") {
+              setProgress(
+                `Short text: solving each keyword's shifts together…`,
                 message.done / message.total,
               );
             } else {

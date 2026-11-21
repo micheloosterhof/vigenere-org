@@ -1,9 +1,15 @@
 // ABOUTME: Web Worker running the Quagmire III solvers off the main thread.
-// ABOUTME: Tries the keyword dictionary attack first, then falls back to the statistical solver.
+// ABOUTME: Tries the keyword dictionary attacks first, then falls back to the statistical solver.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { breakQuagmire } from "./solve-quagmire";
+import { toLetterValues } from "./solve";
 import { breakQuagmireDictionary } from "./solve-quagmire-dictionary";
+import {
+  breakQuagmireDictionaryJoint,
+  QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS,
+} from "./solve-quagmire-dictionary-joint";
+import { meetsRequirements } from "./solver-requirements";
 import {
   breakPolyalphabeticParallel,
   canSpawnWorkers,
@@ -38,6 +44,27 @@ scope.onmessage = async (event) => {
     if (dictionary.found) {
       scope.postMessage({ type: "result", method: "dictionary", dictionary });
       return;
+    }
+    // Text with few letters per column needs the keyword's shifts solved
+    // together. The per-column figure is not checked: below it the attack is
+    // less reliable but still the only one with a chance.
+    const letters = toLetterValues(text).length;
+    if (
+      meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, { letters })
+    ) {
+      const joint = breakQuagmireDictionaryJoint(text, words, bytes, {
+        period,
+        onProgress: (done, total) =>
+          scope.postMessage({ type: "progress", phase: "shifts", done, total }),
+      });
+      if (joint.found) {
+        scope.postMessage({
+          type: "result",
+          method: "dictionary",
+          dictionary: joint,
+        });
+        return;
+      }
     }
     const result = await breakQuagmire(text, bytes, {
       period,
