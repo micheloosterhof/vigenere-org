@@ -345,6 +345,26 @@ describe("autosolve", () => {
     },
   );
 
+  it(
+    "breaks a Quagmire whose keyword is in no dictionary",
+    { timeout: 120000 },
+    async () => {
+      const ciphertext = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "VORTIGEN", key: "WONDER", indicator: "A" },
+        "encrypt",
+      );
+      const result = await autosolve(ciphertext, TABLE, {
+        rng: mulberry32(14),
+        words: WORDS.filter((_, i) => i % 20 === 0),
+      });
+      expect(result.best.cipher).toBe("Quagmire III");
+      expect(result.best.keyLabel).toBe("keyword VORTIGEN, key WONDER");
+      expect(result.best.plaintext).toBe(PLAIN);
+      expect(result.solved).toBe(true);
+    },
+  );
+
   it("identifies Beaufort ciphertext and recovers the key", async () => {
     const result = await autosolve(beaufort(PLAIN, "SECRET"), TABLE, {
       rng: mulberry32(4),

@@ -34,6 +34,11 @@ import {
   breakQuagmireDictionaryJoint,
   QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS,
 } from "./solve-quagmire-dictionary-joint";
+import {
+  breakQuagmireLetterSets,
+  QUAGMIRE_LETTER_SETS_REQUIREMENTS,
+} from "./solve-quagmire-letter-sets";
+import type { LetterSetsSolver } from "./letter-sets-pool";
 import { breakSubstitution } from "./solve-substitution";
 import {
   POLYALPHABETIC_REQUIREMENTS,
@@ -58,6 +63,9 @@ import { meetsRequirements, type TextShape } from "./solver-requirements";
 // Kryptos K1, whose true plaintext scores -2.44) but stays far from English
 // on quadgrams (-5.0 against -4.4).
 const READABLE_QUADGRAM = -4.7;
+
+// From this many letters the letter-set scan runs before the joint shifts.
+const LETTER_SETS_FIRST = 100;
 
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
@@ -125,6 +133,8 @@ interface Options {
   onProgress?: (progress: PolyalphabeticProgress) => void;
   /** Runs the polyalphabetic fallback; defaults to the sequential solver on this thread. */
   solvePolyalphabetic?: PolyalphabeticSolver;
+  /** Runs the Quagmire letter-set scan; defaults to the sequential solver on this thread. */
+  solveLetterSets?: LetterSetsSolver;
 }
 
 const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
@@ -372,24 +382,9 @@ export async function autosolve(
     }
   }
 
-  // With few letters per column the dictionary keywords need their shifts
-  // solved together. That takes tens of seconds, so it runs only on text the
-  // statistics call periodic and that nothing cheaper has read.
-  if (
-    options.words !== undefined &&
-    period > 1 &&
-    !readable() &&
-    meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, shape)
-  ) {
-    const joint = breakQuagmireDictionaryJoint(text, options.words, table, {
-      rng: options.rng,
-    });
-    if (joint.found) {
-      pushQuagmire(joint);
-    }
-  }
-
-  if (period > 1 && !readable()) {
+  let polyalphabeticTried = false;
+  const tryPolyalphabetic = async (): Promise<void> => {
+    polyalphabeticTried = true;
     const solve: PolyalphabeticSolver =
       options.solvePolyalphabetic ??
       (async (t, tb, o) =>
@@ -421,6 +416,62 @@ export async function autosolve(
     ) {
       doubtful.add(attempt);
     }
+  };
+
+  // With enough letters per column to be believed, the general attack takes
+  // seconds, so it goes before the slower Quagmire searches.
+  if (
+    period > 1 &&
+    !readable() &&
+    meetsRequirements(POLYALPHABETIC_REQUIREMENTS, { ...shape, period })
+  ) {
+    await tryPolyalphabetic();
+  }
+
+  // The two slower Quagmire searches run only on text the statistics call
+  // periodic and that nothing cheaper has read. With few letters per column
+  // the dictionary keywords need their shifts solved together; a keyword
+  // outside the word list is found from which letters it holds.
+  const jointShifts = async (): Promise<void> => {
+    if (
+      options.words !== undefined &&
+      meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, shape)
+    ) {
+      const joint = breakQuagmireDictionaryJoint(text, options.words, table, {
+        rng: options.rng,
+      });
+      if (joint.found) {
+        pushQuagmire(joint);
+      }
+    }
+  };
+  const letterSets = async (): Promise<void> => {
+    if (meetsRequirements(QUAGMIRE_LETTER_SETS_REQUIREMENTS, shape)) {
+      const solve: LetterSetsSolver =
+        options.solveLetterSets ??
+        (async (t, tb, o) =>
+          breakQuagmireLetterSets(t, tb, { ...o, rng: options.rng }));
+      const solved = await solve(text, table, {});
+      if (solved.found) {
+        pushQuagmire(solved);
+      }
+    }
+  };
+  // Either may take a minute to give up. Longer text is more likely to have
+  // the letters per column the letter-set scan needs, so it goes first there.
+  const searches =
+    shape.letters >= LETTER_SETS_FIRST
+      ? [letterSets, jointShifts]
+      : [jointShifts, letterSets];
+  for (const search of searches) {
+    if (period > 1 && !readable()) {
+      await search();
+    }
+  }
+
+  // Last resort: the general attack on text too short to believe its answer.
+  if (period > 1 && !readable() && !polyalphabeticTried) {
+    await tryPolyalphabetic();
   }
 
   attempts.sort((a, b) => {

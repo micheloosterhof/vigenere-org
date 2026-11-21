@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { autosolve } from "./autosolve";
+import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import {
   breakPolyalphabeticParallel,
   canSpawnWorkers,
@@ -26,9 +27,12 @@ scope.onmessage = async (event) => {
       words,
       onProgress: (progress) =>
         scope.postMessage({ type: "progress", ...progress }),
-      // The slow fallback fans out to nested workers where the browser allows it.
+      // The slow searches fan out to nested workers where the browser allows it.
       solvePolyalphabetic: canSpawnWorkers()
         ? breakPolyalphabeticParallel
+        : undefined,
+      solveLetterSets: canSpawnWorkers()
+        ? breakQuagmireLetterSetsParallel
         : undefined,
     });
     scope.postMessage({ type: "result", result });
