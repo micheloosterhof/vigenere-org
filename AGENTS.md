@@ -86,9 +86,11 @@ building the commit CI tested), or on a manual run.
   - `diagnostics.ts` — the statistical feature vector (IoC, chi-squared,
     autokey delta stream, transposition signature) behind `/analyze`.
   - `autosolve.ts` — cipher identification: routes by IoC, escalates,
-    prefers the simpler cipher within a fitness epsilon. An attempt counts
-    as read only if it reaches English on bigrams and quadgrams and its
-    solver's text floor is met; `solved` says whether the best one does.
+    prefers the simpler cipher within a fitness epsilon. Each attempt
+    carries its solver's requirements: it counts as read only if it reaches
+    English on bigrams and on quadgrams (at the solver's own bar) and the
+    text meets the solver's floor. Read attempts rank first, then those on
+    enough text, then the rest; `solved` says whether the best one reads.
   - `*.worker.ts` — Web Worker wrappers for the slow solvers.
   - `data/` — generated English n-gram tables (bigrams inline; quadgrams
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily
