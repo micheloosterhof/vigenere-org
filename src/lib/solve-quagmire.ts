@@ -120,14 +120,22 @@ export async function breakQuagmire(
   };
 }
 
-/** What the shared-alphabet Quagmire III attack needs: it starts from the general polyalphabetic solution. */
+/**
+ * What the shared-alphabet Quagmire III attack needs. It starts from the
+ * general polyalphabetic solution, so that solver's floor applies. In
+ * bench/results/quagmire-shared-alphabet.tsv, with the period given, it
+ * recovers 37 of 40 texts at 200 letters per column, 16 of 40 at 150 and
+ * none at 100, whether the shared alphabet comes from a keyword or is a
+ * random arrangement. The shared-alphabet fit is never claimed on a wrong
+ * decryption, but it is missed on 29 of the 93 right ones, which are then
+ * reported as a general polyalphabetic cipher.
+ */
 export const QUAGMIRE_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-shared-alphabet",
   ciphers: ["Quagmire III"],
   assumes: ["periodic", "shared-alphabet"],
   minLettersPerColumn: POLYALPHABETIC_REQUIREMENTS.minLettersPerColumn,
-  reliableLettersPerColumn:
-    POLYALPHABETIC_REQUIREMENTS.reliableLettersPerColumn,
+  reliableLettersPerColumn: 200,
   maxPeriod: POLYALPHABETIC_REQUIREMENTS.maxPeriod,
-  basis: "estimate",
+  basis: "measured",
 };
