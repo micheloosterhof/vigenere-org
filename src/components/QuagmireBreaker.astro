@@ -92,10 +92,11 @@ import WordSplitToggle from "./WordSplitToggle.astro";
   type WorkerMessage =
     | { type: "progress"; phase: "dictionary"; done: number; total: number }
     | { type: "progress"; phase: "shifts"; done: number; total: number }
+    | { type: "progress"; phase: "letter-sets"; done: number; total: number }
     | ({ type: "progress"; phase: "general" } & PolyalphabeticProgress)
     | {
         type: "result";
-        method: "dictionary";
+        method: "dictionary" | "letter-sets";
         dictionary: QuagmireDictionaryResult;
       }
     | { type: "result"; method: "general"; result: QuagmireSolveResult }
@@ -173,6 +174,11 @@ import WordSplitToggle from "./WordSplitToggle.astro";
                 `Trying ${message.total.toLocaleString()} dictionary keywords…`,
                 message.done / message.total,
               );
+            } else if (message.phase === "letter-sets") {
+              setProgress(
+                "No dictionary keyword fits; working out the keyword's letters…",
+                message.done / message.total,
+              );
             } else if (message.phase === "shifts") {
               setProgress(
                 `Short text: solving each keyword's shifts together…`,
@@ -186,10 +192,14 @@ import WordSplitToggle from "./WordSplitToggle.astro";
             }
           } else if (message.type === "result") {
             worker.terminate();
-            if (message.method === "dictionary") {
+            if (message.method !== "general") {
               const solved = message.dictionary;
               const name = { 1: "I", 2: "II", 3: "III" }[solved.variant];
-              summary.textContent = `Quagmire ${name}: keyword ${solved.keyword} found in the dictionary; key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
+              const how =
+                message.method === "dictionary"
+                  ? "found in the dictionary"
+                  : "recovered from the ciphertext alone";
+              summary.textContent = `Quagmire ${name}: keyword ${solved.keyword} ${how}; key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
               setOutput(solved.plaintext);
               announce(`${summary.textContent} ${solved.plaintext}`);
               alphabet.textContent = solved.alphabet;

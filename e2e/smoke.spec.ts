@@ -227,6 +227,36 @@ test("the quagmire breaker breaks Kryptos K1 from the ciphertext alone", async (
   );
 });
 
+test("the quagmire breaker recovers a keyword that is in no dictionary", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const plaintext =
+    "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
+    "THIRTEEN WINSTON SMITH HIS CHIN NUZZLED INTO HIS BREAST IN AN EFFORT " +
+    "TO ESCAPE THE VILE WIND SLIPPED QUICKLY THROUGH THE GLASS DOORS OF " +
+    "VICTORY MANSIONS THOUGH NOT QUICKLY ENOUGH TO PREVENT A SWIRL OF " +
+    "GRITTY DUST FROM ENTERING ALONG WITH HIM THE HALLWAY SMELT OF BOILED " +
+    "CABBAGE AND OLD RAG MATS AT ONE END OF IT A COLOURED POSTER TOO LARGE " +
+    "FOR INDOOR DISPLAY HAD BEEN TACKED TO THE WALL";
+  await page.goto(
+    `/quagmire/?text=${encodeURIComponent(plaintext)}&variant=3&keyword=VORTIGEN&key=WONDER&indicator=A&mode=encrypt`,
+  );
+  const ciphertext = await page
+    .locator("[data-quagmire] [data-output]")
+    .inputValue();
+  expect(ciphertext).not.toBe(plaintext);
+
+  const breaker = page.locator("[data-quagmire-breaker]");
+  await breaker.locator("[data-input]").fill(ciphertext);
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Quagmire III: keyword VORTIGEN recovered from the ciphertext alone; key WONDER",
+    { timeout: 240_000 },
+  );
+  await expect(breaker.locator("[data-output]")).toHaveValue(plaintext);
+});
+
 test("the kryptos page decrypts K1 with one click", async ({ page }) => {
   await page.goto("/kryptos/");
   await page.getByRole("link", { name: /Decrypt K1/ }).click();
