@@ -284,19 +284,24 @@ export function periodScore(
   return best;
 }
 
-// Correct decryptions score about -4.3 in average quadgram log10; wrong ones
-// stay below -5. A run that reaches this has found the key and stops.
+// Correct decryptions score about -4.3 in average quadgram log10. Wrong ones
+// stay below -5.2 from 125 letters; on 100 letters the best one reached -4.81
+// (bench/results/fractionation-short.tsv). A run that reaches this has found
+// the key and stops.
 export const ENGLISH_FITNESS = -4.7;
 
 // Below about 100 letters a search over 25! squares can make random text
 // score near ENGLISH_FITNESS (-4.8 at 80 letters), so shorter text is refused
-// rather than risk reporting a false key.
+// rather than risk reporting a false key. At 100 letters none of 24
+// ciphertexts and none of 24 texts of random letters came out as a false key
+// (bench/results/fractionation-short.tsv and fractionation-noise.tsv).
 export const MIN_LETTERS = 100;
 
-// The length from which the search solves at least 5 texts in 6 in
-// bench/results/annealing-solvers.tsv.
+// The length from which the search solved every text, with the period
+// unknown: 12 of 12 for Bifid in bench/results/fractionation-short.tsv, 6 of
+// 6 for Trifid in bench/results/annealing-solvers.tsv.
 const RELIABLE_LETTERS: Record<FractionationCipher, number> = {
-  bifid: 200,
+  bifid: 150,
   trifid: 300,
 };
 
@@ -468,11 +473,13 @@ export function decryptWithGrid(
 
 /**
  * What the Bifid and Trifid annealing attack needs. The code refuses text
- * under MIN_LETTERS letters. In bench/results/annealing-solvers.tsv (six texts
- * per length) Bifid comes out at least 86% right on 5 of 6 texts at 150
- * letters and on all at 200 and 300; Trifid on none at 150, 1 of 6 at 200 and
- * 5 of 6 at 300, which is the figure stated. Random letters never came out
- * reading as English.
+ * under MIN_LETTERS letters. With the period unknown, Bifid is solved on 6 of
+ * 12 texts at 100 letters, 10 of 12 at 125 and 12 of 12 at 150
+ * (bench/results/fractionation-short.tsv), and on all 12 at 200 and 300
+ * (bench/results/annealing-solvers.tsv). Trifid is solved on none of 12 at
+ * 100 letters, 3 of 12 at 125, 5 of 12 at 150, 3 of 6 at 200 and 6 of 6 at
+ * 300, which is the figure stated. No unsolved text and no text of random
+ * letters came out reading as English.
  */
 export const FRACTIONATION_REQUIREMENTS: SolverRequirements = {
   id: "fractionation",

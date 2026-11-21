@@ -30,8 +30,7 @@ import Faq from "../components/Faq.astro";
     statistics, then searches for the square by simulated annealing, scoring
     each attempt by how English the decryption reads. Attempts run in parallel
     on your processor cores and stop as soon as one reads as English. It needs
-    about 200 letters, more for long periods; leave the period empty to detect
-    it.
+    about 150 letters; leave the period empty to detect it.
   </p>
   <AnnealBreaker cipher="bifid" />
 
@@ -74,7 +73,7 @@ import Faq from "../components/Faq.astro";
       {
         question: "Why is Bifid harder to break than a simple substitution?",
         answer:
-          "Each ciphertext letter combines coordinates from two different plaintext letters, so letter frequencies no longer map one to one. It is still breakable: the period shows in letter-pair statistics, and a search over squares then recovers the key from about 200 letters, as the solver on this page does.",
+          "Each ciphertext letter combines coordinates from two different plaintext letters, so letter frequencies no longer map one to one. It is still breakable: the period shows in letter-pair statistics, and a search over squares then recovers the key from about 150 letters, as the solver on this page does.",
       },
     ]}
   />
