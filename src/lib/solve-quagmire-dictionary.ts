@@ -282,7 +282,12 @@ export function breakQuagmireDictionary(
   };
 }
 
-/** What the keyword dictionary attack needs. */
+/**
+ * What the keyword dictionary attack needs. Each column's shift is chosen on
+ * its own letter frequencies, which takes about 24 letters per column: in
+ * bench/results/quagmire-dictionary.tsv it solves 34 of 36 texts there, 26 of
+ * 36 at 16 per column and 13 of 36 at 12.
+ */
 export const QUAGMIRE_DICTIONARY_REQUIREMENTS: SolverRequirements = {
   id: "quagmire-dictionary",
   ciphers: ["Quagmire I", "Quagmire II", "Quagmire III"],
@@ -292,7 +297,8 @@ export const QUAGMIRE_DICTIONARY_REQUIREMENTS: SolverRequirements = {
     "keyword-alphabet",
     "keyword-in-word-list",
   ],
-  minLetters: MIN_LENGTH,
+  minLetters: MIN_RELIABLE_LENGTH,
+  minLettersPerColumn: 24,
   maxPeriod: MAX_PERIOD,
-  basis: "enforced",
+  basis: "measured",
 };

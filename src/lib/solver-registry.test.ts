@@ -9,10 +9,6 @@ import {
   CIPHERTEXT_AUTOKEY_REQUIREMENTS,
   breakCiphertextAutokey,
 } from "./solve-autokey";
-import {
-  QUAGMIRE_DICTIONARY_REQUIREMENTS,
-  breakQuagmireDictionary,
-} from "./solve-quagmire-dictionary";
 
 describe("SOLVER_REQUIREMENTS", () => {
   it("lists every solver once", () => {
@@ -63,14 +59,6 @@ describe("enforced minimums", () => {
     expect(CIPHERTEXT_AUTOKEY_REQUIREMENTS.minLetters).toBe(AUTOKEY_MIN_LENGTH);
     expect(() =>
       breakCiphertextAutokey("A".repeat(AUTOKEY_MIN_LENGTH - 1), table),
-    ).toThrow(/at least/);
-  });
-
-  it("the Quagmire dictionary attack refuses text one letter short of its minimum", () => {
-    const min = QUAGMIRE_DICTIONARY_REQUIREMENTS.minLetters ?? 0;
-    expect(min).toBeGreaterThan(0);
-    expect(() =>
-      breakQuagmireDictionary("A".repeat(min - 1), ["KEY"], table),
     ).toThrow(/at least/);
   });
 });

@@ -26,9 +26,9 @@ export type KeyAssumption =
 
 /**
  * Where a solver's length limits come from: `enforced` limits are refused by
- * the code, `measured` ones come from a benchmark over many ciphertexts,
- * `estimate` ones are a documented rule of thumb, and `unmeasured` means no
- * limit is stated.
+ * the code, `measured` ones are the smallest size at which a benchmark under
+ * bench/ solved at least nine trials in ten, `estimate` ones are a documented
+ * rule of thumb, and `unmeasured` means no limit is stated.
  */
 export type RequirementBasis =
   "enforced" | "measured" | "estimate" | "unmeasured";
