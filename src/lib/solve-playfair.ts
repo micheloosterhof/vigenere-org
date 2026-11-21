@@ -62,7 +62,8 @@ const TEMPERATURE = 1;
 // Steps of the cooling pass that follows a run which reached English. The run
 // stops at the first square that reads as English, which often still has a
 // few letters in the wrong cells; cooling from there to zero ends on the
-// square itself.
+// square itself. With it, 1141 of the 1235 runs that reached English in
+// bench/results/playfair-jobs.tsv are at least 99% right, and 8 are under 95%.
 const COOLING_STEPS = 100000;
 
 // The share of moves that swap two letters of the square. The others move
