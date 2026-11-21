@@ -5,7 +5,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { quagmire } from "./quagmire";
-import { breakQuagmire } from "./solve-quagmire";
+import {
+  breakQuagmire,
+  canBeBelieved,
+  type QuagmireSolveResult,
+} from "./solve-quagmire";
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -87,4 +91,33 @@ describe("breakQuagmire", () => {
       expect(result.plaintext).toBe(PLAIN);
     },
   );
+});
+
+describe("canBeBelieved", () => {
+  const general: QuagmireSolveResult = {
+    period: 5,
+    isQuagmire: false,
+    alphabet: "",
+    offsets: [],
+    key: "",
+    indicator: "",
+    plaintext: "",
+    fitness: -4.2,
+  };
+
+  it("believes a result that one shared alphabet explains", () => {
+    expect(canBeBelieved({ ...general, isQuagmire: true }, 100)).toBe(true);
+  });
+
+  it("believes a general decryption that reads as English on enough letters per column", () => {
+    expect(canBeBelieved(general, 500)).toBe(true);
+  });
+
+  it("does not believe a general decryption of too few letters per column", () => {
+    expect(canBeBelieved(general, 200)).toBe(false);
+  });
+
+  it("does not believe a general decryption that does not read as English", () => {
+    expect(canBeBelieved({ ...general, fitness: -4.8 }, 500)).toBe(false);
+  });
 });

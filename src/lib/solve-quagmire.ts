@@ -2,7 +2,10 @@
 // ABOUTME: The shared-alphabet fit both confirms it is Quagmire III and cleans up the general solver's stray errors.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import type { SolverRequirements } from "./solver-requirements";
+import {
+  meetsRequirements,
+  type SolverRequirements,
+} from "./solver-requirements";
 import { substituteLetters } from "./cipher";
 import { toLetterValues } from "./solve";
 import {
@@ -118,6 +121,26 @@ export async function breakQuagmire(
     plaintext,
     fitness: general.fitness,
   };
+}
+
+/**
+ * Whether a result of `letters` letters can be believed: one shared alphabet
+ * explains it, or the general decryption reads as English on enough letters
+ * per column for that to mean something.
+ */
+export function canBeBelieved(
+  result: QuagmireSolveResult,
+  letters: number,
+): boolean {
+  // Without a stated bar the fitness alone would never be believed.
+  return (
+    result.isQuagmire ||
+    (meetsRequirements(POLYALPHABETIC_REQUIREMENTS, {
+      letters,
+      period: result.period,
+    }) &&
+      result.fitness >= (POLYALPHABETIC_REQUIREMENTS.readableQuadgram ?? 0))
+  );
 }
 
 /**
