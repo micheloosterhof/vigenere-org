@@ -50,19 +50,37 @@ building the commit CI tested), or on a manual run.
     attack over `public/data/english-words.txt` (google-10000-english);
     works on short texts and runs before the statistical solver, both on
     the quagmire page and inside the auto-solver.
+  - `quagmire-shifts.ts` / `solve-quagmire-dictionary-joint.ts` — the
+    second dictionary pass, for text with few letters per column (Kryptos
+    K1: 63 letters at period 10). For each keyword the column shifts are
+    solved together by dynamic programming on bigrams (open chain to
+    shortlist, exact ring to re-rank), then annealed on quadgrams. Runs
+    after the per-column pass in the quagmire worker and the auto-solver,
+    on periods with under 32 letters per column.
+  - `quagmire-letter-sets.ts` / `solve-quagmire-letter-sets.ts` — Quagmire
+    I-III without a word list: scores which letters form the keyword (the
+    rest of the alphabet follows in order, so the set alone places them),
+    then completes the best sets by local search over keyword order,
+    letters and shifts. The variant, periods and keyword sizes to try are
+    given by the caller; not yet wired into a page.
   - `solve-autokey.ts` — primer recovery for both autokey variants on
     the Vigenère, Beaufort and variant Beaufort tableaux.
   - `solver-requirements.ts` / `solver-registry.ts` — each solver module
-    exports a `*_REQUIREMENTS` constant: the key structure it assumes and
-    its minimum text (total and per column), with the basis of the numbers
-    (enforced, measured, estimate, unmeasured). The registry lists them
-    all; `meetsRequirements` checks a ciphertext against one. Kept as plain
+    exports a `*_REQUIREMENTS` constant: the key structure it assumes, the
+    least text on which an answer can be believed (`minLetters`,
+    `minLettersPerColumn`: below it wrong keys read as well as right
+    ones), the size from which it is reliable
+    (`reliableLettersPerColumn`), and the basis of the numbers (enforced,
+    measured, estimate, unmeasured). The registry lists them all;
+    `meetsRequirements` checks a ciphertext against the floor. Kept as plain
     data so the auto-solver, or later a trained classifier over the
     `diagnostics.ts` features, can choose a solver by id.
   - `diagnostics.ts` — the statistical feature vector (IoC, chi-squared,
     autokey delta stream, transposition signature) behind `/analyze`.
   - `autosolve.ts` — cipher identification: routes by IoC, escalates,
-    prefers the simpler cipher within a fitness epsilon.
+    prefers the simpler cipher within a fitness epsilon. An attempt counts
+    as read only if it reaches English on bigrams and quadgrams and its
+    solver's text floor is met; `solved` says whether the best one does.
   - `*.worker.ts` — Web Worker wrappers for the slow solvers.
   - `data/` — generated English n-gram tables (bigrams inline; quadgrams
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily
