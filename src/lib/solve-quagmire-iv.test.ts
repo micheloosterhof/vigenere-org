@@ -47,6 +47,8 @@ describe("runQuagmireIvJob", () => {
     expect(solution.fitness).toBeGreaterThan(-4.5);
     expect(solution.offsets).toHaveLength(6);
     expect(Number.isFinite(solution.score)).toBe(true);
+    expect(solution.pairsCompleted).toBeGreaterThanOrEqual(1);
+    expect(solution.pairsCompleted).toBeLessThan(30);
   });
 
   it("scores a wrong period below the true one", { timeout: 120000 }, () => {

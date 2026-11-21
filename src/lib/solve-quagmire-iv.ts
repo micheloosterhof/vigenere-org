@@ -73,6 +73,8 @@ export interface QuagmireIvSolution extends QuagmireIvJob {
   fitness: number;
   /** The best score of a pair of letter sets that the annealing reached. */
   score: number;
+  /** How many pairs of letter sets were completed before the search stopped. */
+  pairsCompleted: number;
 }
 
 interface Options {
@@ -238,6 +240,7 @@ export function runQuagmireIvJob(
     offsets: new Array<number>(period).fill(0),
     fitness: -Infinity,
     score: pairs.length > 0 ? pairs[0].score : -Infinity,
+    pairsCompleted: 0,
   };
   for (const pair of pairs) {
     scorer.setCipherLetters(pair.cipher);
@@ -266,6 +269,7 @@ export function runQuagmireIvJob(
     if (fitness > best.fitness) {
       best = { ...best, ...key, fitness };
     }
+    best.pairsCompleted += 1;
     if (best.fitness >= readable) {
       break;
     }
