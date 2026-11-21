@@ -29,8 +29,9 @@ const SHORT_TEXT = 125;
  * stops. Right squares score between -4.0 and -4.9, by the text. From 125
  * letters every one of 68 texts that reached -4.7 was right
  * (bench/results/playfair.tsv and playfair-short.tsv). On shorter text a
- * wrong square can reach -4.6 to -4.7, and 2 of 20 texts of 100 letters ended
- * on one; at -4.5 none of 24 texts of 100 and 110 letters did.
+ * wrong square can reach -4.6 to -4.7: with the bar at -4.7, 1 of 12 texts of
+ * 100 letters ended on one; at -4.5 none of 24 texts of 100 and 110 letters
+ * did.
  */
 export function englishFitness(letters: number): number {
   return letters < SHORT_TEXT ? -4.5 : -4.7;
