@@ -10,9 +10,12 @@ import {
   substitution,
   vigenere,
 } from "./cipher";
-import { breakAffine } from "./affine";
-import { breakRoute, routeCipher } from "./route";
+import { AFFINE_REQUIREMENTS, breakAffine } from "./affine";
+import { ROUTE_REQUIREMENTS, breakRoute, routeCipher } from "./route";
 import {
+  CAESAR_REQUIREMENTS,
+  PERIODIC_REQUIREMENTS,
+  PORTA_REQUIREMENTS,
   beaufortDecrypt,
   breakPeriodic,
   caesarCandidates,
@@ -23,8 +26,8 @@ import {
   vigenereDecrypt,
 } from "./solve";
 import { quadgramFitness } from "./quadgrams";
-import { breakRailFence } from "./railfence";
-import { breakColumnar } from "./transposition";
+import { RAIL_FENCE_REQUIREMENTS, breakRailFence } from "./railfence";
+import { COLUMNAR_REQUIREMENTS, breakColumnar } from "./transposition";
 import {
   breakQuagmireDictionary,
   type DictionaryVariant,
@@ -39,7 +42,10 @@ import {
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
 import type { LetterSetsSolver } from "./letter-sets-pool";
-import { breakSubstitution } from "./solve-substitution";
+import {
+  SUBSTITUTION_REQUIREMENTS,
+  breakSubstitution,
+} from "./solve-substitution";
 import {
   POLYALPHABETIC_REQUIREMENTS,
   breakPolyalphabetic,
@@ -55,7 +61,11 @@ import {
 } from "./solve-autokey";
 import { analyze, type Diagnostics } from "./diagnostics";
 import { shareSearch } from "./share-url";
-import { meetsRequirements, type TextShape } from "./solver-requirements";
+import {
+  meetsRequirements,
+  type SolverRequirements,
+  type TextShape,
+} from "./solver-requirements";
 
 // Average quadgram log10 probability a decryption must reach, besides the
 // bigram level, to count as read. A long key on short text fits bigrams to
@@ -69,6 +79,8 @@ const LETTER_SETS_FIRST = 100;
 
 // Attempts within this fitness of each other are ranked by cipher simplicity.
 const SIMPLER_EPSILON = 0.05;
+// The same for attempts that do not read as English, in quadgram fitness.
+const UNREAD_EPSILON = 0.1;
 
 const COMPLEXITY: Record<string, number> = {
   Atbash: 0,
@@ -158,15 +170,40 @@ export async function autosolve(
   const diagnostics = analyze(text);
   const period = diagnostics.period;
   const attempts: Attempt[] = [];
-  // Attempts on less text than their solver can be believed on.
-  const doubtful = new Set<Attempt>();
+  // The solver behind each attempt, with the key period it found: its
+  // requirements decide whether the attempt can be believed.
+  const solvers = new Map<
+    Attempt,
+    { requirements?: SolverRequirements; period?: number }
+  >();
+  const add = (
+    attempt: Attempt,
+    requirements?: SolverRequirements,
+    period?: number,
+  ): void => {
+    attempts.push(attempt);
+    solvers.set(attempt, { requirements, period });
+  };
+  /** Average quadgram log10 probability of an attempt's decryption; text too short to have one passes. */
+  const quadgram = (attempt: Attempt): number => {
+    const values = toLetterValues(attempt.plaintext);
+    return values.length < 4 ? 0 : quadgramFitness(values, table);
+  };
+  /** False when the text is less than the attempt's solver can be believed on. */
+  const believable = (attempt: Attempt): boolean => {
+    const { requirements, period } = solvers.get(attempt) ?? {};
+    return (
+      requirements === undefined ||
+      meetsRequirements(requirements, { letters: shape.letters, period })
+    );
+  };
   const reads = (attempt: Attempt): boolean => {
-    if (doubtful.has(attempt) || attempt.fitness < READABLE_BIGRAM) {
+    if (attempt.fitness < READABLE_BIGRAM || !believable(attempt)) {
       return false;
     }
-    const values = toLetterValues(attempt.plaintext);
+    const { requirements } = solvers.get(attempt) ?? {};
     return (
-      values.length < 4 || quadgramFitness(values, table) >= READABLE_QUADGRAM
+      quadgram(attempt) >= (requirements?.readableQuadgram ?? READABLE_QUADGRAM)
     );
   };
   const readable = (): boolean => attempts.some(reads);
@@ -180,31 +217,37 @@ export async function autosolve(
     diagnostics.likelyFamily === "ciphertext-autokey"
   ) {
     const recovered = breakCiphertextAutokey(text, table);
-    attempts.push({
-      cipher: "Ciphertext autokey",
-      keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau, opening ~${recovered.primerLength} letters approximate`,
-      fitness: scoreText(recovered.plaintext),
-      plaintext: recovered.plaintext,
-      href: deepLink("autokey", text, [], "break"),
-    });
+    add(
+      {
+        cipher: "Ciphertext autokey",
+        keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau, opening ~${recovered.primerLength} letters approximate`,
+        fitness: scoreText(recovered.plaintext),
+        plaintext: recovered.plaintext,
+        href: deepLink("autokey", text, [], "break"),
+      },
+      CIPHERTEXT_AUTOKEY_REQUIREMENTS,
+    );
   }
 
   // English-frequency letters that do not read as English were moved, not
   // substituted; both transposition attacks are cheap exhaustive searches.
   if (diagnostics.likelyFamily === "transposition") {
     const [rail] = breakRailFence(text);
-    attempts.push({
-      cipher: "Rail fence",
-      keyLabel: `${rail.rails} rails`,
-      fitness: rail.fitness,
-      plaintext: rail.plaintext,
-      href: deepLink(
-        "railfence",
-        text,
-        [["rails", String(rail.rails)]],
-        "decrypt",
-      ),
-    });
+    add(
+      {
+        cipher: "Rail fence",
+        keyLabel: `${rail.rails} rails`,
+        fitness: rail.fitness,
+        plaintext: rail.plaintext,
+        href: deepLink(
+          "railfence",
+          text,
+          [["rails", String(rail.rails)]],
+          "decrypt",
+        ),
+      },
+      RAIL_FENCE_REQUIREMENTS,
+    );
     // A prime letter count fits no grid, so the route attack has nothing to try.
     const letterCount = text.toUpperCase().replace(/[^A-Z]/g, "").length;
     const fitsGrid = Array.from(
@@ -220,72 +263,89 @@ export async function autosolve(
         route.route,
         "decrypt",
       );
-      attempts.push({
-        cipher: "Route",
-        keyLabel: `${route.columns} columns, ${route.fill}, ${route.route}`,
-        fitness: scoreText(routePlain),
-        plaintext: routePlain,
-        href: deepLink(
-          "route",
-          text,
-          [
-            ["columns", String(route.columns)],
-            ["fill", route.fill],
-            ["route", route.route],
-          ],
-          "decrypt",
-        ),
-      });
+      add(
+        {
+          cipher: "Route",
+          keyLabel: `${route.columns} columns, ${route.fill}, ${route.route}`,
+          fitness: scoreText(routePlain),
+          plaintext: routePlain,
+          href: deepLink(
+            "route",
+            text,
+            [
+              ["columns", String(route.columns)],
+              ["fill", route.fill],
+              ["route", route.route],
+            ],
+            "decrypt",
+          ),
+        },
+        ROUTE_REQUIREMENTS,
+      );
     }
     const [columnar] = breakColumnar(text);
-    attempts.push({
-      cipher: "Columnar transposition",
-      keyLabel: columnar.key,
-      fitness: columnar.fitness,
-      plaintext: columnar.plaintext,
-      href: deepLink("transposition", text, [["key", columnar.key]], "decrypt"),
-    });
+    add(
+      {
+        cipher: "Columnar transposition",
+        keyLabel: columnar.key,
+        fitness: columnar.fitness,
+        plaintext: columnar.plaintext,
+        href: deepLink(
+          "transposition",
+          text,
+          [["key", columnar.key]],
+          "decrypt",
+        ),
+      },
+      COLUMNAR_REQUIREMENTS,
+    );
   }
 
   if (period === 1) {
     const [shift] = caesarCandidates(text);
     const shiftPlain = caesar(text, -shift.shift);
-    attempts.push({
-      cipher: "Caesar",
-      keyLabel: `shift ${shift.shift}`,
-      fitness: scoreText(shiftPlain),
-      plaintext: shiftPlain,
-      href: deepLink(
-        "caesar",
-        text,
-        [["shift", String(shift.shift)]],
-        "decrypt",
-      ),
-    });
+    add(
+      {
+        cipher: "Caesar",
+        keyLabel: `shift ${shift.shift}`,
+        fitness: scoreText(shiftPlain),
+        plaintext: shiftPlain,
+        href: deepLink(
+          "caesar",
+          text,
+          [["shift", String(shift.shift)]],
+          "decrypt",
+        ),
+      },
+      CAESAR_REQUIREMENTS,
+    );
     // Affine keys with a = 1 are Caesar shifts and a = b = 25 is Atbash; those
     // are already covered by the simpler attempts.
     const [affineBest] = breakAffine(text);
     const isCaesar = affineBest.a === 1;
     const isAtbash = affineBest.a === 25 && affineBest.b === 25;
     if (!isCaesar && !isAtbash) {
-      attempts.push({
-        cipher: "Affine",
-        keyLabel: `a = ${affineBest.a}, b = ${affineBest.b}`,
-        fitness: scoreText(affineBest.plaintext),
-        plaintext: affineBest.plaintext,
-        href: deepLink(
-          "affine",
-          text,
-          [
-            ["a", String(affineBest.a)],
-            ["b", String(affineBest.b)],
-          ],
-          "decrypt",
-        ),
-      });
+      add(
+        {
+          cipher: "Affine",
+          keyLabel: `a = ${affineBest.a}, b = ${affineBest.b}`,
+          fitness: scoreText(affineBest.plaintext),
+          plaintext: affineBest.plaintext,
+          href: deepLink(
+            "affine",
+            text,
+            [
+              ["a", String(affineBest.a)],
+              ["b", String(affineBest.b)],
+            ],
+            "decrypt",
+          ),
+        },
+        AFFINE_REQUIREMENTS,
+      );
     }
     const atbashPlain = atbash(text);
-    attempts.push({
+    add({
       cipher: "Atbash",
       keyLabel: "none",
       fitness: scoreText(atbashPlain),
@@ -301,60 +361,80 @@ export async function autosolve(
   const periodic = { quadgrams: table };
   const [vigenereBest] = breakPeriodic(text, vigenereDecrypt, periodic);
   const vigenerePlain = vigenere(text, vigenereBest.key, "decrypt");
-  attempts.push({
-    cipher: "Vigenère",
-    keyLabel: vigenereBest.key,
-    fitness: scoreText(vigenerePlain),
-    plaintext: vigenerePlain,
-    href: deepLink("vigenere", text, [["key", vigenereBest.key]], "decrypt"),
-  });
+  add(
+    {
+      cipher: "Vigenère",
+      keyLabel: vigenereBest.key,
+      fitness: scoreText(vigenerePlain),
+      plaintext: vigenerePlain,
+      href: deepLink("vigenere", text, [["key", vigenereBest.key]], "decrypt"),
+    },
+    PERIODIC_REQUIREMENTS,
+  );
   const [beaufortBest] = breakPeriodic(text, beaufortDecrypt, periodic);
   const beaufortPlain = beaufort(text, beaufortBest.key);
-  attempts.push({
-    cipher: "Beaufort",
-    keyLabel: beaufortBest.key,
-    fitness: scoreText(beaufortPlain),
-    plaintext: beaufortPlain,
-    href: deepLink("beaufort", text, [["key", beaufortBest.key]], "decrypt"),
-  });
+  add(
+    {
+      cipher: "Beaufort",
+      keyLabel: beaufortBest.key,
+      fitness: scoreText(beaufortPlain),
+      plaintext: beaufortPlain,
+      href: deepLink("beaufort", text, [["key", beaufortBest.key]], "decrypt"),
+    },
+    PERIODIC_REQUIREMENTS,
+  );
 
   const [portaBest] = breakPorta(text, periodic);
   const portaPlain = porta(text, portaBest.key);
-  attempts.push({
-    cipher: "Porta",
-    keyLabel: portaBest.key,
-    fitness: scoreText(portaPlain),
-    plaintext: portaPlain,
-    href: deepLink("porta", text, [["key", portaBest.key]], "decrypt"),
-  });
+  add(
+    {
+      cipher: "Porta",
+      keyLabel: portaBest.key,
+      fitness: scoreText(portaPlain),
+      plaintext: portaPlain,
+      href: deepLink("porta", text, [["key", portaBest.key]], "decrypt"),
+    },
+    PORTA_REQUIREMENTS,
+  );
 
   if (period === 1 && !readable()) {
     const recovered = breakSubstitution(text, table, { rng: options.rng });
     const plain = substitution(text, recovered.key, "decrypt");
-    attempts.push({
-      cipher: "Substitution",
-      keyLabel: recovered.key,
-      fitness: scoreText(plain),
-      plaintext: plain,
-      href: deepLink("substitution", text, [["key", recovered.key]], "decrypt"),
-    });
+    add(
+      {
+        cipher: "Substitution",
+        keyLabel: recovered.key,
+        fitness: scoreText(plain),
+        plaintext: plain,
+        href: deepLink(
+          "substitution",
+          text,
+          [["key", recovered.key]],
+          "decrypt",
+        ),
+      },
+      SUBSTITUTION_REQUIREMENTS,
+    );
   }
 
   // Plaintext autokey leaves no passive signature, so it is an active fallback.
   // It is cheap, so it runs before the slow general polyalphabetic attack.
   if (meetsRequirements(PLAINTEXT_AUTOKEY_REQUIREMENTS, shape) && !readable()) {
     const recovered = breakPlaintextAutokey(text, table, { rng: options.rng });
-    attempts.push({
-      cipher: "Plaintext autokey",
-      keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau`,
-      fitness: scoreText(recovered.plaintext),
-      plaintext: recovered.plaintext,
-      href: deepLink("autokey", text, [], "break"),
-    });
+    add(
+      {
+        cipher: "Plaintext autokey",
+        keyLabel: `primer length ${recovered.primerLength}, ${TABLEAU_NAME[recovered.tableau]} tableau`,
+        fitness: scoreText(recovered.plaintext),
+        plaintext: recovered.plaintext,
+        href: deepLink("autokey", text, [], "break"),
+      },
+      PLAINTEXT_AUTOKEY_REQUIREMENTS,
+    );
   }
 
   const pushQuagmire = (dictionary: QuagmireDictionaryResult): void => {
-    attempts.push({
+    add({
       cipher: QUAGMIRE_NAME[dictionary.variant],
       keyLabel: `keyword ${dictionary.keyword}, key ${dictionary.key}`,
       fitness: scoreText(dictionary.plaintext),
@@ -406,16 +486,9 @@ export async function autosolve(
         "break",
       ),
     };
-    attempts.push(attempt);
-    // A free alphabet per column fits short columns to pseudo-English.
-    if (
-      !meetsRequirements(POLYALPHABETIC_REQUIREMENTS, {
-        letters: shape.letters,
-        period: recovered.period,
-      })
-    ) {
-      doubtful.add(attempt);
-    }
+    // A free alphabet per column fits short columns to pseudo-English, which
+    // the requirements' letters per column guard against.
+    add(attempt, POLYALPHABETIC_REQUIREMENTS, recovered.period);
   };
 
   // With enough letters per column to be believed, the general attack takes
@@ -477,6 +550,17 @@ export async function autosolve(
   attempts.sort((a, b) => {
     if (reads(a) !== reads(b)) {
       return reads(a) ? -1 : 1;
+    }
+    if (believable(a) !== believable(b)) {
+      return believable(a) ? -1 : 1;
+    }
+    // Among attempts that do not read as English the closest guess is the
+    // one nearest English on quadgrams: bigrams are what a long key fits.
+    if (!reads(a)) {
+      if (Math.abs(quadgram(a) - quadgram(b)) <= UNREAD_EPSILON) {
+        return COMPLEXITY[a.cipher] - COMPLEXITY[b.cipher];
+      }
+      return quadgram(b) - quadgram(a);
     }
     if (Math.abs(a.fitness - b.fitness) <= SIMPLER_EPSILON) {
       return COMPLEXITY[a.cipher] - COMPLEXITY[b.cipher];

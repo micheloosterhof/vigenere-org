@@ -322,6 +322,30 @@ describe("autosolve", () => {
     expect(result.solved).toBe(false);
   });
 
+  it("does not call a substitution answer on forty letters solved", async () => {
+    // A free alphabet fits forty letters to pseudo-English whatever they are.
+    const short = PLAIN.replace(/[^A-Za-z]/g, "").slice(0, 40);
+    const ciphertext = substitution(
+      short,
+      "QWERTYUIOPASDFGHJKLZXCVBNM",
+      "encrypt",
+    );
+    const result = await autosolve(ciphertext, TABLE, { rng: mulberry32(15) });
+    expect(result.best.plaintext.toUpperCase()).not.toBe(short.toUpperCase());
+    expect(result.solved).toBe(false);
+  });
+
+  it("ranks an attempt on enough text above one its solver cannot support", async () => {
+    // Twelve letters: too few for the Caesar answer to score as English, and
+    // far too few for the substitution climb, whose pseudo-English scores
+    // higher.
+    const result = await autosolve(caesar("ATTACK AT DAWN", 3), TABLE, {
+      rng: mulberry32(16),
+    });
+    expect(result.best.cipher).toBe("Caesar");
+    expect(result.best.plaintext).toBe("ATTACK AT DAWN");
+  });
+
   it("marks a decryption that reads as English as solved", async () => {
     const result = await autosolve(vigenere(PLAIN, "LEMON", "encrypt"), TABLE);
     expect(result.best.cipher).toBe("Vigenère");
