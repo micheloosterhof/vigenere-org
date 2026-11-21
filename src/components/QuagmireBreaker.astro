@@ -88,17 +88,20 @@ import WordSplitToggle from "./WordSplitToggle.astro";
   import type { PolyalphabeticProgress } from "../lib/solve-polyalphabetic";
   import type { QuagmireSolveResult } from "../lib/solve-quagmire";
   import type { QuagmireDictionaryResult } from "../lib/solve-quagmire-dictionary";
+  import type { QuagmireIvResult } from "../lib/solve-quagmire-iv";
 
   type WorkerMessage =
     | { type: "progress"; phase: "dictionary"; done: number; total: number }
     | { type: "progress"; phase: "shifts"; done: number; total: number }
     | { type: "progress"; phase: "letter-sets"; done: number; total: number }
+    | { type: "progress"; phase: "two-keywords"; done: number; total: number }
     | ({ type: "progress"; phase: "general" } & PolyalphabeticProgress)
     | {
         type: "result";
         method: "dictionary" | "letter-sets";
         dictionary: QuagmireDictionaryResult;
       }
+    | { type: "result"; method: "two-keywords"; twoKeywords: QuagmireIvResult }
     | { type: "result"; method: "general"; result: QuagmireSolveResult }
     | { type: "error"; message: string };
 
@@ -184,6 +187,11 @@ import WordSplitToggle from "./WordSplitToggle.astro";
                 `Short text: solving each keyword's shifts together…`,
                 message.done / message.total,
               );
+            } else if (message.phase === "two-keywords") {
+              setProgress(
+                "No single keyword fits; searching for two keywords (Quagmire IV)…",
+                message.done / message.total,
+              );
             } else {
               setProgress(
                 `No dictionary keyword fits; solving statistically… attempt ${message.restart} of ${message.restarts}`,
@@ -192,6 +200,17 @@ import WordSplitToggle from "./WordSplitToggle.astro";
             }
           } else if (message.type === "result") {
             worker.terminate();
+            if (message.method === "two-keywords") {
+              const solved = message.twoKeywords;
+              summary.textContent = `Quagmire IV: plaintext keyword ${solved.plainKeyword} and ciphertext keyword ${solved.cipherKeyword} recovered from the ciphertext alone; key ${solved.key} with indicator ${solved.indicator}, key length ${solved.period}.`;
+              setOutput(solved.plaintext);
+              announce(`${summary.textContent} ${solved.plaintext}`);
+              alphabet.textContent = `${solved.plainAlphabet} (plaintext)\n${solved.cipherAlphabet} (ciphertext)`;
+              alphabetRow.hidden = false;
+              result.hidden = false;
+              finish();
+              return;
+            }
             if (message.method !== "general") {
               const solved = message.dictionary;
               const name = { 1: "I", 2: "II", 3: "III" }[solved.variant];

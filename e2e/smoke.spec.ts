@@ -227,18 +227,20 @@ test("the quagmire breaker breaks Kryptos K1 from the ciphertext alone", async (
   );
 });
 
+const ORWELL_WORDS =
+  "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
+  "THIRTEEN WINSTON SMITH HIS CHIN NUZZLED INTO HIS BREAST IN AN EFFORT " +
+  "TO ESCAPE THE VILE WIND SLIPPED QUICKLY THROUGH THE GLASS DOORS OF " +
+  "VICTORY MANSIONS THOUGH NOT QUICKLY ENOUGH TO PREVENT A SWIRL OF " +
+  "GRITTY DUST FROM ENTERING ALONG WITH HIM THE HALLWAY SMELT OF BOILED " +
+  "CABBAGE AND OLD RAG MATS AT ONE END OF IT A COLOURED POSTER TOO LARGE " +
+  "FOR INDOOR DISPLAY HAD BEEN TACKED TO THE WALL";
+
 test("the quagmire breaker recovers a keyword that is in no dictionary", async ({
   page,
 }) => {
   test.setTimeout(300_000);
-  const plaintext =
-    "IT WAS A BRIGHT COLD DAY IN APRIL AND THE CLOCKS WERE STRIKING " +
-    "THIRTEEN WINSTON SMITH HIS CHIN NUZZLED INTO HIS BREAST IN AN EFFORT " +
-    "TO ESCAPE THE VILE WIND SLIPPED QUICKLY THROUGH THE GLASS DOORS OF " +
-    "VICTORY MANSIONS THOUGH NOT QUICKLY ENOUGH TO PREVENT A SWIRL OF " +
-    "GRITTY DUST FROM ENTERING ALONG WITH HIM THE HALLWAY SMELT OF BOILED " +
-    "CABBAGE AND OLD RAG MATS AT ONE END OF IT A COLOURED POSTER TOO LARGE " +
-    "FOR INDOOR DISPLAY HAD BEEN TACKED TO THE WALL";
+  const plaintext = ORWELL_WORDS;
   await page.goto(
     `/quagmire/?text=${encodeURIComponent(plaintext)}&variant=3&keyword=VORTIGEN&key=WONDER&indicator=A&mode=encrypt`,
   );
@@ -255,6 +257,32 @@ test("the quagmire breaker recovers a keyword that is in no dictionary", async (
     { timeout: 240_000 },
   );
   await expect(breaker.locator("[data-output]")).toHaveValue(plaintext);
+});
+
+test("the quagmire breaker recovers the two keywords of a Quagmire IV", async ({
+  page,
+}) => {
+  test.setTimeout(400_000);
+  const plaintext = ORWELL_WORDS;
+  await page.goto(
+    `/quagmire/?text=${encodeURIComponent(plaintext)}&variant=4&keyword=MAPLE&keyword2=FROST&key=WONDER&indicator=A&mode=encrypt`,
+  );
+  const ciphertext = await page
+    .locator("[data-quagmire] [data-output]")
+    .inputValue();
+  expect(ciphertext).not.toBe(plaintext);
+
+  const breaker = page.locator("[data-quagmire-breaker]");
+  await breaker.locator("[data-input]").fill(ciphertext);
+  await breaker.locator("[data-solve]").click();
+  await expect(breaker.locator("[data-summary]")).toContainText(
+    "Quagmire IV: plaintext keyword MAPLE and ciphertext keyword FROST recovered from the ciphertext alone; key WONDER",
+    { timeout: 340_000 },
+  );
+  await expect(breaker.locator("[data-output]")).toHaveValue(plaintext);
+  await expect(breaker.locator("[data-alphabet]")).toHaveText(
+    "MAPLEBCDFGHIJKNOQRSTUVWXYZ (plaintext)\nFROSTABCDEGHIJKLMNPQUVWXYZ (ciphertext)",
+  );
 });
 
 test("the kryptos page decrypts K1 with one click", async ({ page }) => {

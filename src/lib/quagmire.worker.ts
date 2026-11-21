@@ -1,8 +1,8 @@
-// ABOUTME: Web Worker running the Quagmire I-III solvers off the main thread.
-// ABOUTME: Tries the keyword dictionary attacks and the letter-set scan, then falls back to the statistical solver.
+// ABOUTME: Web Worker running the Quagmire solvers off the main thread.
+// ABOUTME: Tries the keyword dictionary attacks and the letter-set scan, then the statistical solver and the two-keyword search.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { breakQuagmire } from "./solve-quagmire";
+import { breakQuagmire, canBeBelieved } from "./solve-quagmire";
 import { toLetterValues } from "./solve";
 import {
   breakQuagmireDictionary,
@@ -17,6 +17,8 @@ import {
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
+import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
+import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
 import { meetsRequirements } from "./solver-requirements";
 import {
   breakPolyalphabeticParallel,
@@ -131,6 +133,35 @@ scope.onmessage = async (event) => {
         ? breakPolyalphabeticParallel
         : undefined,
     });
+    // The statistical solver takes seconds, so it goes before the search for
+    // two keywords (Quagmire IV), which takes up to a minute. That search
+    // runs only when the statistical answer cannot be believed.
+    if (
+      !canBeBelieved(result, letters) &&
+      meetsRequirements(QUAGMIRE_IV_REQUIREMENTS, { letters })
+    ) {
+      const options = {
+        periods: period === undefined ? undefined : [period],
+        onProgress: (done: number, total: number) =>
+          scope.postMessage({
+            type: "progress",
+            phase: "two-keywords",
+            done,
+            total,
+          }),
+      };
+      const twoKeywords = canSpawnWorkers()
+        ? await breakQuagmireIvParallel(text, bytes, options)
+        : breakQuagmireIv(text, bytes, options);
+      if (twoKeywords.found) {
+        scope.postMessage({
+          type: "result",
+          method: "two-keywords",
+          twoKeywords,
+        });
+        return;
+      }
+    }
     scope.postMessage({ type: "result", method: "general", result });
   } catch (cause) {
     scope.postMessage({
