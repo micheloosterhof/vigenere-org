@@ -17,7 +17,7 @@ const SIGNAL = 0.1;
 const PEAK_FRACTION = 0.6;
 
 /** Mean per-column normalized index of coincidence when split into `period` columns. */
-function columnIoc(values: number[], period: number): number {
+export function columnIoc(values: number[], period: number): number {
   let sum = 0;
   for (let column = 0; column < period; column += 1) {
     const counts = new Array<number>(ALPHABET_SIZE).fill(0);

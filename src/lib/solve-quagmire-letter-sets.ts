@@ -35,10 +35,10 @@ const STARTS = 4;
 // Average quadgram log10 probability from which a decryption counts as found;
 // the search stops at the first completion that reaches it.
 const READABLE_QUADGRAM = -4.5;
-// Below this many letters the search fits wrong keys to pseudo-English.
 // A completion at least this good is close enough to English to be searched
 // again from its turned forms.
 const NEARLY_READABLE_QUADGRAM = -5;
+// Below this many letters the search fits wrong keys to pseudo-English.
 const MIN_RELIABLE_LENGTH = 64;
 
 /** One part of the search: a variant, period, and number of keyword letters. */
@@ -46,6 +46,10 @@ export interface LetterSetJob {
   variant: KeywordVariant;
   period: number;
   size: number;
+  /** How many letter sets to score, drawn at random when the size has more; by default a fiftieth of them and at least 15,000. */
+  scored?: number;
+  /** How many of the best-scoring sets to complete; 300 by default. */
+  completed?: number;
 }
 
 export interface LetterSetSolution extends LetterSetJob {
@@ -269,7 +273,7 @@ function completeLetterSet(
 }
 
 /** The plaintext letter values of `cipher` under a mixed alphabet and column offsets. */
-function decrypt(
+export function decryptWithAlphabet(
   cipher: number[],
   variant: KeywordVariant,
   alphabet: number[],
@@ -300,11 +304,15 @@ export function runLetterSetJob(
 ): LetterSetSolution {
   const { variant, period, size } = job;
   const scorer = letterSetScorer(cipher, variant, period);
-  const sample = Math.min(
-    1,
-    Math.max(SAMPLE, MIN_SETS_SCORED / letterSetCount(size)),
+  const all = letterSetCount(size);
+  const scored = job.scored ?? Math.max(SAMPLE * all, MIN_SETS_SCORED);
+  const sets = bestLetterSets(
+    scorer,
+    size,
+    job.completed ?? SETS_COMPLETED,
+    Math.min(1, scored / all),
+    rng,
   );
-  const sets = bestLetterSets(scorer, size, SETS_COMPLETED, sample, rng);
   let best: LetterSetSolution = {
     ...job,
     alphabet: Array.from({ length: ALPHABET_SIZE }, (_, i) => i),
@@ -325,7 +333,7 @@ export function runLetterSetJob(
     );
     const fitness = averageLog10(
       quadgramRaw(
-        decrypt(cipher, variant, alphabet, offsets),
+        decryptWithAlphabet(cipher, variant, alphabet, offsets),
         cipher.length,
         table,
       ),
