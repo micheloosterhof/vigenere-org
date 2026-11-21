@@ -90,6 +90,32 @@ describe("breakQuagmireLetterSets", () => {
   );
 
   it(
+    "puts keyword letters right that bigrams alone leave swapped",
+    { timeout: 120000 },
+    () => {
+      // Quagmire I under ADOPTION: with I and O exchanged in the keyword the
+      // text still pairs up plausibly (TI for TO, FIRM for FORM).
+      const plain =
+        "RSINSUCHFORMASTOTHEMSHALLSEEMMOSTLIKELYTOEFFECTTHEIRSAFETYANDHAPPINESS" +
+        "TOSHERLOCKHOLMESSHEISALWAYSTHEWOMANIHAVESELDOMHEARDHIMMENTIONHERUNDER" +
+        "ANYOT";
+      const ciphertext = quagmire(
+        plain,
+        { variant: 1, keyword: "ADOPTION", key: "VYKVDW", indicator: "A" },
+        "encrypt",
+      );
+      const result = breakQuagmireLetterSets(ciphertext, TABLE, {
+        variants: [1],
+        periods: [6],
+        sizes: [7],
+        rng: seededRng(5),
+      });
+      expect(result.found).toBe(true);
+      expect(result.plaintext).toBe(plain);
+    },
+  );
+
+  it(
     "tries the variants, periods and sizes it is given in turn",
     { timeout: 120000 },
     () => {

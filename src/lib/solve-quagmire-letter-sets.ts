@@ -78,10 +78,13 @@ export function keywordOfAlphabet(alphabet: string): string {
 }
 
 /**
- * Completes a keyword letter set into a full key by local search on unigram
- * plus bigram score: change one column's shift, swap two keyword letters, or
- * replace a keyword letter by one from outside. The replacement repairs a set
- * that is one or two letters off, so the scan need not find the exact set.
+ * Completes a keyword letter set into a full key by local search: change one
+ * column's shift, swap two keyword letters, or replace a keyword letter by
+ * one from outside. The replacement repairs a set that is one or two letters
+ * off, so the scan need not find the exact set. The search runs on unigram
+ * plus bigram score from several starts, which finds the right region, and
+ * the best start is finished on quadgram score, which settles letters that
+ * pair up plausibly either way (I for O).
  */
 function completeLetterSet(
   cipher: number[],
@@ -89,6 +92,7 @@ function completeLetterSet(
   period: number,
   letters: number[],
   startShifts: number[],
+  table: Uint8Array,
   rng: () => number,
 ): { alphabet: number[]; offsets: number[] } {
   const length = cipher.length;
@@ -96,6 +100,7 @@ function completeLetterSet(
   const alphabet = new Array<number>(ALPHABET_SIZE);
   const index = new Array<number>(ALPHABET_SIZE);
   const used = new Uint8Array(ALPHABET_SIZE);
+  const plain = new Array<number>(length).fill(0);
   let keyword = [...letters];
   let shifts = [...startShifts];
 
@@ -116,37 +121,34 @@ function completeLetterSet(
       index[alphabet[i]] = i;
     }
   };
-  const score = (): number => {
-    let sum = 0;
-    let previous = 0;
+  const decipher = (): void => {
     for (let i = 0; i < length; i += 1) {
       const shift = shifts[i % period];
       const c = cipher[i];
-      const plain =
+      plain[i] =
         variant === 1
           ? alphabet[(c - shift + ALPHABET_SIZE) % ALPHABET_SIZE]
           : variant === 2
             ? (index[c] - shift + ALPHABET_SIZE) % ALPHABET_SIZE
             : alphabet[(index[c] - shift + ALPHABET_SIZE) % ALPHABET_SIZE];
-      sum += LETTERS[plain];
-      if (i > 0) {
-        sum += BIGRAMS[previous * ALPHABET_SIZE + plain];
-      }
-      previous = plain;
+    }
+  };
+  const bigramScore = (): number => {
+    decipher();
+    let sum = LETTERS[plain[0]];
+    for (let i = 1; i < length; i += 1) {
+      sum +=
+        LETTERS[plain[i]] + BIGRAMS[plain[i - 1] * ALPHABET_SIZE + plain[i]];
     }
     return sum;
   };
+  const quadgramScore = (): number => {
+    decipher();
+    return quadgramRaw(plain, length, table);
+  };
 
-  let best = { score: -Infinity, keyword: [...keyword], shifts: [...shifts] };
-  for (let start = 0; start < STARTS; start += 1) {
-    keyword = [...letters];
-    shifts = [...startShifts];
-    if (start > 0) {
-      for (let i = size - 1; i > 0; i -= 1) {
-        const j = Math.floor(rng() * (i + 1));
-        [keyword[i], keyword[j]] = [keyword[j], keyword[i]];
-      }
-    }
+  /** Applies improving moves until none is left; returns the score reached. */
+  const climb = (score: () => number): number => {
     build();
     let current = score();
     let improved = true;
@@ -197,13 +199,29 @@ function completeLetterSet(
       }
       build();
     }
-    if (current > best.score) {
-      best = { score: current, keyword: [...keyword], shifts: [...shifts] };
+    return current;
+  };
+
+  let best = { score: -Infinity, keyword: [...keyword], shifts: [...shifts] };
+  for (let start = 0; start < STARTS; start += 1) {
+    keyword = [...letters];
+    shifts = [...startShifts];
+    if (start > 0) {
+      for (let i = size - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [keyword[i], keyword[j]] = [keyword[j], keyword[i]];
+      }
+    }
+    const reached = climb(bigramScore);
+    if (reached > best.score) {
+      best = { score: reached, keyword: [...keyword], shifts: [...shifts] };
     }
   }
   keyword = best.keyword;
-  build();
-  return { alphabet: [...alphabet], offsets: best.shifts };
+  shifts = best.shifts;
+  climb(quadgramScore);
+
+  return { alphabet: [...alphabet], offsets: shifts };
 }
 
 /** The plaintext letter values of `cipher` under a mixed alphabet and column offsets. */
@@ -258,6 +276,7 @@ export function runLetterSetJob(
       period,
       set.letters,
       scorer.shifts,
+      table,
       rng,
     );
     const fitness = averageLog10(
