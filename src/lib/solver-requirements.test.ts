@@ -37,6 +37,12 @@ describe("meetsRequirements", () => {
     expect(meetsRequirements(solver, { letters: 20 })).toBe(true);
   });
 
+  it("refuses text longer than the solver is meant for", () => {
+    const solver = { ...BASE, maxLetters: 384 };
+    expect(meetsRequirements(solver, { letters: 385 })).toBe(false);
+    expect(meetsRequirements(solver, { letters: 384 })).toBe(true);
+  });
+
   it("refuses a period above the solver's ceiling", () => {
     const solver = { ...BASE, maxPeriod: 12 };
     expect(meetsRequirements(solver, { letters: 500, period: 13 })).toBe(false);

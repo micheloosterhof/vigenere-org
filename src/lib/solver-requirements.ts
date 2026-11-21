@@ -41,6 +41,8 @@ export interface SolverRequirements {
   assumes: KeyAssumption[];
   /** Least number of letters in the whole ciphertext. */
   minLetters?: number;
+  /** Most letters the solver is meant for: beyond this it only costs time, because a cheaper solver covers the text. */
+  maxLetters?: number;
   /** Least number of letters per key position, for periodic ciphers. */
   minLettersPerColumn?: number;
   /** Longest key period the solver tries. */
@@ -61,6 +63,9 @@ export function meetsRequirements(
   shape: TextShape,
 ): boolean {
   if (solver.minLetters !== undefined && shape.letters < solver.minLetters) {
+    return false;
+  }
+  if (solver.maxLetters !== undefined && shape.letters > solver.maxLetters) {
     return false;
   }
   if (shape.period === undefined) {
