@@ -102,6 +102,23 @@ describe("breakQuagmireDictionary", () => {
     },
   );
 
+  it(
+    "does not report found on text too short for the fitness to mean anything",
+    { timeout: 60000 },
+    () => {
+      // With 40 letters some listed keyword always decrypts to pseudo-English,
+      // here under a keyword that is outside the dictionary.
+      const ciphertext = quagmire(
+        SHORT.replace(/[^A-Za-z]/g, "").slice(0, 40),
+        { variant: 3, keyword: "PALIMPSEST", key: "TALES", indicator: "A" },
+        "encrypt",
+      );
+      expect(breakQuagmireDictionary(ciphertext, WORDS, TABLE).found).toBe(
+        false,
+      );
+    },
+  );
+
   it("reports search progress", { timeout: 60000 }, () => {
     const ciphertext = quagmire(
       SHORT,

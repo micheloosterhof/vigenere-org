@@ -25,6 +25,12 @@ const SHORTLIST = 40;
 // -4.2) from overfit pseudo-English (below -5).
 const READABLE_QUADGRAM = -4.7;
 
+// With too few letters some listed keyword always decrypts to pseudo-English:
+// in bench/results/quagmire-dictionary.tsv wrong decryptions reach -4.4 at
+// 36 to 48 letters and stay below -4.8 from 60, so shorter text is never
+// reported as found.
+const MIN_RELIABLE_LENGTH = 60;
+
 // Finalists within this quadgram fitness of the best are ranked by period, so
 // the true period beats longer ones that overfit.
 const FITNESS_EPSILON = 0.1;
@@ -261,7 +267,9 @@ export function breakQuagmireDictionary(
       ],
   );
   return {
-    found: winner.fitness >= READABLE_QUADGRAM,
+    found:
+      cipher.length >= MIN_RELIABLE_LENGTH &&
+      winner.fitness >= READABLE_QUADGRAM,
     variant: winner.variant,
     keyword: winner.word,
     alphabet: alphabetText,
