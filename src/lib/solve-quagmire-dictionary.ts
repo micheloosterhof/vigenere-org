@@ -12,7 +12,7 @@ import { quadgramFitness } from "./quadgrams";
 const ALPHABET_SIZE = 26;
 const CODE_A = 65;
 const MAX_PERIOD = 12;
-const MIN_LENGTH = 8;
+export const MIN_LENGTH = 8;
 const PROGRESS_EVERY = 500;
 
 // A long period can shift every column freely, which inflates bigram fitness
