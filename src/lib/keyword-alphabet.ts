@@ -84,20 +84,17 @@ export function normalizeQuagmireSolution(
 const STRAIGHT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /**
- * Names the period key of a solved Quagmire. Each column offset is the key
- * letter's index in the ciphertext alphabet minus the indicator's index in
- * the plaintext alphabet — the variant decides which of those alphabets is
- * the mixed one — so every indicator choice yields a candidate key; the one
- * reading most like English wins. One-letter keys carry no signal and default
- * to indicator A.
+ * Names the period key of a solved Quagmire from its two alphabets. Each
+ * column offset is the key letter's index in the ciphertext alphabet minus
+ * the indicator's index in the plaintext alphabet, so every indicator choice
+ * yields a candidate key; the one reading most like English wins. One-letter
+ * keys carry no signal and default to indicator A.
  */
-export function recoverQuagmireKey(
-  alphabet: string,
+export function nameQuagmireKey(
+  plainAlphabet: string,
+  cipherAlphabet: string,
   offsets: number[],
-  variant: 1 | 2 | 3 = 3,
 ): RecoveredKey {
-  const plainAlphabet = variant === 2 ? STRAIGHT : alphabet;
-  const cipherAlphabet = variant === 1 ? STRAIGHT : alphabet;
   const candidate = (indicator: number): string =>
     offsets
       .map((offset) => cipherAlphabet[(offset + indicator) % ALPHABET_SIZE])
@@ -121,4 +118,20 @@ export function recoverQuagmireKey(
     }
   }
   return best;
+}
+
+/**
+ * Names the period key of a solved Quagmire I, II, or III: the variant decides
+ * which of the plaintext and ciphertext alphabets is the mixed one.
+ */
+export function recoverQuagmireKey(
+  alphabet: string,
+  offsets: number[],
+  variant: 1 | 2 | 3 = 3,
+): RecoveredKey {
+  return nameQuagmireKey(
+    variant === 2 ? STRAIGHT : alphabet,
+    variant === 1 ? STRAIGHT : alphabet,
+    offsets,
+  );
 }
