@@ -14,11 +14,20 @@
   headers (HSTS, CSP) — none settable on GitHub Pages.
 - Playfair breaker: under 125 letters it holds text to a stricter bar, so 5
   of 24 texts of 100 and 110 letters come out right but are reported as "no
-  English decryption found" (`bench/results/playfair-short.tsv`). Two runs
-  ending on the same square would be a better sign of the right key than
-  the score alone. Of 200 true plaintexts of 100 letters, 50 score under
-  that bar themselves, and 5 of 200 of 150 letters score under -4.7
-  (`bench/results/cipher-marks.tsv`), so the score cannot flag them at all.
+  English decryption found" (`bench/results/playfair-short.tsv`). Of 200
+  true plaintexts of 100 letters, 50 score under that bar themselves, and 5
+  of 200 of 150 letters score under -4.7 (`bench/results/cipher-marks.tsv`),
+  so the present bar cannot flag them at all. Runs that end on the same
+  decryption are no sign of the right square by themselves: on 22 texts with
+  nothing to find (random pairs, Bifid text) the best answer was shared by
+  two or more of the 8 runs in 5 texts, and by 7 runs in one
+  (`bench/results/playfair-agreement.tsv`). Together with a lower bar they
+  might be: on 24 Playfair texts whose plaintext scores under the bar, the
+  best answer was right in 22, scored -4.51 to -4.87, and was shared by
+  three or more runs in 21; with nothing to find the best answer scored
+  -5.04 or less. The margin is small: on one Playfair text that no run
+  solved, three runs ended on one wrong square at -4.97 and two on another
+  at -4.93. A rule needs more than these 46 texts.
 - Random-forest cipher classifier: Playfair and both transpositions now exist,
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the
