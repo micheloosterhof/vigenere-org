@@ -8,13 +8,22 @@ no message text ever leaves the page.
 
 - **Auto-solver** (homepage): paste ciphertext, get the cipher, key, and
   plaintext. Routes by index of coincidence, then escalates from Caesar
-  through Vigenère/Beaufort to a general polyalphabetic attack.
+  through Vigenère/Beaufort to a general polyalphabetic attack. It knows
+  Playfair, Bifid and Trifid by the marks they leave in the ciphertext and
+  runs their searches on such text.
 - **Vigenère, Beaufort, Caesar**: encrypt, decrypt, and break with a
   bigram-fitness key search (Guballa's adjacent-key-pair method).
+- **Gronsfeld and Porta**: Vigenère with a digit key, and Della Porta's 13
+  reciprocal alphabets; each with a key breaker.
 - **ROT13 and Atbash**: the keyless self-inverse classics.
+- **Affine**: with an exhaustive breaker over all 312 keys.
 - **Rail fence**: zigzag transposition with a rail-count solver.
 - **Columnar transposition**: keyword column order, with an exhaustive
   column-order solver up to seven columns.
+- **Double transposition**: columnar transposition twice, with an annealing
+  solver that is given the two key lengths.
+- **Route**: a grid read off in a spiral, a snake or by columns, with an
+  exhaustive solver over grid widths and routes.
 - **Playfair**: digraph substitution over a keyword-mixed 5×5 square, with
   a solver that recovers the square by simulated annealing. The auto-solver
   runs it on text with the marks of a Playfair (even length, no J, no pair
@@ -37,6 +46,8 @@ no message text ever leaves the page.
 - **Polyalphabetic solver**: breaks periodic ciphers with arbitrary
   per-position alphabets (Quagmire without keywords), inspired by
   [slippery](https://github.com/themaddoctor/slippery).
+- **Analyzer**: the statistics the auto-solver routes by (index of
+  coincidence, period estimate, autokey and transposition signatures).
 - **Kryptos**: the story of K1–K4 with one-click decryption of K1 and K2.
 
 ## Development
