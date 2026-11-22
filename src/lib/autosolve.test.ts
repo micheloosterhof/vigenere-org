@@ -26,6 +26,7 @@ import type { LetterSetsSolver } from "./letter-sets-pool";
 import { breakFractionation } from "./solve-fractionation";
 import { breakPlayfair } from "./solve-playfair";
 import { breakPolyalphabetic } from "./solve-polyalphabetic";
+import { breakQuagmireDictionaryJoint } from "./solve-quagmire-dictionary-joint";
 import { breakQuagmireIv } from "./solve-quagmire-iv";
 import { breakQuagmireLetterSets } from "./solve-quagmire-letter-sets";
 
@@ -378,6 +379,31 @@ describe("autosolve", () => {
       expect(result.best.plaintext).toBe(
         "BETWEENSUBTLESHADINGANDTHEABSENCEOFLIGHTLIESTHENUANCEOFIQLUSION",
       );
+    },
+  );
+
+  it(
+    "runs the joint-shift attack through the solver it is given",
+    { timeout: 120000 },
+    async () => {
+      const k1 =
+        "EMUFPHZLRFAXYUSDJKZLDKRNSHGNFIVJYQTQUXQBQVYUVLLTREVJYQTMKYRDMFD";
+      const words = [...WORDS.filter((_, i) => i % 20 === 0), "KRYPTOS"];
+      const rng = mulberry32(13);
+      let calls = 0;
+      const result = await autosolve(k1, TABLE, {
+        rng,
+        words,
+        solveJointShifts: async (text, list, table) => {
+          calls += 1;
+          return breakQuagmireDictionaryJoint(text, list, table, {
+            period: 10,
+            rng,
+          });
+        },
+      });
+      expect(calls).toBe(1);
+      expect(result.best.keyLabel).toBe("keyword KRYPTOS, key PALIMPSEST");
     },
   );
 

@@ -7,6 +7,7 @@ import {
   breakFractionationParallel,
   breakPlayfairParallel,
 } from "./anneal-pool";
+import { breakQuagmireDictionaryJointParallel } from "./joint-shifts-pool";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
 import {
@@ -39,6 +40,9 @@ scope.onmessage = async (event) => {
         : undefined,
       solveLetterSets: canSpawnWorkers()
         ? breakQuagmireLetterSetsParallel
+        : undefined,
+      solveJointShifts: canSpawnWorkers()
+        ? breakQuagmireDictionaryJointParallel
         : undefined,
       solveQuagmireIv: canSpawnWorkers() ? breakQuagmireIvParallel : undefined,
       solvePlayfair: canSpawnWorkers() ? breakPlayfairParallel : undefined,

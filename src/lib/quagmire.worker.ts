@@ -16,6 +16,7 @@ import {
   breakQuagmireLetterSets,
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
+import { breakQuagmireDictionaryJointParallel } from "./joint-shifts-pool";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
@@ -65,19 +66,27 @@ scope.onmessage = async (event) => {
     // Text with few letters per column needs the keyword's shifts solved
     // together. The per-column figure is not checked: below it the attack is
     // less reliable but still the only one with a chance.
-    const jointShifts = (): QuagmireDictionaryResult | null =>
-      meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, { letters })
-        ? breakQuagmireDictionaryJoint(text, words, bytes, {
-            period,
-            onProgress: (done, total) =>
-              scope.postMessage({
-                type: "progress",
-                phase: "shifts",
-                done,
-                total,
-              }),
-          })
-        : null;
+    // The word scan fans out to nested workers where the browser allows it.
+    const jointShifts = async (): Promise<QuagmireDictionaryResult | null> => {
+      if (
+        !meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, { letters })
+      ) {
+        return null;
+      }
+      const options = {
+        period,
+        onProgress: (done: number, total: number) =>
+          scope.postMessage({
+            type: "progress",
+            phase: "shifts",
+            done,
+            total,
+          }),
+      };
+      return canSpawnWorkers()
+        ? breakQuagmireDictionaryJointParallel(text, words, bytes, options)
+        : breakQuagmireDictionaryJoint(text, words, bytes, options);
+    };
     // A keyword outside the word list is found from which letters it holds.
     // The scan fans out to nested workers where the browser allows it.
     const letterSets = async (): Promise<QuagmireDictionaryResult | null> => {
@@ -101,13 +110,7 @@ scope.onmessage = async (event) => {
     // Either may take a minute to give up. Longer text is more likely to have
     // the letters per column the letter-set scan needs, so it goes first
     // there; short text goes to the joint shifts first.
-    const stages: [
-      Method,
-      () =>
-        | QuagmireDictionaryResult
-        | null
-        | Promise<QuagmireDictionaryResult | null>,
-    ][] =
+    const stages: [Method, () => Promise<QuagmireDictionaryResult | null>][] =
       letters >= LETTER_SETS_FIRST
         ? [
             ["letter-sets", letterSets],

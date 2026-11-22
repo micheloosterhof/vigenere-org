@@ -42,6 +42,7 @@ import {
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
 import type { LetterSetsSolver } from "./letter-sets-pool";
+import type { JointShiftsSolver } from "./joint-shifts-pool";
 import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import type { QuagmireIvSolver } from "./quagmire-iv-pool";
 import {
@@ -166,6 +167,8 @@ interface Options {
   solvePolyalphabetic?: PolyalphabeticSolver;
   /** Runs the Quagmire letter-set scan; defaults to the sequential solver on this thread. */
   solveLetterSets?: LetterSetsSolver;
+  /** Runs the joint-shift Quagmire dictionary attack; defaults to the sequential solver on this thread. */
+  solveJointShifts?: JointShiftsSolver;
   /** Runs the Quagmire IV search for two keywords; defaults to the sequential solver on this thread. */
   solveQuagmireIv?: QuagmireIvSolver;
   /** Runs the Playfair search; defaults to the sequential solver on this thread. */
@@ -642,9 +645,11 @@ export async function autosolve(
       options.words !== undefined &&
       meetsRequirements(QUAGMIRE_DICTIONARY_JOINT_REQUIREMENTS, shape)
     ) {
-      const joint = breakQuagmireDictionaryJoint(text, options.words, table, {
-        rng: options.rng,
-      });
+      const solve: JointShiftsSolver =
+        options.solveJointShifts ??
+        (async (t, words, tb) =>
+          breakQuagmireDictionaryJoint(t, words, tb, { rng: options.rng }));
+      const joint = await solve(text, options.words, table, {});
       if (joint.found) {
         pushQuagmire(joint);
       }
