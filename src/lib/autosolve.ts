@@ -53,6 +53,7 @@ import {
 import {
   breakFractionation,
   FRACTIONATION_REQUIREMENTS,
+  type FractionationCipher,
 } from "./solve-fractionation";
 import type { FractionationSolver, PlayfairSolver } from "./anneal-pool";
 import { TRIFID_EXTRA } from "./trifid";
@@ -492,10 +493,39 @@ export async function autosolve(
     }
   }
 
-  const fractionation: FractionationSolver =
-    options.solveFractionation ??
-    (async (cipher, t, tb) =>
-      breakFractionation(cipher, t, tb, { rng: options.rng ?? Math.random }));
+  /** Searches for a Bifid square or a Trifid cube at every period; `grid` names the key in the attempt. */
+  const tryFractionation = async (
+    cipher: FractionationCipher,
+    name: string,
+    grid: string,
+  ): Promise<void> => {
+    const solve: FractionationSolver =
+      options.solveFractionation ??
+      (async (c, t, tb) =>
+        breakFractionation(c, t, tb, { rng: options.rng ?? Math.random }));
+    options.onStage?.(name);
+    const solved = await solve(cipher, text, table);
+    if (solved.english) {
+      add(
+        {
+          cipher: name,
+          keyLabel: `${grid} ${solved.key}, period ${solved.period}`,
+          fitness: scoreText(solved.plaintext),
+          plaintext: solved.plaintext,
+          href: deepLink(
+            cipher,
+            text,
+            [
+              ["key", solved.key],
+              ["period", String(solved.period)],
+            ],
+            "decrypt",
+          ),
+        },
+        FRACTIONATION_REQUIREMENTS,
+      );
+    }
+  };
 
   // Bifid works on a square without J, so its ciphertext has none. Text with
   // English letter frequencies is left out: it mostly has no J either, and
@@ -510,28 +540,7 @@ export async function autosolve(
     diagnostics.likelyFamily !== "transposition" &&
     !/j/i.test(text)
   ) {
-    options.onStage?.("Bifid");
-    const solved = await fractionation("bifid", text, table);
-    if (solved.english) {
-      add(
-        {
-          cipher: "Bifid",
-          keyLabel: `square ${solved.key}, period ${solved.period}`,
-          fitness: scoreText(solved.plaintext),
-          plaintext: solved.plaintext,
-          href: deepLink(
-            "bifid",
-            text,
-            [
-              ["key", solved.key],
-              ["period", String(solved.period)],
-            ],
-            "decrypt",
-          ),
-        },
-        FRACTIONATION_REQUIREMENTS,
-      );
-    }
+    await tryFractionation("bifid", "Bifid", "square");
   }
 
   // Trifid works on a cube of 27 symbols, the alphabet and "+", so only its
@@ -543,28 +552,7 @@ export async function autosolve(
     meetsRequirements(FRACTIONATION_REQUIREMENTS, shape) &&
     text.includes(TRIFID_EXTRA)
   ) {
-    options.onStage?.("Trifid");
-    const solved = await fractionation("trifid", text, table);
-    if (solved.english) {
-      add(
-        {
-          cipher: "Trifid",
-          keyLabel: `cube ${solved.key}, period ${solved.period}`,
-          fitness: scoreText(solved.plaintext),
-          plaintext: solved.plaintext,
-          href: deepLink(
-            "trifid",
-            text,
-            [
-              ["key", solved.key],
-              ["period", String(solved.period)],
-            ],
-            "decrypt",
-          ),
-        },
-        FRACTIONATION_REQUIREMENTS,
-      );
-    }
+    await tryFractionation("trifid", "Trifid", "cube");
   }
 
   const pushQuagmire = (dictionary: QuagmireDictionaryResult): void => {
