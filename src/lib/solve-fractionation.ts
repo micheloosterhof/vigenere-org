@@ -326,9 +326,12 @@ export const ENGLISH_FITNESS = -4.7;
 // (bench/results/fractionation-short.tsv and fractionation-noise.tsv).
 export const MIN_LETTERS = 100;
 
-// The length from which the search solved every text, with the period
-// unknown: 12 of 12 for Bifid in bench/results/fractionation-short.tsv, 6 of
-// 6 for Trifid in bench/results/annealing-solvers.tsv.
+// The length from which the search solves at least nine texts in ten, with
+// the period unknown. Bifid: 12 of 12 in bench/results/fractionation-short.tsv.
+// Trifid: 5 of 6 in bench/results/annealing-solvers.tsv; by the single-run
+// rates in fractionation-jobs.tsv the rounds solve 97 texts in 100 at the true
+// period, which is among the periods tried for 254 texts of 260
+// (fractionation-periods.tsv).
 const RELIABLE_LETTERS: Record<FractionationCipher, number> = {
   bifid: 150,
   trifid: 300,
@@ -511,10 +514,10 @@ export function decryptWithGrid(
 /**
  * What the Bifid and Trifid annealing attack needs. The code refuses text
  * under MIN_LETTERS letters. With the period unknown, Bifid is solved on 6 of
- * 12 texts at 100 letters, 10 of 12 at 125 and 12 of 12 at 150
+ * 12 texts at 100 letters, 11 of 12 at 125 and 12 of 12 at 150
  * (bench/results/fractionation-short.tsv), and on all 12 at 200 and 300
  * (bench/results/annealing-solvers.tsv). Trifid is solved on none of 12 at
- * 100 letters, 3 of 12 at 125, 5 of 12 at 150, 3 of 6 at 200 and 6 of 6 at
+ * 100 letters, 2 of 12 at 125, 4 of 12 at 150, 4 of 6 at 200 and 5 of 6 at
  * 300, which is the figure stated. No unsolved text and no text of random
  * letters came out reading as English.
  */
