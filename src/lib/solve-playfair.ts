@@ -219,6 +219,24 @@ export function playfairValues(text: string): Uint8Array {
 }
 
 /**
+ * True when the text has what every Playfair ciphertext has: an even number
+ * of letters, no J (the square merges it with I), and no pair of two equal
+ * letters (the cipher never produces one).
+ */
+export function couldBePlayfair(text: string): boolean {
+  const letters = text.toUpperCase().replace(/[^A-Z]/g, "");
+  if (letters.length % 2 !== 0 || letters.includes("J")) {
+    return false;
+  }
+  for (let i = 0; i < letters.length; i += 2) {
+    if (letters[i] === letters[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * The turn of a square that starts with its keyword. Moving whole rows or
  * whole columns round the square leaves the cipher unchanged, so a search
  * ends on any of the 25 turns of the true square; the one whose letters run

@@ -9,6 +9,7 @@ import { playfair } from "./playfair";
 import {
   annealPlayfair,
   breakPlayfair,
+  couldBePlayfair,
   englishFitness,
   keywordSquare,
   MIN_LETTERS,
@@ -134,6 +135,33 @@ describe("annealPlayfair", () => {
         rng: seededRng(1),
       }),
     ).toThrow(new RegExp(`at least ${MIN_LETTERS} letters`));
+  });
+});
+
+describe("couldBePlayfair", () => {
+  const ciphertext = playfair(LETTERS, "MONARCHY", "encrypt");
+
+  it("accepts a Playfair ciphertext, whatever its layout", () => {
+    expect(couldBePlayfair(ciphertext)).toBe(true);
+    expect(
+      couldBePlayfair(ciphertext.toLowerCase().replace(/(.{5})/g, "$1 ")),
+    ).toBe(true);
+  });
+
+  it("accepts the same letter twice in a row when a pair boundary lies between", () => {
+    expect(couldBePlayfair("ABBC")).toBe(true);
+  });
+
+  it("rejects an odd number of letters", () => {
+    expect(couldBePlayfair(ciphertext + "A")).toBe(false);
+  });
+
+  it("rejects text with a J, which the square does not hold", () => {
+    expect(couldBePlayfair(ciphertext + "JA")).toBe(false);
+  });
+
+  it("rejects a pair of two equal letters, which no square produces", () => {
+    expect(couldBePlayfair("ABCCDE")).toBe(false);
   });
 });
 
