@@ -594,15 +594,14 @@ describe("autosolve", () => {
         const [, cube] =
           /^cube ([A-Z+]{27}), period 5$/.exec(result.best.keyLabel) ?? [];
         expect(cube).toBeDefined();
-        // The search stops at the first cube that reads as English, which
-        // can still have a few letters in the wrong cells.
+        // The statistics cannot place a symbol the text hardly uses.
         let matches = 0;
         for (let i = 0; i < letters.length; i += 1) {
           if (result.best.plaintext[i] === letters[i]) {
             matches += 1;
           }
         }
-        expect(matches / letters.length).toBeGreaterThan(0.9);
+        expect(matches / letters.length).toBeGreaterThan(0.98);
         expect(trifid(ciphertext, cube, 5, "decrypt")).toBe(
           result.best.plaintext,
         );

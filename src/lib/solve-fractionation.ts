@@ -10,6 +10,7 @@ import {
 import {
   anneal,
   averageLog10,
+  climbBySwaps,
   quadgramRaw,
   randomPermutation,
   swapTwo,
@@ -383,7 +384,7 @@ export function annealFractionation(
   const target =
     ((ENGLISH_FITNESS - QUADGRAM_MIN_LOG10) / QUADGRAM_LOG10_SCALE) * quadgrams;
   const problem = problemFor(geometry, values, period, table);
-  const result = anneal(problem, {
+  const annealed = anneal(problem, {
     rng: options.rng,
     iterations: options.iterations ?? RUN_SETTINGS[cipher].rounds[0].iterations,
     // The raw score is a sum over the text, so the temperature scales with length.
@@ -391,6 +392,14 @@ export function annealFractionation(
     target,
     onProgress: options.onProgress,
   });
+  // The run stops at the first key that reads as English, which mostly still
+  // has symbols in the wrong cells; a climb from there puts them right. In
+  // bench/results/fractionation-jobs.tsv 2029 of the 2034 Bifid runs and all
+  // 1025 Trifid runs that reached English end at least 99% right.
+  const result =
+    annealed.score >= target
+      ? climbBySwaps(problem.score, annealed.key)
+      : annealed;
   const plain = problem.decryptKey(result.key);
   return {
     period,

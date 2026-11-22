@@ -8,6 +8,7 @@ import { seededRng } from "./anneal";
 import { bifid } from "./bifid";
 import { trifid } from "./trifid";
 import {
+  annealFractionation,
   breakFractionation,
   decryptWithGrid,
   rankPeriods,
@@ -89,6 +90,33 @@ describe("decryptWithGrid", () => {
     expect(plaintext.map((v) => symbols[v]).join("")).toBe(
       LETTERS.slice(0, 60),
     );
+  });
+});
+
+describe("annealFractionation", () => {
+  // A run stops at the first key that reads as English, which here still has
+  // one letter in twenty wrong.
+  it("ends on the right square, not just the first one that reads as English", () => {
+    const plain = LETTERS.slice(0, 250);
+    const ciphertext = bifid(plain, "SECRETKEYWORD", 7, "encrypt");
+    const found = annealFractionation("bifid", ciphertext, 7, TABLE, {
+      rng: seededRng(4),
+      iterations: 100000,
+    });
+    expect(found.english).toBe(true);
+    expect(accuracy(found.plaintext, plain)).toBeGreaterThan(0.99);
+    expect(bifid(ciphertext, found.key, 7, "decrypt")).toBe(found.plaintext);
+  });
+
+  it("ends on the right cube, not just the first one that reads as English", () => {
+    const ciphertext = trifid(LETTERS, "SECRETKEYWORD", 5, "encrypt");
+    const found = annealFractionation("trifid", ciphertext, 5, TABLE, {
+      rng: seededRng(7),
+      iterations: 300000,
+    });
+    expect(found.english).toBe(true);
+    expect(accuracy(found.plaintext, LETTERS)).toBeGreaterThan(0.99);
+    expect(trifid(ciphertext, found.key, 5, "decrypt")).toBe(found.plaintext);
   });
 });
 
