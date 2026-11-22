@@ -116,6 +116,8 @@ building the commit CI tested), or on a manual run.
     no J, no pair of equal letters; Bifid: no J and no English letter
     frequencies; Trifid: a "+"), before the slow periodic searches.
     `bench/results/cipher-marks.tsv` counts how often other text has them.
+    `onStage` names each slow search as it starts, which the home page
+    shows while it waits.
   - `*.worker.ts` — Web Worker wrappers for the slow solvers.
   - `data/` — generated English n-gram tables (bigrams inline; quadgrams
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily

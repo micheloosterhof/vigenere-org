@@ -430,10 +430,13 @@ describe("autosolve", () => {
       { timeout: 120000 },
       async () => {
         const rng = mulberry32(15);
+        const stages: string[] = [];
         const result = await autosolve(ciphertext, TABLE, {
           rng,
           solveLetterSets: quickLetterSets(rng),
+          onStage: (stage) => stages.push(stage),
         });
+        expect([...new Set(stages)]).toEqual(["Quagmire", "Quagmire IV"]);
         expect(result.best.cipher).toBe("Quagmire IV");
         expect(result.best.keyLabel).toBe(
           "keywords MAPLE and FROST, key WONDER",
@@ -487,6 +490,15 @@ describe("autosolve", () => {
         expect(result.solved).toBe(true);
       },
     );
+
+    it("names each slow search as it starts", { timeout: 120000 }, async () => {
+      const stages: string[] = [];
+      await autosolve(ciphertext, TABLE, {
+        rng: mulberry32(17),
+        onStage: (stage) => stages.push(stage),
+      });
+      expect(stages).toEqual(["Playfair"]);
+    });
 
     it(
       "runs the Playfair search through the solver it is given",

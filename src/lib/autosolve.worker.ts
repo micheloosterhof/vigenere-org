@@ -32,6 +32,7 @@ scope.onmessage = async (event) => {
       words,
       onProgress: (progress) =>
         scope.postMessage({ type: "progress", ...progress }),
+      onStage: (cipher) => scope.postMessage({ type: "stage", cipher }),
       // The slow searches fan out to nested workers where the browser allows it.
       solvePolyalphabetic: canSpawnWorkers()
         ? breakPolyalphabeticParallel

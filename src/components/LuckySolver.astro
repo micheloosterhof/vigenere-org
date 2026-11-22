@@ -91,6 +91,7 @@ import WordSplitToggle from "./WordSplitToggle.astro";
 
   type WorkerMessage =
     | ({ type: "progress" } & PolyalphabeticProgress)
+    | { type: "stage"; cipher: string }
     | { type: "result"; result: AutosolveResult }
     | { type: "error"; message: string };
 
@@ -194,6 +195,8 @@ import WordSplitToggle from "./WordSplitToggle.astro";
               `Trying harder ciphers… attempt ${message.restart} of ${message.restarts}`,
               message.restart / message.restarts,
             );
+          } else if (message.type === "stage") {
+            setProgress(`Trying ${message.cipher}…`);
           } else if (message.type === "result") {
             worker.terminate();
             const solved = message.result;

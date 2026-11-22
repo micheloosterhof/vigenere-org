@@ -911,6 +911,25 @@ for (const [cipher, name, period, grid] of [
   });
 }
 
+test("the home page solver says which slow search it is running", async ({
+  page,
+}) => {
+  // Random symbols with a +, the mark of a Trifid: the search for one starts
+  // and, with nothing to find, runs long enough to see its name.
+  const noise =
+    "SQHUMVTBBUMZAFNPWPHULJMQIWWZQPJKEMYQLTWNTHYURISHPGYTMIVBDOYLOFFRJYVMIF" +
+    "RSEXNSGOCSKKNEWOTSLWZLNAMGNVFEINDJYUDMFPJGOWHFXMEFESP+VKCDVTNICHJCDMHG" +
+    "YSOGWLUTYFUSVNWUBHPKVC+TNUNWIAPHKHOAGRRNH++MSSTBMSQSET+VAAWJBBNDBGYJAK";
+  await page.goto("/");
+  const solver = page.locator("[data-lucky]");
+  await solver.locator("[data-input]").fill(noise);
+  await solver.locator("[data-solve]").click();
+  await expect(solver.locator("[data-progress-text]")).toHaveText(
+    "Trying Trifid…",
+    { timeout: 30_000 },
+  );
+});
+
 test("the stop button ends an annealing search and keeps the best attempt", async ({
   page,
 }) => {

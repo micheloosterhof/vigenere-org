@@ -160,6 +160,8 @@ interface Options {
   /** Keyword list enabling the Quagmire dictionary attack. */
   words?: string[];
   onProgress?: (progress: PolyalphabeticProgress) => void;
+  /** Called with the cipher each slow search is for, as the search starts. */
+  onStage?: (cipher: string) => void;
   /** Runs the polyalphabetic fallback; defaults to the sequential solver on this thread. */
   solvePolyalphabetic?: PolyalphabeticSolver;
   /** Runs the Quagmire letter-set scan; defaults to the sequential solver on this thread. */
@@ -471,6 +473,7 @@ export async function autosolve(
       options.solvePlayfair ??
       (async (t, tb) =>
         breakPlayfair(t, tb, { rng: options.rng ?? Math.random }));
+    options.onStage?.("Playfair");
     const solved = await solve(text, table);
     if (solved.english) {
       add(
@@ -504,6 +507,7 @@ export async function autosolve(
     diagnostics.likelyFamily !== "transposition" &&
     !/j/i.test(text)
   ) {
+    options.onStage?.("Bifid");
     const solved = await fractionation("bifid", text, table);
     if (solved.english) {
       add(
@@ -536,6 +540,7 @@ export async function autosolve(
     meetsRequirements(FRACTIONATION_REQUIREMENTS, shape) &&
     text.includes(TRIFID_EXTRA)
   ) {
+    options.onStage?.("Trifid");
     const solved = await fractionation("trifid", text, table);
     if (solved.english) {
       add(
@@ -582,6 +587,7 @@ export async function autosolve(
   // The keyword dictionary attack covers the Quagmire family on far shorter
   // text than the general attack, and is much cheaper, so it goes first.
   if (options.words !== undefined && !readable()) {
+    options.onStage?.("Quagmire");
     const dictionary = breakQuagmireDictionary(text, options.words, table);
     if (dictionary.found) {
       pushQuagmire(dictionary);
@@ -664,6 +670,7 @@ export async function autosolve(
       : [jointShifts, letterSets];
   for (const search of searches) {
     if (period > 1 && !readable()) {
+      options.onStage?.("Quagmire");
       await search();
     }
   }
@@ -678,6 +685,7 @@ export async function autosolve(
     const solve: QuagmireIvSolver =
       options.solveQuagmireIv ??
       (async (t, tb, o) => breakQuagmireIv(t, tb, { ...o, rng: options.rng }));
+    options.onStage?.("Quagmire IV");
     const solved = await solve(text, table, {});
     if (solved.found) {
       add({
