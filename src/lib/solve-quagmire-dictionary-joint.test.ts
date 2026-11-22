@@ -5,7 +5,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
-import { breakQuagmireDictionaryJoint } from "./solve-quagmire-dictionary-joint";
+import {
+  breakQuagmireDictionaryJoint,
+  distinctAlphabets,
+  finishJoint,
+  jointPeriods,
+  scanJointCandidates,
+} from "./solve-quagmire-dictionary-joint";
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -96,5 +102,38 @@ describe("breakQuagmireDictionaryJoint", () => {
 
   it("throws on text with too few letters", () => {
     expect(() => breakQuagmireDictionaryJoint("ABC", WORDS, TABLE)).toThrow();
+  });
+});
+
+describe("the joint attack in parts", () => {
+  it(
+    "gives the same answer when the alphabets are scanned in separate parts",
+    { timeout: 120000 },
+    () => {
+      const words = [...WORDS.filter((_, i) => i % 60 === 0), "KRYPTOS"];
+      const whole = breakQuagmireDictionaryJoint(KRYPTOS_K1, words, TABLE, {
+        period: 10,
+        rng: seededRng(6),
+      });
+      const periods = jointPeriods(KRYPTOS_K1.length, { period: 10 });
+      const alphabets = distinctAlphabets(words);
+      const candidates = [0, 1, 2].flatMap((part) =>
+        scanJointCandidates(
+          KRYPTOS_K1,
+          alphabets.filter((_, i) => i % 3 === part),
+          periods,
+        ),
+      );
+      const joined = finishJoint(KRYPTOS_K1, candidates, TABLE, {
+        rng: seededRng(6),
+      });
+      expect(joined.keyword).toBe("KRYPTOS");
+      expect(joined).toEqual(whole);
+    },
+  );
+
+  it("lists every period that leaves few letters per column", () => {
+    expect(jointPeriods(63, {})).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(jointPeriods(63, { period: 10 })).toEqual([10]);
   });
 });

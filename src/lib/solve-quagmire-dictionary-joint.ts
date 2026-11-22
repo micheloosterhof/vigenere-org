@@ -57,7 +57,8 @@ interface Options {
   onProgress?: (done: number, total: number) => void;
 }
 
-interface Candidate {
+/** A keyword, variant and period with its score: what the word scan hands on. */
+export interface JointCandidate {
   word: string;
   variant: DictionaryVariant;
   period: number;
@@ -65,7 +66,7 @@ interface Candidate {
 }
 
 /** A candidate with a shift for each column. */
-interface Shifted extends Candidate {
+interface Shifted extends JointCandidate {
   shifts: number[];
 }
 
@@ -79,7 +80,7 @@ function planFor(word: string, variant: DictionaryVariant): VariantPlan {
  * One word per alphabet: words with the same letters in the same first-seen
  * order build the same alphabet, and the shortest is the keyword as written.
  */
-function distinctAlphabets(words: string[]): string[] {
+export function distinctAlphabets(words: string[]): string[] {
   const shortest = new Map<string, string>();
   for (const word of words) {
     const letters = [...new Set(word.toUpperCase())].join("");
@@ -92,7 +93,7 @@ function distinctAlphabets(words: string[]): string[] {
 }
 
 /** The `keep` best-scoring candidates, best first. */
-function best<T extends Candidate>(candidates: T[], keep: number): T[] {
+function best<T extends JointCandidate>(candidates: T[], keep: number): T[] {
   return candidates.sort((a, b) => b.score - a.score).slice(0, keep);
 }
 
@@ -112,12 +113,24 @@ export function breakQuagmireDictionaryJoint(
   table: Uint8Array,
   options: Options = {},
 ): QuagmireDictionaryResult {
-  const cipher = toLetterValues(text);
-  const length = cipher.length;
+  const periods = jointPeriods(toLetterValues(text).length, options);
+  const candidates = scanJointCandidates(
+    text,
+    distinctAlphabets(words),
+    periods,
+    options.onProgress,
+  );
+  return finishJoint(text, candidates, table, options);
+}
+
+/** The key lengths the attack tries on a text of `length` letters; throws when there are none. */
+export function jointPeriods(
+  length: number,
+  options: Pick<Options, "period" | "maxPeriod">,
+): number[] {
   if (length < MIN_LENGTH) {
     throw new Error(`text must contain at least ${MIN_LENGTH} letters`);
   }
-  const rng = options.rng ?? Math.random;
   const longest = Math.max(
     1,
     Math.min(options.maxPeriod ?? MAX_PERIOD, Math.floor(length / 3)),
@@ -137,41 +150,76 @@ export function breakQuagmireDictionaryJoint(
       `text is too long: every key length up to ${longest} leaves ${MAX_PER_COLUMN} or more letters per column`,
     );
   }
+  return periods;
+}
 
-  // Stage 1: chain score of every alphabet, variant, and period.
-  const byPeriod: Candidate[][] = [];
+/**
+ * Stage 1, the word scan: the chain score of every keyword in `alphabets`
+ * (one word per alphabet) at every variant and period. Returns the best of
+ * each period. The list can be scanned in parts: the best of the whole list
+ * are among the best of its parts.
+ */
+export function scanJointCandidates(
+  text: string,
+  alphabets: string[],
+  periods: number[],
+  onProgress?: (done: number, total: number) => void,
+): JointCandidate[] {
+  const cipher = toLetterValues(text);
+  const length = cipher.length;
+  const byPeriod = new Map<number, JointCandidate[]>();
   for (const period of periods) {
-    byPeriod[period] = [];
+    byPeriod.set(period, []);
   }
-  const alphabets = new Set(distinctAlphabets(words));
-  words.forEach((word, wordCount) => {
-    if (alphabets.has(word)) {
-      const alphabet = mixedAlphabet(word);
-      for (const plan of variantPlans(alphabet, inverseAlphabet(alphabet))) {
-        const shifted = shiftTable(cipher, plan.input, plan.output);
-        for (const period of periods) {
-          byPeriod[period].push({
-            word,
-            variant: plan.variant,
-            period,
-            score: chainScore(shifted, length, period),
-          });
-        }
+  alphabets.forEach((word, wordCount) => {
+    const alphabet = mixedAlphabet(word);
+    for (const plan of variantPlans(alphabet, inverseAlphabet(alphabet))) {
+      const shifted = shiftTable(cipher, plan.input, plan.output);
+      for (const [period, candidates] of byPeriod) {
+        candidates.push({
+          word,
+          variant: plan.variant,
+          period,
+          score: chainScore(shifted, length, period),
+        });
       }
     }
     if (
       (wordCount + 1) % PROGRESS_EVERY === 0 ||
-      wordCount + 1 === words.length
+      wordCount + 1 === alphabets.length
     ) {
-      options.onProgress?.(wordCount + 1, words.length);
+      onProgress?.(wordCount + 1, alphabets.length);
     }
   });
+  return [...byPeriod.values()].flatMap((candidates) =>
+    best(candidates, CHAIN_KEEP),
+  );
+}
+
+/**
+ * Stages 2 to 4: from the word scan's candidates to the answer. The exact
+ * ring solution re-ranks each period's shortlist, a climb on quadgram score
+ * ranks the survivors of all periods, and annealing decides among the best.
+ */
+export function finishJoint(
+  text: string,
+  candidates: JointCandidate[],
+  table: Uint8Array,
+  options: Pick<Options, "rng"> = {},
+): QuagmireDictionaryResult {
+  const cipher = toLetterValues(text);
+  const length = cipher.length;
+  const rng = options.rng ?? Math.random;
+  const periods = [...new Set(candidates.map((candidate) => candidate.period))];
 
   // Stage 2: the exact ring solution re-ranks each period's shortlist and
   // gives every survivor its shifts to start from.
   const survivors: Shifted[] = [];
   for (const period of periods) {
-    const ring = best(byPeriod[period], CHAIN_KEEP).map((candidate) => {
+    const ring = best(
+      candidates.filter((candidate) => candidate.period === period),
+      CHAIN_KEEP,
+    ).map((candidate) => {
       const plan = planFor(candidate.word, candidate.variant);
       const shifted = shiftTable(cipher, plan.input, plan.output);
       const { score, shifts } = ringShifts(shifted, length, period);
@@ -189,7 +237,7 @@ export function breakQuagmireDictionaryJoint(
     }
     return quadgramRaw(plain, length, table);
   };
-  const tableOf = (candidate: Candidate): Uint8Array => {
+  const tableOf = (candidate: JointCandidate): Uint8Array => {
     const plan = planFor(candidate.word, candidate.variant);
     return shiftTable(cipher, plan.input, plan.output);
   };
