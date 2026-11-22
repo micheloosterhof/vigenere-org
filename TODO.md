@@ -35,8 +35,9 @@
   (`bench/results/fractionation-periods.tsv`). Six finalists would make
   that 256 and 250, at half as much time again on a text that cannot be
   solved.
-- The joint-shift Quagmire dictionary attack runs on one thread (20 to 40
-  seconds); its word scan could be shared among workers.
+- The joint-shift Quagmire dictionary attack shares its word scan among
+  workers, but the stages after it still run on one thread (about 7 of 23
+  seconds on Kryptos K1, most of it annealing the 60 finalists).
 - The statistical Quagmire III solver misses the shared alphabet when every
   shift is even (4 of 93 right decryptions in
   `bench/results/quagmire-shared-alphabet.tsv`, all at periods 3 and 5): the

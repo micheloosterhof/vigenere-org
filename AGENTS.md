@@ -27,10 +27,12 @@ building the commit CI tested), or on a manual run.
   - `anneal.ts` — simulated annealing core (linear cooling to zero or to an
     end temperature, early exit at a target score, seeded rng) plus quadgram
     scoring that skips non-letters.
-  - `solve-fractionation.ts` — Bifid/Trifid breaker: a pair index of
-    coincidence ranks the periods, then the square or cube is annealed in
-    rounds: short runs at every period first, runs three and ten times as
-    long when those find nothing (some texts fail every short run).
+  - `solve-fractionation.ts` — Bifid/Trifid breaker: the periods are
+    ranked by how many more pairs repeat than chance at the distances where
+    coordinates of one plaintext symbol meet, then the square or cube is
+    annealed in rounds: short runs at every period first, runs three and
+    ten times as long when those find nothing (some texts fail every short
+    run).
     Needs 100+ letters (refused below: random text overfits toward English).
   - `solve-double-transposition.ts` — anneals both column orders at given
     key lengths, then tries all cyclic column rotations (a rotated
@@ -48,6 +50,9 @@ building the commit CI tested), or on a manual run.
     best period first), run on a pool of workers that stops at the first
     English decryption or on Stop.
     Settings (iterations, restarts, temperature) were chosen by benchmark.
+    A Bifid or Trifid run that reaches English climbs on by exchanging two
+    cells (`climbBySwaps` in `anneal.ts`), which puts the last symbols in
+    place.
     The pool itself is `job-pool.ts` (jobs dealt in order to up to 8
     workers) with `job-worker.ts` as its worker side; both take any job
     type.
@@ -71,7 +76,9 @@ building the commit CI tested), or on a manual run.
     solved together by dynamic programming on bigrams (open chain to
     shortlist, exact ring to re-rank), then annealed on quadgrams. Runs
     after the per-column pass in the quagmire worker and the auto-solver,
-    on periods with under 32 letters per column.
+    on periods with under 32 letters per column. The word scan, its larger
+    part, is shared among workers (`joint-shifts-pool.ts` /
+    `joint-shifts.worker.ts`); the later stages run on the calling thread.
   - `quagmire-letter-sets.ts` / `solve-quagmire-letter-sets.ts` — Quagmire
     I-III without a word list: scores which letters form the keyword (the
     rest of the alphabet follows in order, so the set alone places them).
