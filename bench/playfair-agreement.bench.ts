@@ -29,7 +29,16 @@ import {
 const KINDS = ["hard", "easy", "noise", "bifid"] as const;
 type Kind = (typeof KINDS)[number];
 
-const TEXTS: Record<Kind, number> = { hard: 6, easy: 3, noise: 4, bifid: 3 };
+// Texts of each kind by length. Most are under 125 letters, where the bar
+// for English is stricter and many true plaintexts score under it. A Bifid
+// ciphertext is as long as its plaintext, so only an even length can have
+// the marks; at 150 letters one with the marks is too rare to wait for.
+const TEXTS: Record<Kind, Record<number, number>> = {
+  hard: { 100: 50, 110: 50, 125: 6, 150: 6 },
+  easy: { 100: 50, 110: 50, 125: 3, 150: 3 },
+  noise: { 100: 25, 110: 25, 125: 4, 150: 4 },
+  bifid: { 100: 25, 110: 25 },
+};
 
 interface Trial {
   kind: Kind;
@@ -39,12 +48,9 @@ interface Trial {
 
 const trials: Trial[] = [];
 for (const kind of KINDS) {
-  // A Bifid ciphertext is as long as its plaintext, so only an even length
-  // can have the marks; at 150 letters one with the marks is too rare to
-  // wait for.
-  for (const letters of kind === "bifid" ? [100, 110] : [100, 110, 125, 150]) {
-    for (let repeat = 0; repeat < TEXTS[kind]; repeat += 1) {
-      trials.push({ kind, letters, repeat });
+  for (const [letters, texts] of Object.entries(TEXTS[kind])) {
+    for (let repeat = 0; repeat < texts; repeat += 1) {
+      trials.push({ kind, letters: Number(letters), repeat });
     }
   }
 }
