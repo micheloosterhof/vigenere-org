@@ -62,7 +62,11 @@ export interface AnnealRound {
  * bench/results/fractionation-jobs.tsv most texts fall to a short run, but
  * some fail every short run and fall to one three or ten times as long. So
  * the short runs come first and the longer rounds follow only when they find
- * nothing.
+ * nothing. The finalists are the best-ranked periods, which are the ones
+ * annealed: in bench/results/fractionation-periods.tsv the true Bifid period
+ * is among the first three in 253 of 260 texts of 150 letters and in all of
+ * 200 or more, and the true Trifid period among the first four in 211 of 260
+ * texts of 150 letters, 231 of 200, 254 of 300 and all of 400.
  */
 export const RUN_SETTINGS: Record<
   FractionationCipher,
@@ -247,10 +251,13 @@ function problemFor(
 }
 
 /**
- * How strongly a period shows in the ciphertext. Within a block of period p,
- * ciphertext symbols about p/2 apart (Bifid) or p/3 apart (Trifid) carry the
- * coordinates of the same plaintext symbols, so at the true period those
- * pairs repeat like English digraphs: their index of coincidence is high.
+ * How strongly a period shows in the ciphertext. A block of period p is
+ * read off as the first coordinates of its symbols, then the second (then
+ * the third, for Trifid). So ciphertext symbols about p/2 apart (Bifid), or
+ * about p/3 and 2p/3 apart (Trifid), carry coordinates of the same plaintext
+ * symbols, and at the true period such pairs repeat more often than chance.
+ * The score adds up, over those distances, how many standard deviations the
+ * number of repeated pairs lies above what independent symbols would give.
  */
 export function periodScore(
   values: ArrayLike<number>,
@@ -259,8 +266,22 @@ export function periodScore(
 ): number {
   const n = values.length;
   const p = period === 0 ? n : period;
-  let best = 0;
-  for (const distance of [Math.floor(p / digits), Math.ceil(p / digits)]) {
+  // The chance that two pairs of independent symbols are the same pair.
+  const symbolCounts = new Map<number, number>();
+  for (let i = 0; i < n; i += 1) {
+    symbolCounts.set(values[i], (symbolCounts.get(values[i]) ?? 0) + 1);
+  }
+  const chance = repeatRate(symbolCounts.values(), n) ** 2;
+  if (chance === 0) {
+    return 0;
+  }
+  const distances = new Set<number>();
+  for (let part = 1; part < digits; part += 1) {
+    distances.add(Math.floor((part * p) / digits));
+    distances.add(Math.ceil((part * p) / digits));
+  }
+  let score = 0;
+  for (const distance of distances) {
     if (distance < 1 || distance >= p) {
       continue;
     }
@@ -276,13 +297,20 @@ export function periodScore(
     if (total < 2) {
       continue;
     }
-    let coincidences = 0;
-    for (const count of counts.values()) {
-      coincidences += count * (count - 1);
-    }
-    best = Math.max(best, coincidences / (total * (total - 1)));
+    score +=
+      ((repeatRate(counts.values(), total) - chance) * total) /
+      Math.sqrt(2 * chance);
   }
-  return best;
+  return score;
+}
+
+/** The chance that two of `total` items drawn without replacement are the same, given how often each occurs. */
+function repeatRate(counts: Iterable<number>, total: number): number {
+  let coincidences = 0;
+  for (const count of counts) {
+    coincidences += count * (count - 1);
+  }
+  return coincidences / (total * (total - 1));
 }
 
 // Correct decryptions score about -4.3 in average quadgram log10. Wrong ones

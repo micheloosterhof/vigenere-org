@@ -53,9 +53,11 @@ describe("rankPeriods", () => {
   });
 
   it("keeps the true Trifid period among the finalists", () => {
-    for (const period of [5, 7, 9]) {
+    for (let period = 3; period <= 15; period += 1) {
       const ciphertext = trifid(LETTERS, "KEYWORD", period, "encrypt");
-      expect(rankPeriods("trifid", ciphertext)).toContain(period);
+      expect(rankPeriods("trifid", ciphertext), `period ${period}`).toContain(
+        period,
+      );
     }
   });
 
