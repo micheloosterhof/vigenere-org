@@ -2,6 +2,7 @@
 // ABOUTME: Stops the whole pool as soon as one worker's decryption reads as English.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
+import { dealOut } from "./job-pool";
 import { toLetterValues } from "./solve";
 import type { QuagmireDictionaryResult } from "./solve-quagmire-dictionary";
 import {
@@ -38,21 +39,6 @@ export type LetterSetsSolver = (
 ) => Promise<QuagmireDictionaryResult>;
 
 /**
- * Deals the periods, likeliest first, out to at most `parts` workers in turn,
- * so every worker starts on one of the likeliest periods.
- */
-export function sharePeriods(periods: number[], parts: number): number[][] {
-  const shares: number[][] = Array.from(
-    { length: Math.min(parts, periods.length) },
-    () => [],
-  );
-  periods.forEach((period, i) => {
-    shares[i % shares.length].push(period);
-  });
-  return shares;
-}
-
-/**
  * The letter-set scan with its periods spread over as many workers as the
  * machine has cores (capped). Progress is the number of steps finished across
  * the pool; the result is the first decryption that reads as English, or the
@@ -66,7 +52,8 @@ export const breakQuagmireLetterSetsParallel: LetterSetsSolver = (
   new Promise((resolve, reject) => {
     const periods = options.periods ?? letterSetPeriods(toLetterValues(text));
     const cores = navigator.hardwareConcurrency ?? 2;
-    const shares = sharePeriods(periods, Math.min(cores, MAX_WORKERS));
+    // The periods come likeliest first, so every worker starts on a likely one.
+    const shares = dealOut(periods, Math.min(cores, MAX_WORKERS));
     if (shares.length === 0) {
       reject(new Error("text is too short for any key length"));
       return;

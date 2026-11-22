@@ -6,6 +6,21 @@
 // More workers than this copy the quadgram table around for little gain.
 const MAX_WORKERS = 8;
 
+/**
+ * Deals the items out to at most `parts` shares in turn, so with the
+ * likeliest items first every share starts on one of them.
+ */
+export function dealOut<T>(items: T[], parts: number): T[][] {
+  const shares: T[][] = Array.from(
+    { length: Math.min(parts, items.length) },
+    () => [],
+  );
+  items.forEach((item, i) => {
+    shares[i % shares.length].push(item);
+  });
+  return shares;
+}
+
 /** What the pool needs to know of a job's result. */
 export interface JobResult {
   /** True when the decryption reads as English: the pool then stops. */
