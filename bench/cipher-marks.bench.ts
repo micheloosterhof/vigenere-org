@@ -1,5 +1,5 @@
-// ABOUTME: Benchmark of the Playfair signature (even length, no J, no pair of equal letters) on ciphertexts of other ciphers.
-// ABOUTME: The share of other texts that pass says how often the auto-solver would try the Playfair search for nothing.
+// ABOUTME: Benchmark of the marks the auto-solver knows Playfair, Bifid and Trifid ciphertext by, on texts of those and of other ciphers.
+// ABOUTME: The share of other texts with a cipher's marks says how often the auto-solver would run its slow search for nothing.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { it } from "vitest";
@@ -9,6 +9,7 @@ import { substitution, vigenere } from "../src/lib/cipher";
 import { analyze } from "../src/lib/diagnostics";
 import { playfair } from "../src/lib/playfair";
 import { couldBePlayfair } from "../src/lib/solve-playfair";
+import { trifid } from "../src/lib/trifid";
 import {
   englishFitness,
   ownTrials,
@@ -24,6 +25,7 @@ const KINDS = [
   "vigenere",
   "substitution",
   "bifid",
+  "trifid",
   "transposition",
   "random",
 ] as const;
@@ -43,7 +45,7 @@ for (const kind of KINDS) {
   }
 }
 
-it("playfair signature on other ciphers", () => {
+it("marks of Playfair, Bifid and Trifid by cipher", () => {
   for (const { kind, letters, repeat } of ownTrials(trials)) {
     const rng = seededRng(
       KINDS.indexOf(kind) * 10000000 + letters * 1000 + repeat,
@@ -66,6 +68,8 @@ it("playfair signature on other ciphers", () => {
       ciphertext = substitution(plain, alphabet, "encrypt");
     } else if (kind === "bifid") {
       ciphertext = bifid(plain, randomKey(10, rng), 7, "encrypt");
+    } else if (kind === "trifid") {
+      ciphertext = trifid(plain, randomKey(10, rng), 7, "encrypt");
     } else if (kind === "transposition") {
       // The letters of the plaintext in another order.
       ciphertext = shuffledLetters(plain, rng);
@@ -74,11 +78,16 @@ it("playfair signature on other ciphers", () => {
     }
     const diagnostics = analyze(ciphertext);
     const fitness = padded === "" ? null : englishFitness(padded);
-    record("playfair-signature", {
+    record("cipher-marks", {
       kind,
       letters,
       repeat,
-      signature: couldBePlayfair(ciphertext) ? 1 : 0,
+      // Playfair: an even number of letters, no J, no pair of equal letters.
+      playfairMarks: couldBePlayfair(ciphertext) ? 1 : 0,
+      // Bifid: no J.
+      noJ: ciphertext.includes("J") ? 0 : 1,
+      // Trifid: the 27th symbol of its cube.
+      plus: ciphertext.includes("+") ? 1 : 0,
       period: diagnostics.period,
       family: diagnostics.likelyFamily,
       // How English the true Playfair plaintext reads with its fillers.

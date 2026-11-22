@@ -18,8 +18,7 @@
   ending on the same square would be a better sign of the right key than
   the score alone. Of 200 true plaintexts of 100 letters, 50 score under
   that bar themselves, and 5 of 200 of 150 letters score under -4.7
-  (`bench/results/playfair-signature.tsv`), so the score cannot flag them
-  at all.
+  (`bench/results/cipher-marks.tsv`), so the score cannot flag them at all.
 - Random-forest cipher classifier: Playfair and both transpositions now exist,
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the
