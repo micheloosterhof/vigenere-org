@@ -3,7 +3,10 @@
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import { autosolve } from "./autosolve";
-import { breakPlayfairParallel } from "./anneal-pool";
+import {
+  breakFractionationParallel,
+  breakPlayfairParallel,
+} from "./anneal-pool";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
 import {
@@ -38,6 +41,9 @@ scope.onmessage = async (event) => {
         : undefined,
       solveQuagmireIv: canSpawnWorkers() ? breakQuagmireIvParallel : undefined,
       solvePlayfair: canSpawnWorkers() ? breakPlayfairParallel : undefined,
+      solveFractionation: canSpawnWorkers()
+        ? breakFractionationParallel
+        : undefined,
     });
     scope.postMessage({ type: "result", result });
   } catch (cause) {

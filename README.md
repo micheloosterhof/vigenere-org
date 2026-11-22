@@ -19,6 +19,10 @@ no message text ever leaves the page.
   a solver that recovers the square by simulated annealing. The auto-solver
   runs it on text with the marks of a Playfair (even length, no J, no pair
   of equal letters).
+- **Bifid and Trifid**: Delastelle's fractionating ciphers over a 5×5
+  square and a 27-symbol cube, with a solver that ranks the periods and
+  recovers the square or cube by simulated annealing. The auto-solver runs
+  it on text with the marks of the cipher (no J for Bifid, a + for Trifid).
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts

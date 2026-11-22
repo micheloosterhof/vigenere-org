@@ -111,6 +111,11 @@ building the commit CI tested), or on a manual run.
     English on bigrams and on quadgrams (at the solver's own bar) and the
     text meets the solver's floor. Read attempts rank first, then those on
     enough text, then the rest; `solved` says whether the best one reads.
+    The Playfair, Bifid and Trifid searches are slow to give up, so each
+    runs only on text with the marks of its cipher (Playfair: even length,
+    no J, no pair of equal letters; Bifid: no J and no English letter
+    frequencies; Trifid: a "+"), before the slow periodic searches.
+    `bench/results/cipher-marks.tsv` counts how often other text has them.
   - `*.worker.ts` — Web Worker wrappers for the slow solvers.
   - `data/` — generated English n-gram tables (bigrams inline; quadgrams
     as `public/data/english-quadgrams.bin`, quantized to bytes, lazily

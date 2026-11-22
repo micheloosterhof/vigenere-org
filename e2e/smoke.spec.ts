@@ -876,6 +876,41 @@ test("the home page solver recognises a Playfair and recovers its square", async
   expect(same / padded.length).toBeGreaterThan(0.9);
 });
 
+for (const [cipher, name, period, grid] of [
+  ["bifid", "Bifid", 6, "square"],
+  ["trifid", "Trifid", 5, "cube"],
+] as const) {
+  test(`the home page solver recognises a ${name} and recovers its ${grid} and period`, async ({
+    page,
+  }) => {
+    test.setTimeout(400_000);
+    await page.goto(
+      `/${cipher}/?text=${ORWELL}&key=SECRETKEYWORD&period=${period}&mode=encrypt`,
+    );
+    const ciphertext = await page
+      .locator(`[data-cipher=${cipher}] [data-output]`)
+      .inputValue();
+    expect(ciphertext).not.toBe(ORWELL);
+
+    await page.goto("/");
+    const solver = page.locator("[data-lucky]");
+    await solver.locator("[data-input]").fill(ciphertext);
+    await solver.locator("[data-solve]").click();
+    await expect(solver.locator("[data-summary]")).toContainText(
+      new RegExp(`${name} cipher \\(${grid} [A-Z+]+, period ${period}\\)`),
+      { timeout: 340_000 },
+    );
+    const recovered = await solver.locator("[data-output]").inputValue();
+    let same = 0;
+    for (let i = 0; i < ORWELL.length; i += 1) {
+      if (recovered[i] === ORWELL[i]) {
+        same += 1;
+      }
+    }
+    expect(same / ORWELL.length).toBeGreaterThan(0.9);
+  });
+}
+
 test("the stop button ends an annealing search and keeps the best attempt", async ({
   page,
 }) => {

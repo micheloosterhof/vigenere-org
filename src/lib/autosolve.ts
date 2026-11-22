@@ -49,7 +49,12 @@ import {
   couldBePlayfair,
   PLAYFAIR_REQUIREMENTS,
 } from "./solve-playfair";
-import type { PlayfairSolver } from "./anneal-pool";
+import {
+  breakFractionation,
+  FRACTIONATION_REQUIREMENTS,
+} from "./solve-fractionation";
+import type { FractionationSolver, PlayfairSolver } from "./anneal-pool";
+import { TRIFID_EXTRA } from "./trifid";
 import {
   SUBSTITUTION_REQUIREMENTS,
   breakSubstitution,
@@ -109,6 +114,8 @@ const COMPLEXITY: Record<string, number> = {
   "Ciphertext autokey": 2,
   "Plaintext autokey": 3,
   Polyalphabetic: 3,
+  Bifid: 3,
+  Trifid: 3,
 };
 
 export interface Attempt {
@@ -161,6 +168,8 @@ interface Options {
   solveQuagmireIv?: QuagmireIvSolver;
   /** Runs the Playfair search; defaults to the sequential solver on this thread. */
   solvePlayfair?: PlayfairSolver;
+  /** Runs the Bifid and Trifid searches; defaults to the sequential solver on this thread. */
+  solveFractionation?: FractionationSolver;
 }
 
 const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
@@ -449,9 +458,9 @@ export async function autosolve(
 
   // The Playfair search takes up to a minute to give up, so it runs only on
   // text with the marks of the cipher: pairs that never hold a letter twice,
-  // and no J. Of 1000 texts of other ciphers with an even number of letters,
-  // 44 have them at 100 letters, 3 at 200 and none at 300
-  // (bench/results/playfair-signature.tsv). The statistics call half of all
+  // and no J. Of 1200 texts of other ciphers with an even number of letters,
+  // 46 have them at 100 letters, 3 at 200 and none at 300
+  // (bench/results/cipher-marks.tsv). The statistics call half of all
   // Playfair texts periodic, so the search goes before the slow periodic ones.
   if (
     !readable() &&
@@ -473,6 +482,79 @@ export async function autosolve(
           href: deepLink("playfair", text, [["key", solved.key]], "decrypt"),
         },
         PLAYFAIR_REQUIREMENTS,
+      );
+    }
+  }
+
+  const fractionation: FractionationSolver =
+    options.solveFractionation ??
+    (async (cipher, t, tb) =>
+      breakFractionation(cipher, t, tb, { rng: options.rng ?? Math.random }));
+
+  // Bifid works on a square without J, so its ciphertext has none. Text with
+  // English letter frequencies is left out: it mostly has no J either, and
+  // only 10 of 1000 Bifid texts keep those frequencies. Of 800 texts of
+  // Vigenère, Trifid, transposition and random letters, 24 pass at 100
+  // letters, 5 at 150 and 2 at 200 (bench/results/cipher-marks.tsv). The
+  // statistics call most Bifid texts periodic, so the search goes before the
+  // slow periodic ones.
+  if (
+    !readable() &&
+    meetsRequirements(FRACTIONATION_REQUIREMENTS, shape) &&
+    diagnostics.likelyFamily !== "transposition" &&
+    !/j/i.test(text)
+  ) {
+    const solved = await fractionation("bifid", text, table);
+    if (solved.english) {
+      add(
+        {
+          cipher: "Bifid",
+          keyLabel: `square ${solved.key}, period ${solved.period}`,
+          fitness: scoreText(solved.plaintext),
+          plaintext: solved.plaintext,
+          href: deepLink(
+            "bifid",
+            text,
+            [
+              ["key", solved.key],
+              ["period", String(solved.period)],
+            ],
+            "decrypt",
+          ),
+        },
+        FRACTIONATION_REQUIREMENTS,
+      );
+    }
+  }
+
+  // Trifid works on a cube of 27 symbols, the alphabet and "+", so only its
+  // ciphertext holds a "+" among the letters: 199 of 200 Trifid texts of 300
+  // letters have one, and no text of another cipher
+  // (bench/results/cipher-marks.tsv). The search takes a minute to give up.
+  if (
+    !readable() &&
+    meetsRequirements(FRACTIONATION_REQUIREMENTS, shape) &&
+    text.includes(TRIFID_EXTRA)
+  ) {
+    const solved = await fractionation("trifid", text, table);
+    if (solved.english) {
+      add(
+        {
+          cipher: "Trifid",
+          keyLabel: `cube ${solved.key}, period ${solved.period}`,
+          fitness: scoreText(solved.plaintext),
+          plaintext: solved.plaintext,
+          href: deepLink(
+            "trifid",
+            text,
+            [
+              ["key", solved.key],
+              ["period", String(solved.period)],
+            ],
+            "decrypt",
+          ),
+        },
+        FRACTIONATION_REQUIREMENTS,
       );
     }
   }

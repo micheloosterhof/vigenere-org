@@ -19,8 +19,11 @@ import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
 import { quagmire } from "./quagmire";
 import { playfair } from "./playfair";
+import { bifid } from "./bifid";
+import { trifid } from "./trifid";
 import { autosolve } from "./autosolve";
 import type { LetterSetsSolver } from "./letter-sets-pool";
+import { breakFractionation } from "./solve-fractionation";
 import { breakPlayfair } from "./solve-playfair";
 import { breakPolyalphabetic } from "./solve-polyalphabetic";
 import { breakQuagmireIv } from "./solve-quagmire-iv";
@@ -504,23 +507,127 @@ describe("autosolve", () => {
     );
 
     it(
-      "leaves the Playfair search out when a pair of equal letters rules the cipher out",
+      "leaves out the Playfair, Bifid and Trifid searches on text with a J and no +",
       { timeout: 120000 },
       async () => {
         const rng = mulberry32(17);
-        let calls = 0;
-        const result = await autosolve(ciphertext + "AA", TABLE, {
+        const calls: string[] = [];
+        const result = await autosolve(ciphertext + "JJ", TABLE, {
           rng,
           solvePlayfair: async (text, table) => {
-            calls += 1;
+            calls.push("playfair");
             return breakPlayfair(text, table, { rng });
+          },
+          solveFractionation: async (cipher, text, table) => {
+            calls.push(cipher);
+            return breakFractionation(cipher, text, table, { rng });
           },
         });
         // A text the statistics call periodic would go on to searches that
         // take minutes to give up.
         expect(result.period).toBe(1);
-        expect(calls).toBe(0);
+        expect(calls).toEqual([]);
         expect(result.solved).toBe(false);
+      },
+    );
+  });
+
+  describe("on a Bifid", () => {
+    const ciphertext = bifid(PLAIN, "MONARCHY", 7, "encrypt");
+    const letters = bifid(ciphertext, "MONARCHY", 7, "decrypt");
+
+    it(
+      "recovers a square and the period and links to the tool with them filled in",
+      { timeout: 120000 },
+      async () => {
+        const result = await autosolve(ciphertext, TABLE, {
+          rng: mulberry32(18),
+        });
+        expect(result.best.cipher).toBe("Bifid");
+        // Bifid has 120 squares that encipher alike, so the one found need
+        // not be the keyword's own.
+        const [, square] =
+          /^square ([A-Z]{25}), period 7$/.exec(result.best.keyLabel) ?? [];
+        expect(square).toBeDefined();
+        expect(result.best.plaintext).toBe(letters);
+        expect(bifid(ciphertext, square, 7, "decrypt")).toBe(letters);
+        expect(result.best.href).toBe(
+          `/bifid/?text=${ciphertext}&key=${square}&period=7&mode=decrypt`,
+        );
+        expect(result.solved).toBe(true);
+      },
+    );
+
+    it(
+      "runs the Bifid search through the solver it is given",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(18);
+        const calls: string[] = [];
+        const result = await autosolve(ciphertext, TABLE, {
+          rng,
+          solveFractionation: async (cipher, text, table) => {
+            calls.push(cipher);
+            return breakFractionation(cipher, text, table, { rng });
+          },
+        });
+        expect(calls).toEqual(["bifid"]);
+        expect(result.best.cipher).toBe("Bifid");
+      },
+    );
+  });
+
+  describe("on a Trifid", () => {
+    const ciphertext = trifid(PLAIN, "MONARCHY", 5, "encrypt");
+    const letters = trifid(ciphertext, "MONARCHY", 5, "decrypt");
+
+    it(
+      "recovers a cube and the period and links to the tool with them filled in",
+      { timeout: 120000 },
+      async () => {
+        const result = await autosolve(ciphertext, TABLE, {
+          rng: mulberry32(19),
+        });
+        expect(result.best.cipher).toBe("Trifid");
+        // Trifid has many cubes that encipher alike, so the one found need
+        // not be the keyword's own.
+        const [, cube] =
+          /^cube ([A-Z+]{27}), period 5$/.exec(result.best.keyLabel) ?? [];
+        expect(cube).toBeDefined();
+        // The search stops at the first cube that reads as English, which
+        // can still have a few letters in the wrong cells.
+        let matches = 0;
+        for (let i = 0; i < letters.length; i += 1) {
+          if (result.best.plaintext[i] === letters[i]) {
+            matches += 1;
+          }
+        }
+        expect(matches / letters.length).toBeGreaterThan(0.9);
+        expect(trifid(ciphertext, cube, 5, "decrypt")).toBe(
+          result.best.plaintext,
+        );
+        expect(result.best.href).toBe(
+          `/trifid/?text=${urlText(ciphertext)}&key=${urlText(cube)}&period=5&mode=decrypt`,
+        );
+        expect(result.solved).toBe(true);
+      },
+    );
+
+    it(
+      "runs the Trifid search, and no Bifid search, through the solver it is given",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(19);
+        const calls: string[] = [];
+        const result = await autosolve(ciphertext, TABLE, {
+          rng,
+          solveFractionation: async (cipher, text, table) => {
+            calls.push(cipher);
+            return breakFractionation(cipher, text, table, { rng });
+          },
+        });
+        expect(calls).toEqual(["trifid"]);
+        expect(result.best.cipher).toBe("Trifid");
       },
     );
   });
