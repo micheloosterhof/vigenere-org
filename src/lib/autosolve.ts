@@ -45,6 +45,12 @@ import type { LetterSetsSolver } from "./letter-sets-pool";
 import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import type { QuagmireIvSolver } from "./quagmire-iv-pool";
 import {
+  breakPlayfair,
+  couldBePlayfair,
+  PLAYFAIR_REQUIREMENTS,
+} from "./solve-playfair";
+import type { PlayfairSolver } from "./anneal-pool";
+import {
   SUBSTITUTION_REQUIREMENTS,
   breakSubstitution,
 } from "./solve-substitution";
@@ -95,6 +101,7 @@ const COMPLEXITY: Record<string, number> = {
   Porta: 1,
   "Columnar transposition": 2,
   Substitution: 2,
+  Playfair: 2,
   "Quagmire I": 2,
   "Quagmire II": 2,
   "Quagmire III": 2,
@@ -152,6 +159,8 @@ interface Options {
   solveLetterSets?: LetterSetsSolver;
   /** Runs the Quagmire IV search for two keywords; defaults to the sequential solver on this thread. */
   solveQuagmireIv?: QuagmireIvSolver;
+  /** Runs the Playfair search; defaults to the sequential solver on this thread. */
+  solvePlayfair?: PlayfairSolver;
 }
 
 const QUAGMIRE_NAME: Record<DictionaryVariant, string> = {
@@ -436,6 +445,36 @@ export async function autosolve(
       },
       PLAINTEXT_AUTOKEY_REQUIREMENTS,
     );
+  }
+
+  // The Playfair search takes up to a minute to give up, so it runs only on
+  // text with the marks of the cipher: pairs that never hold a letter twice,
+  // and no J. Of 1000 texts of other ciphers with an even number of letters,
+  // 44 have them at 100 letters, 3 at 200 and none at 300
+  // (bench/results/playfair-signature.tsv). The statistics call half of all
+  // Playfair texts periodic, so the search goes before the slow periodic ones.
+  if (
+    !readable() &&
+    meetsRequirements(PLAYFAIR_REQUIREMENTS, shape) &&
+    couldBePlayfair(text)
+  ) {
+    const solve: PlayfairSolver =
+      options.solvePlayfair ??
+      (async (t, tb) =>
+        breakPlayfair(t, tb, { rng: options.rng ?? Math.random }));
+    const solved = await solve(text, table);
+    if (solved.english) {
+      add(
+        {
+          cipher: "Playfair",
+          keyLabel: `square ${solved.key}`,
+          fitness: scoreText(solved.plaintext),
+          plaintext: solved.plaintext,
+          href: deepLink("playfair", text, [["key", solved.key]], "decrypt"),
+        },
+        PLAYFAIR_REQUIREMENTS,
+      );
+    }
   }
 
   const pushQuagmire = (dictionary: QuagmireDictionaryResult): void => {

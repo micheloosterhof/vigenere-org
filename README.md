@@ -16,7 +16,9 @@ no message text ever leaves the page.
 - **Columnar transposition**: keyword column order, with an exhaustive
   column-order solver up to seven columns.
 - **Playfair**: digraph substitution over a keyword-mixed 5×5 square, with
-  a solver that recovers the square by simulated annealing.
+  a solver that recovers the square by simulated annealing. The auto-solver
+  runs it on text with the marks of a Playfair (even length, no J, no pair
+  of equal letters).
 - **Autokey**: plaintext and ciphertext variants, with a primer-recovery
   solver for both.
 - **Quagmire I–IV**: keyword-mixed alphabets, indicator letter; decrypts

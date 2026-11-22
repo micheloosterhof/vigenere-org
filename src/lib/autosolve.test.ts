@@ -18,8 +18,10 @@ import { routeCipher } from "./route";
 import { railFence } from "./railfence";
 import { columnarTransposition } from "./transposition";
 import { quagmire } from "./quagmire";
+import { playfair } from "./playfair";
 import { autosolve } from "./autosolve";
 import type { LetterSetsSolver } from "./letter-sets-pool";
+import { breakPlayfair } from "./solve-playfair";
 import { breakPolyalphabetic } from "./solve-polyalphabetic";
 import { breakQuagmireIv } from "./solve-quagmire-iv";
 import { breakQuagmireLetterSets } from "./solve-quagmire-letter-sets";
@@ -457,6 +459,68 @@ describe("autosolve", () => {
         });
         expect(calls).toBe(1);
         expect(result.best.cipher).toBe("Quagmire IV");
+      },
+    );
+  });
+
+  describe("on a Playfair", () => {
+    const ciphertext = playfair(PLAIN, "DOCUMENTARY", "encrypt");
+    // What decrypting with the true key gives: the plaintext with its fillers.
+    const padded = playfair(ciphertext, "DOCUMENTARY", "decrypt");
+
+    it(
+      "recovers the square and links to the tool with it filled in",
+      { timeout: 120000 },
+      async () => {
+        const result = await autosolve(ciphertext, TABLE, {
+          rng: mulberry32(17),
+        });
+        expect(result.best.cipher).toBe("Playfair");
+        expect(result.best.keyLabel).toBe("square DOCUMENTARYBFGHIKLPQSVWXZ");
+        expect(result.best.plaintext).toBe(padded);
+        expect(result.best.href).toBe(
+          `/playfair/?text=${ciphertext}&key=DOCUMENTARYBFGHIKLPQSVWXZ&mode=decrypt`,
+        );
+        expect(result.solved).toBe(true);
+      },
+    );
+
+    it(
+      "runs the Playfair search through the solver it is given",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(17);
+        let calls = 0;
+        const result = await autosolve(ciphertext, TABLE, {
+          rng,
+          solvePlayfair: async (text, table) => {
+            calls += 1;
+            return breakPlayfair(text, table, { rng });
+          },
+        });
+        expect(calls).toBe(1);
+        expect(result.best.cipher).toBe("Playfair");
+      },
+    );
+
+    it(
+      "leaves the Playfair search out when a pair of equal letters rules the cipher out",
+      { timeout: 120000 },
+      async () => {
+        const rng = mulberry32(17);
+        let calls = 0;
+        const result = await autosolve(ciphertext + "AA", TABLE, {
+          rng,
+          solvePlayfair: async (text, table) => {
+            calls += 1;
+            return breakPlayfair(text, table, { rng });
+          },
+        });
+        // A text the statistics call periodic would go on to searches that
+        // take minutes to give up.
+        expect(result.period).toBe(1);
+        expect(calls).toBe(0);
+        expect(result.solved).toBe(false);
       },
     );
   });

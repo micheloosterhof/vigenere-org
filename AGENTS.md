@@ -40,7 +40,9 @@ building the commit CI tested), or on a manual run.
     run takes the same time at any length); a run that reaches English is
     cooled from the square it found and settled by a climb. The bar for
     English is stricter under 125 letters, where a wrong square can read
-    nearly as well as the right one. Needs 100+ letters.
+    nearly as well as the right one. Needs 100+ letters. `couldBePlayfair`
+    tells whether a text has the marks of the cipher (even length, no J, no
+    pair of equal letters); the auto-solver runs the search only then.
   - `anneal-jobs.ts` / `anneal-pool.ts` / `anneal.worker.ts` — the four
     annealing breakers split into seeded jobs (shortest runs first, then
     best period first), run on a pool of workers that stops at the first
