@@ -24,11 +24,14 @@
   right answers that no run flags score -4.50 to -4.93, so no rule of "some
   runs agree and the score is over a lower bar" tells them apart. With
   nothing to find, three or more runs share the best answer in 25 of 100
-  texts. A lower bar alone might do more: in 1600 full runs on 200 Playfair
-  texts of 100 and 110 letters the best wrong square a run ended on scored
-  -4.70 (-4.68 in `playfair-short.tsv`), and 170 of 200 true plaintexts of
-  100 letters score -4.6 or more, against 150 at -4.5. Not measured: how
-  often a run stops on a wrong square when the bar is -4.6.
+  texts. A lower bar alone does more (`bench/results/playfair-bar.tsv`, 200
+  texts of 100 and 110 letters, 8 runs each): bars of -4.5, -4.55 and -4.6
+  flag 147, 161 and 168 texts, every added text at least 91% right. The
+  best wrong squares a run ended on score -4.64 and -4.66 there, -4.68 in
+  `playfair-short.tsv` and -4.70 in the agreement benchmark, so a bar of
+  -4.55 keeps a margin of 0.09 and one of -4.6 a margin of 0.04. Not
+  decided. At -4.5, 35 of the 200 texts come out right but unflagged and 18
+  are not solved by any run.
 - Random-forest cipher classifier: Playfair and both transpositions now exist,
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the
