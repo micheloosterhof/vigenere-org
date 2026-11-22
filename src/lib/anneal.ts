@@ -111,6 +111,37 @@ export function anneal<Key>(
   return { key: best, score: bestScore };
 }
 
+/**
+ * Climbs from a key: exchanges two of its entries whenever that scores
+ * higher, until no exchange does. A run that stops at the first key good
+ * enough often leaves a few entries in the wrong places, which this puts
+ * right.
+ */
+export function climbBySwaps(
+  score: (key: number[]) => number,
+  start: number[],
+): AnnealResult<number[]> {
+  const key = [...start];
+  let best = score(key);
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let a = 0; a < key.length; a += 1) {
+      for (let b = a + 1; b < key.length; b += 1) {
+        [key[a], key[b]] = [key[b], key[a]];
+        const changed = score(key);
+        if (changed > best) {
+          best = changed;
+          improved = true;
+        } else {
+          [key[a], key[b]] = [key[b], key[a]];
+        }
+      }
+    }
+  }
+  return { key, score: best };
+}
+
 /** A small seeded generator (mulberry32), so each pool job is reproducible from its seed. */
 export function seededRng(seed: number): () => number {
   let state = seed | 0;

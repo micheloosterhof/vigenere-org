@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   anneal,
   averageLog10,
+  climbBySwaps,
   quadgramRaw,
   randomPermutation,
   seededRng,
@@ -107,5 +108,23 @@ describe("anneal", () => {
     // cold, so the key stops at 18; ending at 5, every step is taken.
     expect(accepted()).toBe(18);
     expect(accepted(5)).toBe(19);
+  });
+});
+
+describe("climbBySwaps", () => {
+  // The score counts the entries that hold their own index.
+  const inPlace = (key: number[]): number =>
+    key.filter((value, index) => value === index).length;
+
+  it("exchanges entries until no exchange scores higher", () => {
+    const climbed = climbBySwaps(inPlace, [2, 0, 1, 4, 3]);
+    expect(climbed.key).toEqual([0, 1, 2, 3, 4]);
+    expect(climbed.score).toBe(5);
+  });
+
+  it("leaves the key it starts from as it was", () => {
+    const start = [1, 0, 2];
+    climbBySwaps(inPlace, start);
+    expect(start).toEqual([1, 0, 2]);
   });
 });

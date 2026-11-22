@@ -5,6 +5,7 @@
 import {
   anneal,
   averageLog10,
+  climbBySwaps,
   quadgramRaw,
   randomPermutation,
   type AnnealProblem,
@@ -264,47 +265,20 @@ export function keywordSquare(square: string): string {
   return best.turned;
 }
 
-type Problem = ReturnType<typeof problemFor>;
-
 /**
- * Climbs from a square: exchanges two of its letters whenever that makes the
- * decryption more English, until no exchange does. A run that stops at the
- * first English decryption leaves a few letters in the wrong cells, which
- * this puts right.
+ * The square (25 letters, row by row) settled on the ciphertext: two of its
+ * letters are exchanged whenever that makes the decryption more English,
+ * until no exchange does.
  */
-function settle(
-  problem: Problem,
-  start: number[],
-): { key: number[]; score: number } {
-  const key = [...start];
-  let score = problem.score(key);
-  let improved = true;
-  while (improved) {
-    improved = false;
-    for (let a = 0; a < CELLS; a += 1) {
-      for (let b = a + 1; b < CELLS; b += 1) {
-        [key[a], key[b]] = [key[b], key[a]];
-        const changed = problem.score(key);
-        if (changed > score) {
-          score = changed;
-          improved = true;
-        } else {
-          [key[a], key[b]] = [key[b], key[a]];
-        }
-      }
-    }
-  }
-  return { key, score };
-}
-
-/** The square (25 letters, row by row) settled on the ciphertext; see `settle`. */
 export function settleSquare(
   text: string,
   square: string,
   table: Uint8Array,
 ): string {
   const problem = problemFor(playfairValues(text), table);
-  return settle(problem, toSquareValues(square)).key.map(letter).join("");
+  return climbBySwaps(problem.score, toSquareValues(square))
+    .key.map(letter)
+    .join("");
 }
 
 /**
@@ -334,7 +308,7 @@ export function annealPlayfair(
     target,
     onProgress: options.onProgress,
   });
-  let result = settle(problem, annealed.key);
+  let result = climbBySwaps(problem.score, annealed.key);
   if (annealed.score >= target) {
     const cooled = anneal(
       { ...problem, random: () => annealed.key },
@@ -344,7 +318,7 @@ export function annealPlayfair(
         temperature: n * temperatureFactor,
       },
     );
-    const settled = settle(problem, cooled.key);
+    const settled = climbBySwaps(problem.score, cooled.key);
     if (settled.score > result.score) {
       result = settled;
     }
