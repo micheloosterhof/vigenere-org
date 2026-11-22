@@ -12,22 +12,23 @@
 
 - Cloudflare proxy would enable brotli, long cache on `/_astro/*`, and security
   headers (HSTS, CSP) — none settable on GitHub Pages.
-- Playfair breaker: under 125 letters it holds text to a stricter bar, so 5
-  of 24 texts of 100 and 110 letters come out right but are reported as "no
-  English decryption found" (`bench/results/playfair-short.tsv`). Of 200
-  true plaintexts of 100 letters, 50 score under that bar themselves, and 5
-  of 200 of 150 letters score under -4.7 (`bench/results/cipher-marks.tsv`),
-  so the present bar cannot flag them at all. Runs that end on the same
-  decryption are no sign of the right square by themselves: on 22 texts with
-  nothing to find (random pairs, Bifid text) the best answer was shared by
-  two or more of the 8 runs in 5 texts, and by 7 runs in one
-  (`bench/results/playfair-agreement.tsv`). Together with a lower bar they
-  might be: on 24 Playfair texts whose plaintext scores under the bar, the
-  best answer was right in 22, scored -4.51 to -4.87, and was shared by
-  three or more runs in 21; with nothing to find the best answer scored
-  -5.04 or less. The margin is small: on one Playfair text that no run
-  solved, three runs ended on one wrong square at -4.97 and two on another
-  at -4.93. A rule needs more than these 46 texts.
+- Playfair breaker: under 125 letters it holds text to a stricter bar
+  (-4.5), so 5 of 24 texts of 100 and 110 letters come out right but are
+  reported as "no English decryption found"
+  (`bench/results/playfair-short.tsv`). Of 200 true plaintexts of 100
+  letters, 50 score under that bar themselves, and 5 of 200 of 150 letters
+  score under -4.7 (`bench/results/cipher-marks.tsv`), so the present bar
+  cannot flag them at all. Runs that end on the same decryption do not help
+  (`bench/results/playfair-agreement.tsv`, 326 texts, 8 runs each): wrong
+  squares that four or five of the 8 runs end on score up to -4.70, and
+  right answers that no run flags score -4.50 to -4.93, so no rule of "some
+  runs agree and the score is over a lower bar" tells them apart. With
+  nothing to find, three or more runs share the best answer in 25 of 100
+  texts. A lower bar alone might do more: in 1600 full runs on 200 Playfair
+  texts of 100 and 110 letters the best wrong square a run ended on scored
+  -4.70 (-4.68 in `playfair-short.tsv`), and 170 of 200 true plaintexts of
+  100 letters score -4.6 or more, against 150 at -4.5. Not measured: how
+  often a run stops on a wrong square when the bar is -4.6.
 - Random-forest cipher classifier: Playfair and both transpositions now exist,
   so the cipher zoo is large enough to train on the diagnostics feature vector.
   The solver ids in `solver-registry.ts` are the labels to predict and the
