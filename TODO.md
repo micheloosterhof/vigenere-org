@@ -52,12 +52,6 @@
   workers (Kryptos K1 on the Quagmire page went from 25 to 11 seconds), but
   the stages after the scan still run on one thread, most of it annealing
   the 60 finalists.
-- The statistical Quagmire III solver misses the shared alphabet when every
-  shift is even (4 of 93 right decryptions in
-  `bench/results/quagmire-shared-alphabet.tsv`, all at periods 3 and 5): the
-  letters then fall into two halves that no pair connects, and
-  `reconcileSharedAlphabet` gives up instead of placing the halves side by
-  side.
 - More languages (German, French, Spanish n-gram tables from the aldegonde
   counts) — needs corpus decisions.
 - Slow-solver fuzz for Quagmire / polyalphabetic behind a slow-test tag.

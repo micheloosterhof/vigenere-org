@@ -55,27 +55,39 @@ const UNITS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25];
  * alphabet only up to an affine reindexing: decimating it by any unit m (and
  * dividing the offsets by m) decrypts identically. Trying every unit and
  * rotation, the reindexing with the longest ascending tail is the
- * keyword-mixed original.
+ * keyword-mixed original. When every offset is even, a letter is only ever
+ * enciphered as a letter an even number of places away, so the letters at
+ * odd places can also be turned against those at even places without
+ * changing the decryption, and every such turn is tried too.
  */
 export function normalizeQuagmireSolution(
   alphabet: string,
   offsets: number[],
 ): { alphabet: string; offsets: number[] } {
+  const turns = offsets.every((o) => o % 2 === 0) ? ALPHABET_SIZE / 2 : 1;
   let best = { alphabet, offsets, suffix: -1 };
-  for (const m of UNITS) {
-    const mInverse = UNITS.find((u) => (u * m) % ALPHABET_SIZE === 1) as number;
-    const decimated = Array.from(
+  for (let turn = 0; turn < turns; turn += 1) {
+    const turned = Array.from(
       { length: ALPHABET_SIZE },
-      (_, i) => alphabet[(m * i) % ALPHABET_SIZE],
+      (_, i) => alphabet[i % 2 === 0 ? i : (i + 2 * turn) % ALPHABET_SIZE],
     ).join("");
-    const rotated = normalizeMixedAlphabet(decimated);
-    const suffix = ascendingSuffix(rotated);
-    if (suffix > best.suffix) {
-      best = {
-        alphabet: rotated,
-        offsets: offsets.map((o) => (mInverse * o) % ALPHABET_SIZE),
-        suffix,
-      };
+    for (const m of UNITS) {
+      const mInverse = UNITS.find(
+        (u) => (u * m) % ALPHABET_SIZE === 1,
+      ) as number;
+      const decimated = Array.from(
+        { length: ALPHABET_SIZE },
+        (_, i) => turned[(m * i) % ALPHABET_SIZE],
+      ).join("");
+      const rotated = normalizeMixedAlphabet(decimated);
+      const suffix = ascendingSuffix(rotated);
+      if (suffix > best.suffix) {
+        best = {
+          alphabet: rotated,
+          offsets: offsets.map((o) => (mInverse * o) % ALPHABET_SIZE),
+          suffix,
+        };
+      }
     }
   }
   return { alphabet: best.alphabet, offsets: best.offsets };

@@ -91,6 +91,32 @@ describe("breakQuagmire", () => {
       expect(result.plaintext).toBe(PLAIN);
     },
   );
+
+  it(
+    "identifies a Quagmire III whose shifts are all even and names its key",
+    { timeout: 120000 },
+    async () => {
+      // M, Y, T and H stand an even number of places after K in the KRYPTOS
+      // alphabet, so no letter is ever enciphered as one of the 13 letters an
+      // odd number of places away: the ciphertext does not say how the two
+      // halves of the alphabet lie against each other.
+      const config = {
+        variant: 3,
+        keyword: "KRYPTOS",
+        key: "MYTH",
+        indicator: "K",
+      } as const;
+      const ciphertext = quagmire(PLAIN, config, "encrypt");
+      const result = await breakQuagmire(ciphertext, TABLE, {
+        rng: mulberry32(3),
+      });
+      expect(result.isQuagmire).toBe(true);
+      expect(result.plaintext).toBe(PLAIN);
+      expect(result.alphabet).toBe("KRYPTOSABCDEFGHIJLMNQUVWXZ");
+      expect(result.key).toBe("MYTH");
+      expect(result.indicator).toBe("K");
+    },
+  );
 });
 
 describe("canBeBelieved", () => {

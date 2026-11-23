@@ -51,6 +51,41 @@ describe("normalizeQuagmireSolution", () => {
       "PALIMPSEST",
     );
   });
+
+  // The letters at odd places moved six places on, those at even places left.
+  const halfTurned = Array.from(
+    { length: 26 },
+    (_, i) => KRYPTOS[i % 2 === 0 ? i : (i + 6) % 26],
+  ).join("");
+
+  it("undoes a turn of one half of the alphabet against the other when every offset is even", () => {
+    // With even offsets a letter is only ever enciphered as a letter an even
+    // number of places away, so the two halves never meet and a solver
+    // cannot tell how they lie against each other.
+    const indicatorIndex = KRYPTOS.indexOf("K");
+    const offsets = [..."MYTH"].map(
+      (letter) => (KRYPTOS.indexOf(letter) - indicatorIndex + 26) % 26,
+    );
+    expect(offsets.every((offset) => offset % 2 === 0)).toBe(true);
+
+    const solution = normalizeQuagmireSolution(rotate(halfTurned, 9), offsets);
+    expect(solution.alphabet).toBe(KRYPTOS);
+    expect(solution.offsets).toEqual(offsets);
+    expect(recoverQuagmireKey(solution.alphabet, solution.offsets).key).toBe(
+      "MYTH",
+    );
+  });
+
+  it("leaves the halves as they lie when an offset is odd", () => {
+    // An odd offset ties the halves together: turning one against the other
+    // would then give another decryption.
+    const indicatorIndex = KRYPTOS.indexOf("K");
+    const offsets = [..."PALIMPSEST"].map(
+      (letter) => (KRYPTOS.indexOf(letter) - indicatorIndex + 26) % 26,
+    );
+    const solution = normalizeQuagmireSolution(halfTurned, offsets);
+    expect(solution.alphabet).not.toBe(KRYPTOS);
+  });
 });
 
 describe("recoverQuagmireKey", () => {
