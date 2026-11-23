@@ -86,22 +86,31 @@ it("shared-alphabet fit on known plaintext", () => {
     }
     const cipher = toLetterValues(ciphertext);
     const plainValues = toLetterValues(plain);
+    // What the solver claims, with its bar on how many pairs a fit must
+    // explain.
     const start = performance.now();
-    const fit = reconcileSharedAlphabet(cipher, plainValues, period);
+    const claimed = reconcileSharedAlphabet(cipher, plainValues, period);
     const milliseconds = performance.now() - start;
+    // The fit with that bar off, to show what the bar keeps out.
+    const fit = reconcileSharedAlphabet(cipher, plainValues, period, {
+      pairsBeyondFree: -Infinity,
+    });
     // A pair is a plaintext letter with its ciphertext letter in one column.
     const pairs = new Set<number>();
     const pairsExplained = new Set<number>();
-    let same = 0;
-    const decrypted = fit === null ? [] : fit.decrypt(cipher);
+    const explained = fit === null ? [] : fit.decrypt(cipher);
     for (let i = 0; i < letters; i += 1) {
       const pair = ((i % period) * 26 + plainValues[i]) * 26 + cipher[i];
       pairs.add(pair);
-      if (decrypted[i] === plainValues[i]) {
+      if (explained[i] === plainValues[i]) {
         pairsExplained.add(pair);
-        same += 1;
       }
     }
+    const same =
+      claimed === null
+        ? 0
+        : claimed.decrypt(cipher).filter((value, i) => value === plainValues[i])
+            .length;
     record("shared-alphabet-fit", {
       kind,
       period,
@@ -109,12 +118,13 @@ it("shared-alphabet fit on known plaintext", () => {
       letters,
       repeat,
       common: kind === "independent" ? "" : common,
+      pairs: pairs.size,
       fit: fit === null ? 0 : 1,
       fitCommon: fit === null ? "" : fit.offsets.reduce(gcd, 26),
       residual: fit === null ? "" : fit.residual.toFixed(3),
-      accuracy: fit === null ? "" : (same / letters).toFixed(2),
-      pairs: pairs.size,
       pairsExplained: fit === null ? "" : pairsExplained.size,
+      claimed: claimed === null ? 0 : 1,
+      accuracy: claimed === null ? "" : (same / letters).toFixed(2),
       milliseconds: milliseconds.toFixed(1),
     });
   }

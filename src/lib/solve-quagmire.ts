@@ -151,6 +151,9 @@ export function canBeBelieved(
  * none at 100, whether the shared alphabet comes from a keyword or is a
  * random arrangement. The shared-alphabet fit is never claimed on a wrong
  * decryption, nor on any of 100 texts with an unrelated alphabet per column.
+ * Given the true plaintext, the fit alone is claimed on none of 8,800 texts
+ * of 16 to 3,600 letters with an unrelated alphabet per column
+ * (bench/results/shared-alphabet-fit.tsv).
  * It is missed on 6 of the 93 right decryptions, which are then reported as
  * a general polyalphabetic cipher: 4 whose shifts are all even, which splits
  * the alphabet into two halves that no pair of letters connects, and 2 with

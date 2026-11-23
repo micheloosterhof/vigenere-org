@@ -19,6 +19,21 @@ const MAX_RESIDUAL = 0.15;
 // letters left out of the equations are placed afterwards by vote.
 const MIN_PAIR_COUNTS = [2, 3, 4, 6, 8, 12];
 
+// A fit has 25 + period free choices: a place for every letter but the first
+// and a shift for every column. Each can be spent on explaining one pair of a
+// plaintext letter and its ciphertext letter in a column, so a short text is
+// explained by any alphabet. A fit must explain this many different pairs
+// beyond its free choices. In bench/results/shared-alphabet-fit.tsv, with no
+// such bar, a shared alphabet is fitted to 17 of 8,800 texts with an
+// unrelated alphabet per column, and each of those fits explains at least 5
+// pairs fewer than it has free choices.
+const PAIRS_BEYOND_FREE = 4;
+
+export interface SharedAlphabetOptions {
+  /** How many different pairs a fit must explain beyond its free choices; a benchmark lowers it to see what the bar keeps out. */
+  pairsBeyondFree?: number;
+}
+
 export interface SharedAlphabetFit {
   /** The recovered shared mixed alphabet, as a permutation of A-Z. */
   alphabet: string;
@@ -250,17 +265,21 @@ const CANDIDATE_CAP = 8192;
 /**
  * Tries to explain every ciphertext letter as `index[cipher] = index[plain] +
  * offset[column]` for one shared letter-to-index map and a shift per column.
- * Returns null when no single alphabet fits, i.e. the columns are independent.
+ * Returns null when no single alphabet fits, i.e. the columns are independent,
+ * or when the text holds too few different pairs of letters to tell.
  */
 export function reconcileSharedAlphabet(
   cipher: number[],
   plain: number[],
   period: number,
+  options: SharedAlphabetOptions = {},
 ): SharedAlphabetFit | null {
   const length = Math.min(cipher.length, plain.length);
   if (length < ALPHABET_SIZE) {
     return null;
   }
+  const minPairs =
+    ALPHABET_SIZE - 1 + period + (options.pairsBeyondFree ?? PAIRS_BEYOND_FREE);
   for (const minCount of MIN_PAIR_COUNTS) {
     const fit = fitFromEdges(
       majorityEdges(cipher, plain, period, length, minCount),
@@ -268,6 +287,7 @@ export function reconcileSharedAlphabet(
       plain,
       period,
       length,
+      minPairs,
     );
     if (fit !== null) {
       return fit;
@@ -283,6 +303,7 @@ function fitFromEdges(
   plain: number[],
   period: number,
   length: number,
+  minPairs: number,
 ): SharedAlphabetFit | null {
   const { coeffOf, equations } = buildForms(edges, period);
 
@@ -325,6 +346,7 @@ function fitFromEdges(
         period,
         length,
         offsets,
+        minPairs,
       );
       if (
         fit !== null &&
@@ -395,7 +417,11 @@ function placeByVote(
   }
 }
 
-/** Builds the alphabet for a candidate offset vector, or null if it is not a valid permutation. */
+/**
+ * Builds the alphabet for a candidate offset vector, or null if it is not a
+ * valid permutation, leaves too much of the text unexplained, or explains
+ * fewer than `minPairs` different pairs of letters.
+ */
 function fitFromOffsets(
   coeffOf: (number[] | null)[],
   cipher: number[],
@@ -403,6 +429,7 @@ function fitFromOffsets(
   period: number,
   length: number,
   offsets: number[],
+  minPairs: number,
 ): SharedAlphabetFit | null {
   const index = new Array<number>(ALPHABET_SIZE).fill(-1);
   for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
@@ -434,13 +461,21 @@ function fitFromOffsets(
     placeByVote(index, cipher, plain, period, length, offsets);
   }
   let bad = 0;
+  const explained = new Set<number>();
   for (let i = 0; i < length; i += 1) {
-    if (mod(index[plain[i]] + offsets[i % period]) !== index[cipher[i]]) {
+    const from = index[plain[i]];
+    const to = index[cipher[i]];
+    // A letter without a place explains nothing.
+    if (from >= 0 && to >= 0 && mod(from + offsets[i % period]) === to) {
+      explained.add(
+        ((i % period) * ALPHABET_SIZE + plain[i]) * ALPHABET_SIZE + cipher[i],
+      );
+    } else {
       bad += 1;
     }
   }
   const residual = bad / length;
-  if (residual > MAX_RESIDUAL) {
+  if (residual > MAX_RESIDUAL || explained.size < minPairs) {
     return null;
   }
 

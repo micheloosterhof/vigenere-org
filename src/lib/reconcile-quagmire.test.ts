@@ -25,6 +25,14 @@ const LONG_PLAIN =
   "flights up, and Winston, who was thirty-nine and had a varicose ulcer " +
   "above his right ankle, went slowly, resting several times on the way.";
 
+// Unrelated scrambled alphabets, one for each column of a cipher that is not
+// a Quagmire III.
+const UNRELATED_ALPHABETS = [
+  "QWERTYUIOPASDFGHJKLZXCVBNM",
+  "MNBVCXZLKJHGFDSAPOIUYTREWQ",
+  "ZYXWVUTSRQPONMLKJIHGFEDCBA",
+].map((alphabet) => [...alphabet].map((c) => c.charCodeAt(0) - 65));
+
 function toValues(text: string): number[] {
   const values: number[] = [];
   for (const char of text.toUpperCase()) {
@@ -115,13 +123,25 @@ describe("reconcileSharedAlphabet", () => {
   it("returns null when the columns use genuinely independent alphabets", () => {
     // Encrypt each column with its own unrelated scrambled alphabet.
     const plain = toValues(PLAIN);
-    const alphabets = [
-      "QWERTYUIOPASDFGHJKLZXCVBNM",
-      "MNBVCXZLKJHGFDSAPOIUYTREWQ",
-      "ZYXWVUTSRQPONMLKJIHGFEDCBA",
-    ].map((a) => [...a].map((c) => c.charCodeAt(0) - 65));
-    const cipher = plain.map((p, i) => alphabets[i % 3][p]);
+    const cipher = plain.map((p, i) => UNRELATED_ALPHABETS[i % 3][p]);
     const result = reconcileSharedAlphabet(cipher, plain, 3);
     expect(result).toBeNull();
+  });
+
+  it("returns null on a short text that a shared alphabet explains by its free choices alone", () => {
+    // 60 letters under two unrelated alphabets hold 28 different pairs of a
+    // plaintext letter and its ciphertext letter. One alphabet with two
+    // shifts explains 20 of them, 85% of the text, but it has 27 free
+    // choices to do so with: a place for every letter but the first and a
+    // shift for each column.
+    const plain = toValues(PLAIN).slice(42, 102);
+    const cipher = plain.map((p, i) => UNRELATED_ALPHABETS[i % 2][p]);
+    expect(reconcileSharedAlphabet(cipher, plain, 2)).toBeNull();
+    // With no bar on the number of pairs, the fit is found.
+    const fit = reconcileSharedAlphabet(cipher, plain, 2, {
+      pairsBeyondFree: -Infinity,
+    });
+    expect(fit).not.toBeNull();
+    expect(fit?.residual).toBeLessThanOrEqual(0.15);
   });
 });
