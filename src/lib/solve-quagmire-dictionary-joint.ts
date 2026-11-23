@@ -66,7 +66,7 @@ export interface JointCandidate {
 }
 
 /** A candidate with a shift for each column. */
-interface Shifted extends JointCandidate {
+export interface JointShifted extends JointCandidate {
   shifts: number[];
 }
 
@@ -75,7 +75,7 @@ interface Shifted extends JointCandidate {
  * on. It carries the seed of its own annealing runs, so they come out the
  * same on any thread and in any order.
  */
-export interface JointFinalist extends Shifted {
+export interface JointFinalist extends JointShifted {
   seed: number;
 }
 
@@ -216,7 +216,8 @@ export function finishJoint(
   table: Uint8Array,
   options: Pick<Options, "rng"> = {},
 ): QuagmireDictionaryResult {
-  const finalists = rankJointCandidates(text, candidates, table, options);
+  const ring = ringJointCandidates(text, jointShortlist(candidates));
+  const finalists = climbJointCandidates(text, ring, table, options);
   return decideJoint(text, annealJointFinalists(text, finalists, table));
 }
 
@@ -241,42 +242,63 @@ function quadgramScorer(
   };
 }
 
+/** The best of each period among the given candidates, period by period. */
+function bestOfEachPeriod<T extends JointCandidate>(
+  candidates: T[],
+  keep: number,
+): T[] {
+  const periods = [...new Set(candidates.map((candidate) => candidate.period))];
+  return periods.flatMap((period) =>
+    best(
+      candidates.filter((candidate) => candidate.period === period),
+      keep,
+    ),
+  );
+}
+
+/** Each period's shortlist among the word scan's candidates: those that get a ring solution. */
+export function jointShortlist(candidates: JointCandidate[]): JointCandidate[] {
+  return bestOfEachPeriod(candidates, CHAIN_KEEP);
+}
+
 /**
- * Stages 2 and 3: the finalists among the word scan's candidates, best
- * first. The exact ring solution re-ranks each period's shortlist and gives
- * every survivor its shifts to start from; a climb on quadgram score then
- * ranks the survivors of all periods.
+ * Stage 2 for some or all of the shortlist: the exact ring solution of each
+ * candidate, which is the score it is re-ranked by and the shifts it starts
+ * from. The shortlist can be solved in parts, on separate threads.
  */
-export function rankJointCandidates(
+export function ringJointCandidates(
   text: string,
   candidates: JointCandidate[],
+): JointShifted[] {
+  const cipher = toLetterValues(text);
+  const length = cipher.length;
+  return candidates.map((candidate) => {
+    const shifted = shiftTableOf(cipher, candidate);
+    const { score, shifts } = ringShifts(shifted, length, candidate.period);
+    return { ...candidate, score, shifts };
+  });
+}
+
+/**
+ * Stage 3: the finalists among the candidates with a ring solution, best
+ * first. The best of each period by ring score survive, and a climb on
+ * quadgram score ranks the survivors of all periods.
+ */
+export function climbJointCandidates(
+  text: string,
+  ring: JointShifted[],
   table: Uint8Array,
   options: Pick<Options, "rng"> = {},
 ): JointFinalist[] {
   const cipher = toLetterValues(text);
   const length = cipher.length;
   const rng = options.rng ?? Math.random;
-  const periods = [...new Set(candidates.map((candidate) => candidate.period))];
+  const survivors = bestOfEachPeriod(ring, RING_KEEP);
 
-  // Stage 2: the exact ring solution re-ranks each period's shortlist and
-  // gives every survivor its shifts to start from.
-  const survivors: Shifted[] = [];
-  for (const period of periods) {
-    const ring = best(
-      candidates.filter((candidate) => candidate.period === period),
-      CHAIN_KEEP,
-    ).map((candidate) => {
-      const shifted = shiftTableOf(cipher, candidate);
-      const { score, shifts } = ringShifts(shifted, length, period);
-      return { ...candidate, score, shifts };
-    });
-    survivors.push(...best(ring, RING_KEEP));
-  }
-
-  // Stage 3: from the ring shifts, move one column at a time to its best
-  // shift until none improves. This ranks the survivors of all periods the
-  // same way on every run; annealing from random shifts here ranked the true
-  // keyword of Kryptos K1 anywhere from first to 290th.
+  // From the ring shifts, move one column at a time to its best shift until
+  // none improves. This ranks the survivors of all periods the same way on
+  // every run; annealing from random shifts here ranked the true keyword of
+  // Kryptos K1 anywhere from first to 290th.
   const quadgrams = quadgramScorer(length, table);
   const climbed = best(
     survivors.map((candidate) => {

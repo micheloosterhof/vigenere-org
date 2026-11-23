@@ -76,9 +76,10 @@ building the commit CI tested), or on a manual run.
     solved together by dynamic programming on bigrams (open chain to
     shortlist, exact ring to re-rank), then annealed on quadgrams. Runs
     after the per-column pass in the quagmire worker and the auto-solver,
-    on periods with under 32 letters per column. The word scan, its larger
-    part, is shared among workers (`joint-shifts-pool.ts` /
-    `joint-shifts.worker.ts`); the later stages run on the calling thread.
+    on periods with under 32 letters per column. The word scan, the ring
+    solutions and the annealing are shared among workers, round by round
+    (`joint-shifts-pool.ts` / `joint-shifts.worker.ts`); the calling thread
+    chooses what goes on to the next round and climbs the survivors.
   - `quagmire-letter-sets.ts` / `solve-quagmire-letter-sets.ts` — Quagmire
     I-III without a word list: scores which letters form the keyword (the
     rest of the alphabet follows in order, so the set alone places them).

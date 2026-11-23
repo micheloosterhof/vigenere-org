@@ -1,27 +1,29 @@
-// ABOUTME: Shares the word scan and the annealing of the joint-shift Quagmire dictionary attack among a pool of Web Workers.
-// ABOUTME: Each worker scores a share of the keywords, then anneals a share of the finalists; the calling thread ranks the candidates in between.
+// ABOUTME: Shares the word scan, the ring solutions and the annealing of the joint-shift Quagmire dictionary attack among a pool of Web Workers.
+// ABOUTME: Each worker takes a share of every round; the calling thread chooses what goes on to the next round and climbs the survivors.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { dealOut } from "./job-pool";
+import { dealOut, gather } from "./job-pool";
 import { toLetterValues } from "./solve";
 import type {
   Finalist,
   QuagmireDictionaryResult,
 } from "./solve-quagmire-dictionary";
 import {
+  climbJointCandidates,
   decideJoint,
   distinctAlphabets,
   jointPeriods,
-  rankJointCandidates,
+  jointShortlist,
   type JointCandidate,
   type JointFinalist,
+  type JointShifted,
 } from "./solve-quagmire-dictionary-joint";
 
-// More workers than this gain little: the ranking between the scan and the
-// annealing runs on one thread.
+// More workers than this gain little: the rounds are short, and each worker
+// gets a copy of the quadgram table.
 const MAX_WORKERS = 8;
 
-/** What joint-shifts.worker.ts accepts: a share of the keywords to scan, then a share of the finalists to anneal. */
+/** What joint-shifts.worker.ts accepts: its share of the keywords to scan, of the shortlist to solve round the ring, or of the finalists to anneal. */
 export type JointShiftsRequest =
   | {
       type: "scan";
@@ -30,6 +32,7 @@ export type JointShiftsRequest =
       alphabets: string[];
       periods: number[];
     }
+  | { type: "ring"; text: string; candidates: JointCandidate[] }
   | {
       type: "anneal";
       text: string;
@@ -41,6 +44,7 @@ export type JointShiftsRequest =
 export type JointShiftsMessage =
   | { type: "progress"; done: number }
   | { type: "candidates"; candidates: JointCandidate[] }
+  | { type: "ring"; candidates: JointShifted[] }
   | { type: "finalists"; finalists: Finalist[] }
   | { type: "error"; message: string };
 
@@ -56,9 +60,10 @@ export type JointShiftsSolver = (
 ) => Promise<QuagmireDictionaryResult>;
 
 /**
- * The joint-shift dictionary attack with its word scan, and then the
- * annealing of its finalists, spread over as many workers as the machine has
- * cores (capped). Progress is the number of keywords scanned across the pool.
+ * The joint-shift dictionary attack with its word scan, then the ring
+ * solutions of the shortlist, then the annealing of its finalists, each
+ * spread over as many workers as the machine has cores (capped). Progress is
+ * the number of keywords scanned across the pool.
  */
 export const breakQuagmireDictionaryJointParallel: JointShiftsSolver = (
   text,
@@ -104,49 +109,56 @@ export const breakQuagmireDictionaryJointParallel: JointShiftsSolver = (
       return;
     }
     const done = new Array<number>(shares.length).fill(0);
-    const candidates: JointCandidate[] = [];
-    let pending = shares.length;
-    let finalists: JointFinalist[] = [];
-    // What each worker made of its share of the finalists.
-    let annealed: Finalist[][] = [];
+    // What each worker made of its share of a round.
+    const scanned: JointCandidate[][] = [];
+    const ringed: JointShifted[][] = [];
+    const annealed: Finalist[][] = [];
+    let pending = 0;
+    let next = (): void => {};
 
-    // Once every share is scanned: rank the candidates here and deal the
-    // finalists out, best first, so each worker starts on a likely one.
-    const annealFinalists = (): void => {
-      finalists = rankJointCandidates(text, candidates, table);
-      const parts = dealOut(finalists, workers.length);
-      annealed = new Array<Finalist[]>(parts.length);
-      pending = parts.length;
+    // Starts a round: one request to each of the first workers, and what to
+    // do when all have answered.
+    const send = (requests: JointShiftsRequest[], then: () => void): void => {
+      pending = requests.length;
+      next = then;
       if (pending === 0) {
-        decide();
+        then();
         return;
       }
-      parts.forEach((part, i) => {
-        const request: JointShiftsRequest = {
-          type: "anneal",
-          text,
-          table,
-          finalists: part,
-        };
+      requests.forEach((request, i) => {
         workers[i].postMessage(request);
       });
     };
-    // Once every finalist is annealed: put them back in the order they were
-    // dealt from, and decide.
-    const decide = (): void => {
-      const result = decideJoint(
-        text,
-        finalists.map(
-          (_, rank) =>
-            annealed[rank % annealed.length][
-              Math.floor(rank / annealed.length)
-            ],
-        ),
+    const answered = (): void => {
+      pending -= 1;
+      if (pending === 0) {
+        attempt(next);
+      }
+    };
+
+    // The shortlist and the finalists are dealt out best first, so each
+    // worker starts on a likely one, and gathered in that order again.
+    const ring = (): void => {
+      const parts = dealOut(jointShortlist(scanned.flat()), workers.length);
+      send(
+        parts.map((candidates) => ({ type: "ring", text, candidates })),
+        anneal,
       );
+    };
+    const anneal = (): void => {
+      const finalists = climbJointCandidates(text, gather(ringed), table);
+      const parts = dealOut(finalists, workers.length);
+      send(
+        parts.map((part) => ({ type: "anneal", text, table, finalists: part })),
+        decide,
+      );
+    };
+    const decide = (): void => {
+      const result = decideJoint(text, gather(annealed));
       settle(() => resolve(result));
     };
 
-    shares.forEach((share, i) => {
+    shares.forEach((_, i) => {
       const worker = new Worker(
         new URL("./joint-shifts.worker.ts", import.meta.url),
         { type: "module" },
@@ -161,17 +173,14 @@ export const breakQuagmireDictionaryJointParallel: JointShiftsSolver = (
             alphabets.length,
           );
         } else if (message.type === "candidates") {
-          candidates.push(...message.candidates);
-          pending -= 1;
-          if (pending === 0) {
-            attempt(annealFinalists);
-          }
+          scanned[i] = message.candidates;
+          answered();
+        } else if (message.type === "ring") {
+          ringed[i] = message.candidates;
+          answered();
         } else if (message.type === "finalists") {
           annealed[i] = message.finalists;
-          pending -= 1;
-          if (pending === 0) {
-            attempt(decide);
-          }
+          answered();
         } else {
           settle(() => reject(new Error(message.message)));
         }
@@ -179,12 +188,14 @@ export const breakQuagmireDictionaryJointParallel: JointShiftsSolver = (
       worker.onerror = (event) => {
         settle(() => reject(new Error(event.message)));
       };
-      const request: JointShiftsRequest = {
+    });
+    send(
+      shares.map((share) => ({
         type: "scan",
         text,
         alphabets: share,
         periods,
-      };
-      worker.postMessage(request);
-    });
+      })),
+      ring,
+    );
   });

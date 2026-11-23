@@ -21,6 +21,15 @@ export function dealOut<T>(items: T[], parts: number): T[][] {
   return shares;
 }
 
+/** The items of the shares that `dealOut` made, back in the order they were dealt from. */
+export function gather<T>(shares: T[][]): T[] {
+  const total = shares.reduce((sum, share) => sum + share.length, 0);
+  return Array.from(
+    { length: total },
+    (_, i) => shares[i % shares.length][Math.floor(i / shares.length)],
+  );
+}
+
 /** What the pool needs to know of a job's result. */
 export interface JobResult {
   /** True when the decryption reads as English: the pool then stops. */

@@ -8,11 +8,13 @@ import { seededRng } from "./anneal";
 import {
   annealJointFinalists,
   breakQuagmireDictionaryJoint,
+  climbJointCandidates,
   decideJoint,
   distinctAlphabets,
   finishJoint,
   jointPeriods,
-  rankJointCandidates,
+  jointShortlist,
+  ringJointCandidates,
   scanJointCandidates,
 } from "./solve-quagmire-dictionary-joint";
 
@@ -136,7 +138,7 @@ describe("the joint attack in parts", () => {
   );
 
   it(
-    "gives the same answer when the finalists are annealed in separate parts",
+    "gives the same answer when the ring solutions are found, and the finalists annealed, in separate parts",
     { timeout: 120000 },
     () => {
       const words = [...WORDS.filter((_, i) => i % 60 === 0), "KRYPTOS"];
@@ -148,9 +150,16 @@ describe("the joint attack in parts", () => {
       const whole = finishJoint(KRYPTOS_K1, candidates, TABLE, {
         rng: seededRng(6),
       });
+      const shortlist = jointShortlist(candidates);
+      const ring = [1, 2, 0].flatMap((part) =>
+        ringJointCandidates(
+          KRYPTOS_K1,
+          shortlist.filter((_, i) => i % 3 === part),
+        ),
+      );
       // Each finalist carries the seed of its own annealing runs, so it does
       // not matter where, or after which other finalists, it is annealed.
-      const finalists = rankJointCandidates(KRYPTOS_K1, candidates, TABLE, {
+      const finalists = climbJointCandidates(KRYPTOS_K1, ring, TABLE, {
         rng: seededRng(6),
       });
       expect(finalists.length).toBeGreaterThan(3);

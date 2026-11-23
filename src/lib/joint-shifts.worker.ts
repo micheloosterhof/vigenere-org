@@ -1,5 +1,5 @@
-// ABOUTME: Web Worker taking a share of the joint-shift Quagmire dictionary attack: keywords to scan, or finalists to anneal.
-// ABOUTME: Posts scan progress and the best candidates of each period, or the annealed finalists.
+// ABOUTME: Web Worker taking a share of a round of the joint-shift Quagmire dictionary attack: keywords to scan, candidates to solve round the ring, or finalists to anneal.
+// ABOUTME: Posts scan progress and the best candidates of each period, the ring solutions, or the annealed finalists.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
 import type {
@@ -8,6 +8,7 @@ import type {
 } from "./joint-shifts-pool";
 import {
   annealJointFinalists,
+  ringJointCandidates,
   scanJointCandidates,
 } from "./solve-quagmire-dictionary-joint";
 
@@ -27,6 +28,9 @@ scope.onmessage = (event) => {
         (done) => scope.postMessage({ type: "progress", done }),
       );
       scope.postMessage({ type: "candidates", candidates });
+    } else if (request.type === "ring") {
+      const candidates = ringJointCandidates(request.text, request.candidates);
+      scope.postMessage({ type: "ring", candidates });
     } else {
       const finalists = annealJointFinalists(
         request.text,
