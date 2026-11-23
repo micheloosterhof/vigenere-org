@@ -1,22 +1,40 @@
-// ABOUTME: Web Worker scanning its share of the keywords for the joint-shift Quagmire dictionary attack.
-// ABOUTME: Receives text, keywords and periods; posts progress and the best candidates of each period.
+// ABOUTME: Web Worker taking a share of the joint-shift Quagmire dictionary attack: keywords to scan, or finalists to anneal.
+// ABOUTME: Posts scan progress and the best candidates of each period, or the annealed finalists.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import type { JointScanMessage, JointScanRequest } from "./joint-shifts-pool";
-import { scanJointCandidates } from "./solve-quagmire-dictionary-joint";
+import type {
+  JointShiftsMessage,
+  JointShiftsRequest,
+} from "./joint-shifts-pool";
+import {
+  annealJointFinalists,
+  scanJointCandidates,
+} from "./solve-quagmire-dictionary-joint";
 
 const scope = self as unknown as {
-  postMessage(message: JointScanMessage): void;
-  onmessage: ((event: MessageEvent<JointScanRequest>) => void) | null;
+  postMessage(message: JointShiftsMessage): void;
+  onmessage: ((event: MessageEvent<JointShiftsRequest>) => void) | null;
 };
 
 scope.onmessage = (event) => {
-  const { text, alphabets, periods } = event.data;
+  const request = event.data;
   try {
-    const candidates = scanJointCandidates(text, alphabets, periods, (done) =>
-      scope.postMessage({ type: "progress", done }),
-    );
-    scope.postMessage({ type: "result", candidates });
+    if (request.type === "scan") {
+      const candidates = scanJointCandidates(
+        request.text,
+        request.alphabets,
+        request.periods,
+        (done) => scope.postMessage({ type: "progress", done }),
+      );
+      scope.postMessage({ type: "candidates", candidates });
+    } else {
+      const finalists = annealJointFinalists(
+        request.text,
+        request.finalists,
+        request.table,
+      );
+      scope.postMessage({ type: "finalists", finalists });
+    }
   } catch (cause) {
     scope.postMessage({
       type: "error",

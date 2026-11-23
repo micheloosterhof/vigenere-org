@@ -2,7 +2,7 @@
 // ABOUTME: A chain score filters the word list, the exact ring solution re-ranks the survivors, and a climb plus annealing on quadgrams decides.
 // SPDX-FileCopyrightText: 2026 Michel Oosterhof
 // SPDX-License-Identifier: BSD-3-Clause
-import { anneal, averageLog10, quadgramRaw } from "./anneal";
+import { anneal, averageLog10, quadgramRaw, seededRng } from "./anneal";
 import { inverseAlphabet, mixedAlphabet } from "./cipher";
 import { chainScore, ringShifts, shiftTable } from "./quagmire-shifts";
 import { toLetterValues } from "./solve";
@@ -68,6 +68,15 @@ export interface JointCandidate {
 /** A candidate with a shift for each column. */
 interface Shifted extends JointCandidate {
   shifts: number[];
+}
+
+/**
+ * A candidate that goes on to the annealing, with the shifts its climb ended
+ * on. It carries the seed of its own annealing runs, so they come out the
+ * same on any thread and in any order.
+ */
+export interface JointFinalist extends Shifted {
+  seed: number;
 }
 
 /** The decryption plan for a keyword and variant. */
@@ -207,6 +216,43 @@ export function finishJoint(
   table: Uint8Array,
   options: Pick<Options, "rng"> = {},
 ): QuagmireDictionaryResult {
+  const finalists = rankJointCandidates(text, candidates, table, options);
+  return decideJoint(text, annealJointFinalists(text, finalists, table));
+}
+
+/** The shift table of a candidate's keyword and variant for the ciphertext. */
+function shiftTableOf(cipher: number[], candidate: JointCandidate): Uint8Array {
+  const plan = planFor(candidate.word, candidate.variant);
+  return shiftTable(cipher, plan.input, plan.output);
+}
+
+/** A scorer of decryptions of `length` letters: the raw quadgram sum of a shift table read at the given shifts. */
+function quadgramScorer(
+  length: number,
+  table: Uint8Array,
+): (shifted: Uint8Array, shifts: number[]) => number {
+  const plain = new Array<number>(length);
+  return (shifted, shifts) => {
+    const period = shifts.length;
+    for (let i = 0; i < length; i += 1) {
+      plain[i] = shifted[i * ALPHABET_SIZE + shifts[i % period]];
+    }
+    return quadgramRaw(plain, length, table);
+  };
+}
+
+/**
+ * Stages 2 and 3: the finalists among the word scan's candidates, best
+ * first. The exact ring solution re-ranks each period's shortlist and gives
+ * every survivor its shifts to start from; a climb on quadgram score then
+ * ranks the survivors of all periods.
+ */
+export function rankJointCandidates(
+  text: string,
+  candidates: JointCandidate[],
+  table: Uint8Array,
+  options: Pick<Options, "rng"> = {},
+): JointFinalist[] {
   const cipher = toLetterValues(text);
   const length = cipher.length;
   const rng = options.rng ?? Math.random;
@@ -220,35 +266,21 @@ export function finishJoint(
       candidates.filter((candidate) => candidate.period === period),
       CHAIN_KEEP,
     ).map((candidate) => {
-      const plan = planFor(candidate.word, candidate.variant);
-      const shifted = shiftTable(cipher, plan.input, plan.output);
+      const shifted = shiftTableOf(cipher, candidate);
       const { score, shifts } = ringShifts(shifted, length, period);
       return { ...candidate, score, shifts };
     });
     survivors.push(...best(ring, RING_KEEP));
   }
 
-  // Stages 3 and 4 improve the shifts on quadgram score.
-  const plain = new Array<number>(length);
-  const quadgrams = (shifted: Uint8Array, shifts: number[]): number => {
-    const period = shifts.length;
-    for (let i = 0; i < length; i += 1) {
-      plain[i] = shifted[i * ALPHABET_SIZE + shifts[i % period]];
-    }
-    return quadgramRaw(plain, length, table);
-  };
-  const tableOf = (candidate: JointCandidate): Uint8Array => {
-    const plan = planFor(candidate.word, candidate.variant);
-    return shiftTable(cipher, plan.input, plan.output);
-  };
-
   // Stage 3: from the ring shifts, move one column at a time to its best
   // shift until none improves. This ranks the survivors of all periods the
   // same way on every run; annealing from random shifts here ranked the true
   // keyword of Kryptos K1 anywhere from first to 290th.
+  const quadgrams = quadgramScorer(length, table);
   const climbed = best(
     survivors.map((candidate) => {
-      const shifted = tableOf(candidate);
+      const shifted = shiftTableOf(cipher, candidate);
       const shifts = [...candidate.shifts];
       let score = quadgrams(shifted, shifts);
       let improved = true;
@@ -272,12 +304,29 @@ export function finishJoint(
     }),
     FINAL_KEEP,
   );
+  return climbed.map((candidate) => ({
+    ...candidate,
+    seed: Math.floor(rng() * 2 ** 31),
+  }));
+}
 
-  // Stage 4: anneal the best from their climbed shifts, which gets past
-  // optima that need several columns to change together.
-  const finalists: Finalist[] = climbed.map((candidate) => {
-    const shifted = tableOf(candidate);
+/**
+ * Stage 4 for some or all of the finalists: anneals each from its climbed
+ * shifts, which gets past optima that need several columns to change
+ * together. The finalists can be annealed in parts, on separate threads.
+ */
+export function annealJointFinalists(
+  text: string,
+  finalists: JointFinalist[],
+  table: Uint8Array,
+): Finalist[] {
+  const cipher = toLetterValues(text);
+  const length = cipher.length;
+  const quadgrams = quadgramScorer(length, table);
+  return finalists.map((candidate) => {
+    const shifted = shiftTableOf(cipher, candidate);
     const { period } = candidate;
+    const rng = seededRng(candidate.seed);
     let top = { raw: candidate.score, offsets: candidate.shifts };
     for (let run = 0; run < FINAL_RUNS; run += 1) {
       const result = anneal<number[]>(
@@ -306,7 +355,14 @@ export function finishJoint(
       fitness: averageLog10(top.raw, length - 3),
     };
   });
+}
 
+/** The answer from the annealed finalists: the best of them, found if it reads as English on enough text. */
+export function decideJoint(
+  text: string,
+  finalists: Finalist[],
+): QuagmireDictionaryResult {
+  const length = toLetterValues(text).length;
   const winner = bestFinalist(finalists);
   return keywordResult(
     text,

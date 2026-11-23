@@ -6,10 +6,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
 import {
+  annealJointFinalists,
   breakQuagmireDictionaryJoint,
+  decideJoint,
   distinctAlphabets,
   finishJoint,
   jointPeriods,
+  rankJointCandidates,
   scanJointCandidates,
 } from "./solve-quagmire-dictionary-joint";
 
@@ -127,6 +130,38 @@ describe("the joint attack in parts", () => {
       const joined = finishJoint(KRYPTOS_K1, candidates, TABLE, {
         rng: seededRng(6),
       });
+      expect(joined.keyword).toBe("KRYPTOS");
+      expect(joined).toEqual(whole);
+    },
+  );
+
+  it(
+    "gives the same answer when the finalists are annealed in separate parts",
+    { timeout: 120000 },
+    () => {
+      const words = [...WORDS.filter((_, i) => i % 60 === 0), "KRYPTOS"];
+      const candidates = scanJointCandidates(
+        KRYPTOS_K1,
+        distinctAlphabets(words),
+        jointPeriods(KRYPTOS_K1.length, {}),
+      );
+      const whole = finishJoint(KRYPTOS_K1, candidates, TABLE, {
+        rng: seededRng(6),
+      });
+      // Each finalist carries the seed of its own annealing runs, so it does
+      // not matter where, or after which other finalists, it is annealed.
+      const finalists = rankJointCandidates(KRYPTOS_K1, candidates, TABLE, {
+        rng: seededRng(6),
+      });
+      expect(finalists.length).toBeGreaterThan(3);
+      const annealed = [2, 0, 1].flatMap((part) =>
+        annealJointFinalists(
+          KRYPTOS_K1,
+          finalists.filter((_, i) => i % 3 === part),
+          TABLE,
+        ),
+      );
+      const joined = decideJoint(KRYPTOS_K1, annealed);
       expect(joined.keyword).toBe("KRYPTOS");
       expect(joined).toEqual(whole);
     },
