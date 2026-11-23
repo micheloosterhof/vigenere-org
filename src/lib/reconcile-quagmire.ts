@@ -24,9 +24,9 @@ const MIN_PAIR_COUNTS = [2, 3, 4, 6, 8, 12];
 // plaintext letter and its ciphertext letter in a column, so a short text is
 // explained by any alphabet. A fit must explain this many different pairs
 // beyond its free choices. In bench/results/shared-alphabet-fit.tsv, with no
-// such bar, a shared alphabet is fitted to 129 of 8,800 texts with an
-// unrelated alphabet per column, and each of those fits explains fewer pairs
-// than it has free choices.
+// such bar, a shared alphabet is fitted to 97 of 8,800 texts with an
+// unrelated alphabet per column, and each of those fits explains at least 3
+// pairs fewer than it has free choices.
 const PAIRS_BEYOND_FREE = 4;
 
 export interface SharedAlphabetOptions {
@@ -232,7 +232,7 @@ function nullSpaceBasis(
   return basis;
 }
 
-/** All nonzero vectors spanned by a basis over Z_prime, capped for safety. */
+/** All nonzero vectors spanned by a basis over Z_prime, or none when there are more than `cap`. */
 function spannedVectors(
   basis: number[][],
   period: number,
@@ -270,7 +270,14 @@ function crt(mod2: number, mod13: number): number {
   return 0;
 }
 
-const CANDIDATE_CAP = 8192;
+// The most shift vectors tried over each prime field. Equations that leave
+// more open (over Z13, more than two free dimensions) say too little about
+// the shifts to be worth trying each one, which costs a placement by vote.
+// With this cap, bench/results/shared-alphabet-fit.tsv has the fit found on
+// all 1,999 texts of 75 or more letters per column and on 396 of 399 of 50,
+// and a text with no shared alphabet given up on in 27 ms on average at
+// period 2, in 3 ms or less at longer periods.
+const CANDIDATE_CAP = 169;
 
 /**
  * Tries to explain every ciphertext letter as `index[cipher] = index[plain] +
