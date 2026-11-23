@@ -24,9 +24,9 @@ const MIN_PAIR_COUNTS = [2, 3, 4, 6, 8, 12];
 // plaintext letter and its ciphertext letter in a column, so a short text is
 // explained by any alphabet. A fit must explain this many different pairs
 // beyond its free choices. In bench/results/shared-alphabet-fit.tsv, with no
-// such bar, a shared alphabet is fitted to 17 of 8,800 texts with an
-// unrelated alphabet per column, and each of those fits explains at least 5
-// pairs fewer than it has free choices.
+// such bar, a shared alphabet is fitted to 129 of 8,800 texts with an
+// unrelated alphabet per column, and each of those fits explains fewer pairs
+// than it has free choices.
 const PAIRS_BEYOND_FREE = 4;
 
 export interface SharedAlphabetOptions {
@@ -118,11 +118,17 @@ function majorityEdges(
  * Walks a spanning tree of the letter graph, writing each reachable letter's
  * index as base + coeff·offsets. Every edge not used by the tree becomes an
  * equation in the offsets, since both of its endpoints already have a form.
+ * Letters that no chain of edges joins fall into separate parts, each with a
+ * base of its own.
  */
 function buildForms(
   edges: Edge[],
   period: number,
-): { coeffOf: (number[] | null)[]; equations: Equation[] } {
+): {
+  coeffOf: (number[] | null)[];
+  equations: Equation[];
+  parts: number[][];
+} {
   const coeffOf: (number[] | null)[] = new Array(ALPHABET_SIZE).fill(null);
   const adjacency: Edge[][] = Array.from({ length: ALPHABET_SIZE }, () => []);
   for (const edge of edges) {
@@ -130,6 +136,7 @@ function buildForms(
     adjacency[edge.cipher].push(edge);
   }
   const equations: Equation[] = [];
+  const parts: number[][] = [];
   const zero = (): number[] => new Array<number>(period).fill(0);
 
   for (let seed = 0; seed < ALPHABET_SIZE; seed += 1) {
@@ -137,6 +144,8 @@ function buildForms(
       continue;
     }
     coeffOf[seed] = zero();
+    const part = [seed];
+    parts.push(part);
     const queue = [seed];
     while (queue.length > 0) {
       const letter = queue.shift() as number;
@@ -150,6 +159,7 @@ function buildForms(
           const next = [...coeff];
           next[edge.column] = mod(next[edge.column] + sign);
           coeffOf[other] = next;
+          part.push(other);
           queue.push(other);
         } else {
           // A second path to the same letter must agree: their coefficient
@@ -162,7 +172,7 @@ function buildForms(
       }
     }
   }
-  return { coeffOf, equations };
+  return { coeffOf, equations, parts };
 }
 
 /** Basis of the equations' null space over the prime field Z_prime. */
@@ -305,7 +315,7 @@ function fitFromEdges(
   length: number,
   minPairs: number,
 ): SharedAlphabetFit | null {
-  const { coeffOf, equations } = buildForms(edges, period);
+  const { coeffOf, equations, parts } = buildForms(edges, period);
 
   // The true offsets are a nonzero null-space vector of the cycle equations
   // whose alphabet comes out a real permutation; the trivial zero vector does
@@ -341,6 +351,7 @@ function fitFromEdges(
       }
       const fit = fitFromOffsets(
         coeffOf,
+        parts,
         cipher,
         plain,
         period,
@@ -363,13 +374,20 @@ function fitFromEdges(
 }
 
 /**
- * Places the letters that no equation reached. Every place such a letter
- * occurs beside a placed letter names the position it must have, given the
- * column's offset. The letter and free position with the most such places is
- * settled first, and the count is taken again, until no place names one.
+ * Places the groups of letters that the equations did not tie to the placed
+ * letters. A group is a part of the letter graph, whose letters lie a known
+ * number of places after its first one, or a lone letter that no equation
+ * reached. Every place a letter of a group occurs beside a placed letter
+ * names the position its group must start at, given the column's offset. The
+ * group and free start with the most such places is settled first, and the
+ * count is taken again. When no place names a start, nothing in the text
+ * ties a group to the placed letters and every free start explains the text
+ * as well, so a group of several letters takes the first.
  */
 function placeByVote(
   index: number[],
+  groups: number[][],
+  after: number[],
   cipher: number[],
   plain: number[],
   period: number,
@@ -382,38 +400,62 @@ function placeByVote(
       taken[position] = true;
     }
   }
+  const groupOf = new Array<number>(ALPHABET_SIZE).fill(-1);
+  groups.forEach((letters, group) => {
+    for (const letter of letters) {
+      groupOf[letter] = group;
+    }
+  });
+  const placed = new Array<boolean>(groups.length).fill(false);
+  const fits = (group: number, start: number): boolean =>
+    groups[group].every((letter) => !taken[mod(start + after[letter])]);
   for (;;) {
-    const votes = new Int32Array(ALPHABET_SIZE * ALPHABET_SIZE);
+    const votes = new Int32Array(groups.length * ALPHABET_SIZE);
     for (let i = 0; i < length; i += 1) {
       const p = plain[i];
       const c = cipher[i];
       const offset = offsets[i % period];
       if (index[p] < 0 && index[c] >= 0) {
-        votes[p * ALPHABET_SIZE + mod(index[c] - offset)] += 1;
+        const start = mod(index[c] - offset - after[p]);
+        votes[groupOf[p] * ALPHABET_SIZE + start] += 1;
       } else if (index[c] < 0 && index[p] >= 0) {
-        votes[c * ALPHABET_SIZE + mod(index[p] + offset)] += 1;
+        const start = mod(index[p] + offset - after[c]);
+        votes[groupOf[c] * ALPHABET_SIZE + start] += 1;
       }
     }
     let most = 0;
-    let letter = -1;
-    let position = -1;
-    for (let l = 0; l < ALPHABET_SIZE; l += 1) {
-      if (index[l] >= 0) {
+    let group = -1;
+    let start = -1;
+    for (let g = 0; g < groups.length; g += 1) {
+      if (placed[g]) {
         continue;
       }
       for (let at = 0; at < ALPHABET_SIZE; at += 1) {
-        if (!taken[at] && votes[l * ALPHABET_SIZE + at] > most) {
-          most = votes[l * ALPHABET_SIZE + at];
-          letter = l;
-          position = at;
+        if (votes[g * ALPHABET_SIZE + at] > most && fits(g, at)) {
+          most = votes[g * ALPHABET_SIZE + at];
+          group = g;
+          start = at;
         }
       }
     }
-    if (letter < 0) {
+    for (let g = 0; group < 0 && g < groups.length; g += 1) {
+      if (!placed[g] && groups[g].length > 1) {
+        for (let at = 0; group < 0 && at < ALPHABET_SIZE; at += 1) {
+          if (fits(g, at)) {
+            group = g;
+            start = at;
+          }
+        }
+      }
+    }
+    if (group < 0) {
       return;
     }
-    index[letter] = position;
-    taken[position] = true;
+    for (const letter of groups[group]) {
+      index[letter] = mod(start + after[letter]);
+      taken[index[letter]] = true;
+    }
+    placed[group] = true;
   }
 }
 
@@ -424,6 +466,7 @@ function placeByVote(
  */
 function fitFromOffsets(
   coeffOf: (number[] | null)[],
+  parts: number[][],
   cipher: number[],
   plain: number[],
   period: number,
@@ -431,26 +474,40 @@ function fitFromOffsets(
   offsets: number[],
   minPairs: number,
 ): SharedAlphabetFit | null {
-  const index = new Array<number>(ALPHABET_SIZE).fill(-1);
-  for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
-    const coeff = coeffOf[letter];
-    if (coeff !== null) {
-      index[letter] = mod(coeff.reduce((sum, v, c) => sum + v * offsets[c], 0));
+  // How many places each letter lies after the first letter of its part.
+  const after = new Array<number>(ALPHABET_SIZE).fill(0);
+  const partOf = new Array<number>(ALPHABET_SIZE).fill(-1);
+  let largest: number[] = [];
+  for (const [part, letters] of parts.entries()) {
+    for (const letter of letters) {
+      const coeff = coeffOf[letter] as number[];
+      after[letter] = mod(coeff.reduce((sum, v, c) => sum + v * offsets[c], 0));
+      partOf[letter] = part;
+    }
+    if (new Set(letters.map((letter) => after[letter])).size < letters.length) {
+      return null;
+    }
+    if (letters.length > largest.length) {
+      largest = letters;
     }
   }
-  const reached = index.filter((v) => v >= 0);
-  if (new Set(reached).size !== reached.length) {
-    return null;
+  // The largest part starts the alphabet; the other letters are placed
+  // against it.
+  const index = new Array<number>(ALPHABET_SIZE).fill(-1);
+  for (const letter of largest) {
+    index[letter] = after[letter];
   }
-  if (reached.length < ALPHABET_SIZE) {
+  if (largest.length < ALPHABET_SIZE) {
     // Wrong offsets show in the letters the equations reached, so the vote is
     // taken only for offsets that explain those.
     let covered = 0;
     let bad = 0;
     for (let i = 0; i < length; i += 1) {
-      if (index[plain[i]] >= 0 && index[cipher[i]] >= 0) {
+      const p = plain[i];
+      const c = cipher[i];
+      if (partOf[p] >= 0 && partOf[p] === partOf[c]) {
         covered += 1;
-        if (mod(index[plain[i]] + offsets[i % period]) !== index[cipher[i]]) {
+        if (mod(after[p] + offsets[i % period]) !== after[c]) {
           bad += 1;
         }
       }
@@ -458,7 +515,13 @@ function fitFromOffsets(
     if (bad > MAX_RESIDUAL * covered) {
       return null;
     }
-    placeByVote(index, cipher, plain, period, length, offsets);
+    const groups = parts.filter((letters) => letters !== largest);
+    for (let letter = 0; letter < ALPHABET_SIZE; letter += 1) {
+      if (partOf[letter] < 0) {
+        groups.push([letter]);
+      }
+    }
+    placeByVote(index, groups, after, cipher, plain, period, length, offsets);
   }
   let bad = 0;
   const explained = new Set<number>();

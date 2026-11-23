@@ -120,6 +120,26 @@ describe("reconcileSharedAlphabet", () => {
     expect(result?.decrypt(cipher)).toEqual(plain);
   });
 
+  it("fits when every shift is even, so that no pair of letters connects the two halves of the alphabet", () => {
+    // M, Y, T and H stand an even number of places after K in the KRYPTOS
+    // alphabet, so a letter is only ever enciphered as one of the 13 letters
+    // an even number of places away.
+    const config = {
+      variant: 3,
+      keyword: "KRYPTOS",
+      key: "MYTH",
+      indicator: "K",
+    } as const;
+    for (const text of [PLAIN, LONG_PLAIN]) {
+      const cipher = toValues(quagmire(text, config, "encrypt"));
+      const plain = toValues(text);
+      const result = reconcileSharedAlphabet(cipher, plain, 4);
+      expect(result).not.toBeNull();
+      expect(result?.offsets.every((offset) => offset % 2 === 0)).toBe(true);
+      expect(result?.decrypt(cipher)).toEqual(plain);
+    }
+  });
+
   it("returns null when the columns use genuinely independent alphabets", () => {
     // Encrypt each column with its own unrelated scrambled alphabet.
     const plain = toValues(PLAIN);
