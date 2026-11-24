@@ -56,6 +56,9 @@ building the commit CI tested), or on a manual run.
     The pool itself is `job-pool.ts` (jobs dealt in order to up to 8
     workers) with `job-worker.ts` as its worker side; both take any job
     type.
+  - `round-pool.ts` / `round-worker.ts` — a fixed set of workers that takes
+    work in rounds: one request to each worker, the answers gathered in
+    worker order. The two Quagmire dictionary attacks run on it.
   - `segment.ts` — word segmentation (Zipf costs over the word list plus
     inflections and unknown chunks) behind the "Split into words" toggle.
   - `solve-substitution.ts` — quadgram hill climb for one mixed alphabet.
@@ -69,7 +72,9 @@ building the commit CI tested), or on a manual run.
   - `solve-quagmire-dictionary.ts` — Quagmire I-III keyword dictionary
     attack over `public/data/english-words.txt` (google-10000-english);
     works on short texts and runs before the statistical solver, both on
-    the quagmire page and inside the auto-solver.
+    the quagmire page and inside the auto-solver. Words that build the same
+    alphabet are scanned once, and the scan is shared among workers
+    (`quagmire-dictionary-pool.ts` / `quagmire-dictionary.worker.ts`).
   - `quagmire-shifts.ts` / `solve-quagmire-dictionary-joint.ts` — the
     second dictionary pass, for text with few letters per column (Kryptos
     K1: 63 letters at period 10). For each keyword the column shifts are

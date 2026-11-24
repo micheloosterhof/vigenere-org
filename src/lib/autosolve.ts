@@ -43,6 +43,7 @@ import {
 } from "./solve-quagmire-letter-sets";
 import type { LetterSetsSolver } from "./letter-sets-pool";
 import type { JointShiftsSolver } from "./joint-shifts-pool";
+import type { DictionarySolver } from "./quagmire-dictionary-pool";
 import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import type { QuagmireIvSolver } from "./quagmire-iv-pool";
 import {
@@ -166,6 +167,8 @@ interface Options {
   onStage?: (cipher: string) => void;
   /** Runs the polyalphabetic fallback; defaults to the sequential solver on this thread. */
   solvePolyalphabetic?: PolyalphabeticSolver;
+  /** Runs the Quagmire keyword dictionary attack; defaults to the sequential solver on this thread. */
+  solveDictionary?: DictionarySolver;
   /** Runs the Quagmire letter-set scan; defaults to the sequential solver on this thread. */
   solveLetterSets?: LetterSetsSolver;
   /** Runs the joint-shift Quagmire dictionary attack; defaults to the sequential solver on this thread. */
@@ -579,7 +582,10 @@ export async function autosolve(
   // text than the general attack, and is much cheaper, so it goes first.
   if (options.words !== undefined && !readable()) {
     options.onStage?.("Quagmire");
-    const dictionary = breakQuagmireDictionary(text, options.words, table);
+    const solve: DictionarySolver =
+      options.solveDictionary ??
+      (async (t, words, tb) => breakQuagmireDictionary(t, words, tb));
+    const dictionary = await solve(text, options.words, table, {});
     if (dictionary.found) {
       pushQuagmire(dictionary);
     }

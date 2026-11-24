@@ -17,6 +17,7 @@ import {
   QUAGMIRE_LETTER_SETS_REQUIREMENTS,
 } from "./solve-quagmire-letter-sets";
 import { breakQuagmireDictionaryJointParallel } from "./joint-shifts-pool";
+import { breakQuagmireDictionaryParallel } from "./quagmire-dictionary-pool";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import { breakQuagmireIv, QUAGMIRE_IV_REQUIREMENTS } from "./solve-quagmire-iv";
 import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
@@ -48,16 +49,25 @@ scope.onmessage = async (event) => {
   const { text, table, words, period } = event.data;
   const bytes = new Uint8Array(table);
   try {
-    const dictionary = breakQuagmireDictionary(text, words, bytes, {
+    const dictionaryOptions = {
       period,
-      onProgress: (done, total) =>
+      onProgress: (done: number, total: number) =>
         scope.postMessage({
           type: "progress",
           phase: "dictionary",
           done,
           total,
         }),
-    });
+    };
+    // The word scan fans out to nested workers where the browser allows it.
+    const dictionary = canSpawnWorkers()
+      ? await breakQuagmireDictionaryParallel(
+          text,
+          words,
+          bytes,
+          dictionaryOptions,
+        )
+      : breakQuagmireDictionary(text, words, bytes, dictionaryOptions);
     if (dictionary.found) {
       scope.postMessage({ type: "result", method: "dictionary", dictionary });
       return;

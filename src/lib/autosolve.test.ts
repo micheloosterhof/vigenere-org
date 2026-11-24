@@ -26,6 +26,7 @@ import type { LetterSetsSolver } from "./letter-sets-pool";
 import { breakFractionation } from "./solve-fractionation";
 import { breakPlayfair } from "./solve-playfair";
 import { breakPolyalphabetic } from "./solve-polyalphabetic";
+import { breakQuagmireDictionary } from "./solve-quagmire-dictionary";
 import { breakQuagmireDictionaryJoint } from "./solve-quagmire-dictionary-joint";
 import { breakQuagmireIv } from "./solve-quagmire-iv";
 import { breakQuagmireLetterSets } from "./solve-quagmire-letter-sets";
@@ -171,6 +172,29 @@ describe("autosolve", () => {
       expect(result.attempts.some((a) => a.cipher === "Polyalphabetic")).toBe(
         false,
       );
+    },
+  );
+
+  it(
+    "runs the keyword dictionary attack through the solver it is given",
+    { timeout: 60000 },
+    async () => {
+      const ciphertext = quagmire(
+        PLAIN,
+        { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
+        "encrypt",
+      );
+      let calls = 0;
+      const result = await autosolve(ciphertext, TABLE, {
+        rng: mulberry32(12),
+        words: WORDS,
+        solveDictionary: async (text, list, table) => {
+          calls += 1;
+          return breakQuagmireDictionary(text, list, table);
+        },
+      });
+      expect(calls).toBe(1);
+      expect(result.best.keyLabel).toBe("keyword SPRING, key TALE");
     },
   );
 

@@ -48,12 +48,11 @@
   (`bench/results/fractionation-periods.tsv`). Six finalists would make
   that 256 and 250, at half as much time again on a text that cannot be
   solved.
-- Kryptos K1 on the Quagmire page takes 5.5 to 6.7 seconds from click to
-  answer (10 cores, 8 workers). The per-column dictionary pass
-  (`breakQuagmireDictionary`) runs first, finds nothing there, and takes 2.3
-  to 2.5 of them on one thread. The joint-shift attack takes 2.9 to 3.8: its
-  word scan 2.1 to 2.6 on the workers, the ring solutions and the annealing
-  under half a second each, the climb in between 0.2 on one thread.
+- Kryptos K1 on the Quagmire page takes 3.0 to 3.6 seconds from click to
+  answer (10 cores, 8 workers). Most of it is the word scan of the
+  joint-shift attack: 2.1 to 2.6 seconds on the workers, for 8,733
+  alphabets at 3 variants and 11 periods. The other rounds take under half
+  a second each.
 - More languages (German, French, Spanish n-gram tables from the aldegonde
   counts) — needs corpus decisions.
 - Slow-solver fuzz for Quagmire / polyalphabetic behind a slow-test tag.

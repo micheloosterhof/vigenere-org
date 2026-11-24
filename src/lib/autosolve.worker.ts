@@ -8,6 +8,7 @@ import {
   breakPlayfairParallel,
 } from "./anneal-pool";
 import { breakQuagmireDictionaryJointParallel } from "./joint-shifts-pool";
+import { breakQuagmireDictionaryParallel } from "./quagmire-dictionary-pool";
 import { breakQuagmireLetterSetsParallel } from "./letter-sets-pool";
 import { breakQuagmireIvParallel } from "./quagmire-iv-pool";
 import {
@@ -37,6 +38,9 @@ scope.onmessage = async (event) => {
       // The slow searches fan out to nested workers where the browser allows it.
       solvePolyalphabetic: canSpawnWorkers()
         ? breakPolyalphabeticParallel
+        : undefined,
+      solveDictionary: canSpawnWorkers()
+        ? breakQuagmireDictionaryParallel
         : undefined,
       solveLetterSets: canSpawnWorkers()
         ? breakQuagmireLetterSetsParallel
