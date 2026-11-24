@@ -367,7 +367,7 @@ export function finishDictionary(
 /**
  * What the keyword dictionary attack needs. Each column's shift is chosen on
  * its own letter frequencies, which takes about 24 letters per column: in
- * bench/results/quagmire-dictionary.tsv it solves 34 of 36 texts there, 26 of
+ * bench/results/quagmire-dictionary.tsv it finds 34 of 36 texts there, 22 of
  * 36 at 16 per column and 13 of 36 at 12.
  */
 export const QUAGMIRE_DICTIONARY_REQUIREMENTS: SolverRequirements = {
