@@ -5,7 +5,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { quagmire } from "./quagmire";
-import { breakQuagmireDictionary } from "./solve-quagmire-dictionary";
+import {
+  breakQuagmireDictionary,
+  distinctAlphabets,
+  finishDictionary,
+  scanDictionary,
+} from "./solve-quagmire-dictionary";
 
 const TABLE = new Uint8Array(
   readFileSync(
@@ -125,15 +130,18 @@ describe("breakQuagmireDictionary", () => {
       { variant: 3, keyword: "SPRING", key: "TALE", indicator: "A" },
       "encrypt",
     );
+    // Words that build the same alphabet are scanned once.
+    const alphabets = distinctAlphabets(WORDS).length;
+    expect(alphabets).toBeLessThan(WORDS.length);
     const seen: number[] = [];
     breakQuagmireDictionary(ciphertext, WORDS, TABLE, {
       onProgress: (done, total) => {
         seen.push(done);
-        expect(total).toBe(WORDS.length);
+        expect(total).toBe(alphabets);
       },
     });
     expect(seen.length).toBeGreaterThan(0);
-    expect(seen[seen.length - 1]).toBe(WORDS.length);
+    expect(seen[seen.length - 1]).toBe(alphabets);
   });
 
   it("honours a fixed key length", { timeout: 60000 }, () => {
@@ -152,5 +160,37 @@ describe("breakQuagmireDictionary", () => {
 
   it("throws on text with too few letters", () => {
     expect(() => breakQuagmireDictionary("ABC", WORDS, TABLE)).toThrow();
+  });
+});
+
+describe("the dictionary attack in parts", () => {
+  it(
+    "gives the same answer when the words are scanned in separate parts",
+    { timeout: 60000 },
+    () => {
+      for (const keyword of ["SPRING", "PALIMPSEST"]) {
+        const ciphertext = quagmire(
+          SHORT,
+          { variant: 3, keyword, key: "TALE", indicator: "A" },
+          "encrypt",
+        );
+        const whole = breakQuagmireDictionary(ciphertext, WORDS, TABLE);
+        const alphabets = distinctAlphabets(WORDS);
+        const candidates = [2, 0, 1].flatMap((part) =>
+          scanDictionary(
+            ciphertext,
+            alphabets.filter((_, i) => i % 3 === part),
+          ),
+        );
+        expect(finishDictionary(ciphertext, candidates, TABLE)).toEqual(whole);
+      }
+    },
+  );
+
+  it("names the shortest of the words that build the same alphabet", () => {
+    expect(distinctAlphabets(["LOOSE", "LOSE", "SOLE", "LOSES"])).toEqual([
+      "LOSE",
+      "SOLE",
+    ]);
   });
 });

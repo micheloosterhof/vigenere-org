@@ -101,6 +101,31 @@ export function variantPlans(
   ];
 }
 
+/**
+ * One word per alphabet: words with the same letters in the same first-seen
+ * order build the same alphabet, and the shortest is the keyword as written.
+ */
+export function distinctAlphabets(words: string[]): string[] {
+  const shortest = new Map<string, string>();
+  for (const word of words) {
+    const letters = [...new Set(word.toUpperCase())].join("");
+    const known = shortest.get(letters);
+    if (known === undefined || word.length < known.length) {
+      shortest.set(letters, word);
+    }
+  }
+  return [...shortest.values()];
+}
+
+/** A keyword, variant and period with the column offsets found for them and the bigram fitness of the decryption: what the word scan hands on. */
+export interface DictionaryCandidate {
+  word: string;
+  variant: DictionaryVariant;
+  period: number;
+  offsets: number[];
+  bigram: number;
+}
+
 /** A keyword, variant and period with the column offsets and fitness found for them. */
 export interface Finalist {
   word: string;
@@ -191,6 +216,21 @@ export function breakQuagmireDictionary(
   table: Uint8Array,
   options: Options = {},
 ): QuagmireDictionaryResult {
+  const candidates = scanDictionary(text, distinctAlphabets(words), options);
+  return finishDictionary(text, candidates, table);
+}
+
+/**
+ * The word scan: every keyword in `words` at every variant and period, with
+ * the best shift of each column. Returns the best by bigram fitness. The
+ * list can be scanned in parts: the best of the whole list are among the
+ * best of its parts.
+ */
+export function scanDictionary(
+  text: string,
+  words: string[],
+  options: Options = {},
+): DictionaryCandidate[] {
   const cipher = toLetterValues(text);
   if (cipher.length < MIN_LENGTH) {
     throw new Error(`text must contain at least ${MIN_LENGTH} letters`);
@@ -213,16 +253,9 @@ export function breakQuagmireDictionary(
     countsAtPeriod[period] = counts;
   }
 
-  interface Candidate {
-    word: string;
-    variant: DictionaryVariant;
-    period: number;
-    offsets: number[];
-    bigram: number;
-  }
-  const shortlist: Candidate[] = [];
+  const shortlist: DictionaryCandidate[] = [];
   let worst = -Infinity;
-  const shortlistAdd = (candidate: Candidate): void => {
+  const shortlistAdd = (candidate: DictionaryCandidate): void => {
     if (shortlist.length < SHORTLIST) {
       shortlist.push(candidate);
     } else if (candidate.bigram > worst) {
@@ -295,7 +328,23 @@ export function breakQuagmireDictionary(
     }
   });
 
-  const planFor = (candidate: Candidate): VariantPlan => {
+  return shortlist;
+}
+
+/**
+ * From the word scan's candidates to the answer: the best by bigram fitness
+ * are rescored with the quadgram table, which decides the winner.
+ */
+export function finishDictionary(
+  text: string,
+  candidates: DictionaryCandidate[],
+  table: Uint8Array,
+): QuagmireDictionaryResult {
+  const cipher = toLetterValues(text);
+  const shortlist = [...candidates]
+    .sort((a, b) => b.bigram - a.bigram)
+    .slice(0, SHORTLIST);
+  const planFor = (candidate: DictionaryCandidate): VariantPlan => {
     const alphabet = mixedAlphabet(candidate.word);
     const index = inverseAlphabet(alphabet);
     return variantPlans(alphabet, index)[candidate.variant - 1];

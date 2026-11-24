@@ -9,6 +9,7 @@ import { toLetterValues } from "./solve";
 import type { SolverRequirements } from "./solver-requirements";
 import {
   bestFinalist,
+  distinctAlphabets,
   keywordResult,
   MIN_LENGTH,
   variantPlans,
@@ -83,22 +84,6 @@ export interface JointFinalist extends JointShifted {
 function planFor(word: string, variant: DictionaryVariant): VariantPlan {
   const alphabet = mixedAlphabet(word);
   return variantPlans(alphabet, inverseAlphabet(alphabet))[variant - 1];
-}
-
-/**
- * One word per alphabet: words with the same letters in the same first-seen
- * order build the same alphabet, and the shortest is the keyword as written.
- */
-export function distinctAlphabets(words: string[]): string[] {
-  const shortest = new Map<string, string>();
-  for (const word of words) {
-    const letters = [...new Set(word.toUpperCase())].join("");
-    const known = shortest.get(letters);
-    if (known === undefined || word.length < known.length) {
-      shortest.set(letters, word);
-    }
-  }
-  return [...shortest.values()];
 }
 
 /** The `keep` best-scoring candidates, best first. */

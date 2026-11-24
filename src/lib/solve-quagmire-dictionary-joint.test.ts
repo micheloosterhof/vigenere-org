@@ -5,12 +5,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { seededRng } from "./anneal";
+import { distinctAlphabets } from "./solve-quagmire-dictionary";
 import {
   annealJointFinalists,
   breakQuagmireDictionaryJoint,
   climbJointCandidates,
   decideJoint,
-  distinctAlphabets,
   finishJoint,
   jointPeriods,
   jointShortlist,

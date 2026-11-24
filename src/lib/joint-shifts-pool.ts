@@ -5,14 +5,14 @@
 import { dealOut, gather } from "./job-pool";
 import { openRoundPool } from "./round-pool";
 import { toLetterValues } from "./solve";
-import type {
-  Finalist,
-  QuagmireDictionaryResult,
+import {
+  distinctAlphabets,
+  type Finalist,
+  type QuagmireDictionaryResult,
 } from "./solve-quagmire-dictionary";
 import {
   climbJointCandidates,
   decideJoint,
-  distinctAlphabets,
   jointPeriods,
   jointShortlist,
   type JointCandidate,
